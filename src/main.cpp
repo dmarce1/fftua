@@ -11,9 +11,7 @@
 #include "fft.hpp"
 #include "util.hpp"
 #include "types.hpp"
-
-void fft_split(complex<double>*__restrict__ X, complex<double>* __restrict__ Y, int N);
-void fft_split_simd(complex<double>* __restrict__ X, complex<double>*__restrict__ Y, int N);
+#include "fftu.hpp"
 
 void * operator new(std::size_t n) {
 	void* memptr;
@@ -43,14 +41,11 @@ double FFT(std::vector<complex<double>>& X) {
 	Y.resize(N);
 	timer tm;
 	tm.start();
-	fft_split_simd(X.data(), Y.data(), N);
+	fft(X.data(), N);
 	tm.stop();
 	return tm.read();
 }
 
-double rand1() {
-	return (rand() + 0.5) / (RAND_MAX + 1.0);
-}
 
 int permute_index(int index, int width) {
 	for (int pos = 0; pos < width; pos++) {
@@ -73,9 +68,6 @@ int permute_index(int index, int width) {
 int main(int argc, char **argv) {
 	constexpr int w = 3;
 	constexpr int N = 1 << w;
-	for (int n = 0; n < N; n++) {
-		printf("%i %i\n", n, permute_index(n, w));
-	}
 	timer tm3, tm4;
 	for (int N = 8; N <= 128 * 1024 * 1024; N *= 2) {
 		double avg_err = 0.0;
