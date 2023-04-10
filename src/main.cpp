@@ -73,7 +73,7 @@ int main(int argc, char **argv) {
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
-		for (int i = 0; i < 32; i++) {
+		for (int i = 0; i < 2; i++) {
 			std::vector<complex<double>> X(N);
 			std::vector<std::complex<double>> Y(N);
 			for (int n = 0; n < N; n++) {

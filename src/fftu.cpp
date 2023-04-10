@@ -50,19 +50,24 @@ void fft(complex<double>* X, int N) {
 				y[i][n1] = x[2 * n1 + i];
 			}
 		}
+		for (int n1 = 0; n1 < N1; n1++) {
+			for (int i = 0; i < 2; i++) {
+				x[n1 + i * N1] = y[i][n1];
+			}
+		}
 	}
-	fft_scramble((complex<fft_simd4>*) Y.data(), No4);
-	fft((complex<fft_simd4>*) Y.data(), No4);
+	fft_scramble((complex<fft_simd4>*) X, No4);
+	fft((complex<fft_simd4>*) X, No4);
 	for (int k2 = 0; k2 < No4; k2++) {
 		for (int n1 = 0; n1 < N1; n1 += SIMD_SIZE) {
-			*((complex<fft_simd4>*) (Y.data() + N1 * k2 + n1)) *= W[n1 / SIMD_SIZE][k2];
+			*((complex<fft_simd4>*) (X + N1 * k2 + n1)) *= W[n1 / SIMD_SIZE][k2];
 		}
 	}
 	for (int k2 = 0; k2 < No4; k2 += SIMD_SIZE) {
 		for (int n1 = 0; n1 < N1; n1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
-				z[n1].real()[i] = ((complex<fft_simd4>*) (Y.data() + N1 * (k2 + i) + (n1 / SIMD_SIZE)))->real()[n1 % SIMD_SIZE];
-				z[n1].imag()[i] = ((complex<fft_simd4>*) (Y.data() + N1 * (k2 + i) + (n1 / SIMD_SIZE)))->imag()[n1 % SIMD_SIZE];
+				z[n1].real()[i] = ((complex<fft_simd4>*) (X + N1 * (k2 + i) + (n1 / SIMD_SIZE)))->real()[n1 % SIMD_SIZE];
+				z[n1].imag()[i] = ((complex<fft_simd4>*) (X + N1 * (k2 + i) + (n1 / SIMD_SIZE)))->imag()[n1 % SIMD_SIZE];
 			}
 		}
 		fft_complex_simd4_4((fft_simd4*) z.data());
@@ -132,13 +137,13 @@ fft_method select_fft(int N) {
 			fft(tests[m], X.data(), N);
 			t3.stop();
 			if ((t3.read() - t1.read()) * (t1.read() - t2.read()) <= 0.0) {
-				timers[m] = 0.25 * t1.read();
+				timers[m] = 0.1 * t1.read();
 			} else if ((t3.read() - t2.read()) * (t2.read() - t1.read()) <= 0.0) {
-				timers[m] = 0.25 * t2.read();
+				timers[m] = 0.1 * t2.read();
 			} else if ((t1.read() - t3.read()) * (t3.read() - t2.read()) <= 0.0) {
-				timers[m] = 0.25 * t3.read();
+				timers[m] = 0.1 * t3.read();
 			}
-			timers[m] += 0.25 * (t1.read() + t2.read() + t3.read());
+			timers[m] += 0.9 * (t1.read() + t2.read() + t3.read());
 		}
 		fft_method best_method;
 		double best_time = std::numeric_limits<double>::max();
