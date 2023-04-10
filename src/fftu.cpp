@@ -32,49 +32,44 @@ std::string fft_method_string(const fft_method method) {
 }
 
 void fft(complex<double>* X, int N) {
-	static std::vector<complex<double>> Y;
-	Y.resize(N);
+	static std::vector<complex<fft_simd4>> Y;
+	Y.resize(N / SIMD_SIZE);
 	if (N < FFT_NMAX) {
 		fft_complex((double*) X, N);
 		return;
 	}
-	constexpr int N1 = 4;
-	const int No4 = N / 4;
+	constexpr int N1 = 16;
+	const int N2 = N / N1;
 	std::array<complex<fft_simd4>, N1> z;
-	const auto& W = vector_twiddles(N1, No4);
-	for (int n2 = 0; n2 < No4; n2++) {
-		fft_simd4* const y = (fft_simd4*) (Y.data() + n2 * N1);
-		const double* const x = (double*) (X + n2 * N1);
+	const auto& W = vector_twiddles(N1, N2);
+	for (int n2 = 0; n2 < N2; n2++) {
 		for (int n1 = 0; n1 < N1; n1++) {
-			for (int i = 0; i < 2; i++) {
-				y[i][n1] = x[2 * n1 + i];
-			}
-		}
-		for (int n1 = 0; n1 < N1; n1++) {
-			for (int i = 0; i < 2; i++) {
-				x[n1 + i * N1] = y[i][n1];
-			}
+			Y[(n1 / SIMD_SIZE) * N2 + n2].real()[n1 % SIMD_SIZE] = X[N1 * n2 + n1].real();
+			Y[(n1 / SIMD_SIZE) * N2 + n2].imag()[n1 % SIMD_SIZE] = X[N1 * n2 + n1].imag();
 		}
 	}
-	fft_scramble((complex<fft_simd4>*) X, No4);
-	fft((complex<fft_simd4>*) X, No4);
-	for (int k2 = 0; k2 < No4; k2++) {
+	for (int n1 = 0; n1 < N1; n1 += SIMD_SIZE) {
+		const int o = (n1 / SIMD_SIZE) * N2;
+		fft_scramble((complex<fft_simd4>*) Y.data() + o, N2);
+		fft((complex<fft_simd4>*) Y.data() + o, N2);
+	}
+	for (int k2 = 0; k2 < N2; k2++) {
 		for (int n1 = 0; n1 < N1; n1 += SIMD_SIZE) {
-			*((complex<fft_simd4>*) (X + N1 * k2 + n1)) *= W[n1 / SIMD_SIZE][k2];
+			Y[(n1 / SIMD_SIZE) * N2 + k2] *= W[n1 / SIMD_SIZE][k2];
 		}
 	}
-	for (int k2 = 0; k2 < No4; k2 += SIMD_SIZE) {
+	for (int k2 = 0; k2 < N2; k2 += SIMD_SIZE) {
 		for (int n1 = 0; n1 < N1; n1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
-				z[n1].real()[i] = ((complex<fft_simd4>*) (X + N1 * (k2 + i) + (n1 / SIMD_SIZE)))->real()[n1 % SIMD_SIZE];
-				z[n1].imag()[i] = ((complex<fft_simd4>*) (X + N1 * (k2 + i) + (n1 / SIMD_SIZE)))->imag()[n1 % SIMD_SIZE];
+				z[n1].real()[i] = Y[(n1 / SIMD_SIZE) * N2 + k2 + i].real()[n1 % SIMD_SIZE];
+				z[n1].imag()[i] = Y[(n1 / SIMD_SIZE) * N2 + k2 + i].imag()[n1 % SIMD_SIZE];
 			}
 		}
-		fft_complex_simd4_4((fft_simd4*) z.data());
+		fft_complex_simd4((fft_simd4*) z.data(), N1);
 		for (int k1 = 0; k1 < N1; k1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
-				X[k1 * No4 + k2 + i].real() = z[k1].real()[i];
-				X[k1 * No4 + k2 + i].imag() = z[k1].imag()[i];
+				X[k1 * N2 + k2 + i].real() = z[k1].real()[i];
+				X[k1 * N2 + k2 + i].imag() = z[k1].imag()[i];
 			}
 		}
 	}
