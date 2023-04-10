@@ -47,27 +47,6 @@ void fft_split_indices(int R, int* I, int N) {
 }
 
 
-struct scratch_space {
-	std::vector<complex<fft_simd4>> ze;
-	std::vector<complex<fft_simd4>> zo;
-};
-
-static std::stack<scratch_space> spaces;
-
-static void destroy_scratch(scratch_space&& space) {
-	spaces.push(std::move(space));
-}
-
-static scratch_space create_scratch(int N) {
-	scratch_space space;
-	if (spaces.size()) {
-		space = std::move(spaces.top());
-		spaces.pop();
-	}
-	space.ze.resize(N);
-	space.zo.resize(N);
-	return space;
-}
 
 void fft_split(int R, complex<fft_simd4>* X, int N) {
 	if (N < FFT_NMAX) {
@@ -77,9 +56,9 @@ void fft_split(int R, complex<fft_simd4>* X, int N) {
 	const int N1 = R;
 	const int N1o2 = N1 / 2;
 	const int N1o4 = N1 / 4;
-	auto scratch = create_scratch(N1o2);
-	auto& ze = scratch.ze;
-	auto& zo = scratch.zo;
+	std::vector<complex<fft_simd4>> scratch = create_scratch(2 * N1o2);
+	complex<fft_simd4>* ze = scratch.data();
+	complex<fft_simd4>* zo = scratch.data() + N1o2;
 	const int N2 = N / N1;
 	const auto& W = twiddles(N);
 	const int No2 = N / 2;
@@ -97,7 +76,7 @@ void fft_split(int R, complex<fft_simd4>* X, int N) {
 			zo[n1] = X[No2 + N2 * n1 + k2] * w;
 			zo[N1o2 - 1 - n1] = X[No2 + N2 * (N1o2 - 1 - n1) + k2] * w.conj();
 		}
-		fft_complex_odd_simd4((fft_simd4*) zo.data(), N1);
+		fft_complex_odd_simd4((fft_simd4*) zo, N1);
 		for (int k1 = 0; k1 < N1o2; k1++) {
 			X[k1 * N2 + k2] = ze[k1] + zo[k1];
 			X[k1 * N2 + No2 + k2] = ze[k1] - zo[k1];

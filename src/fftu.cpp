@@ -73,6 +73,7 @@ void fft(complex<double>* X, int N) {
 			}
 		}
 	}
+	Y.resize(0);
 }
 
 std::vector<fft_method> possible_ffts(int N) {
@@ -190,7 +191,6 @@ void fft_scramble(complex<fft_simd4>* X, int N) {
 	}
 	const auto& I = iter->second;
 	static std::vector<bool> flag;
-	flag.resize(0);
 	flag.resize(N, false);
 	for (int n = 0; n < N; n++) {
 		if (!flag[n]) {
@@ -205,5 +205,6 @@ void fft_scramble(complex<fft_simd4>* X, int N) {
 			X[n] = tmp;
 		}
 	}
+	flag.resize(0);
 }
 

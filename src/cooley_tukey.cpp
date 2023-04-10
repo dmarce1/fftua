@@ -25,32 +25,12 @@ void fft_cooley_tukey_indices(int N1, int* I, int N) {
 	std::memcpy(I, J.data(), sizeof(int) * N);
 }
 
-struct scratch_space {
-	std::vector<complex<fft_simd4>> z;
-};
-
-static std::stack<scratch_space> spaces;
-
-static void destroy_scratch(scratch_space&& space) {
-	spaces.push(std::move(space));
-}
-
-static scratch_space create_scratch(int N) {
-	scratch_space space;
-	if (spaces.size()) {
-		space = std::move(spaces.top());
-		spaces.pop();
-	}
-	space.z.resize(N);
-	return space;
-}
 
 void fft_cooley_tukey(int N1, complex<fft_simd4>* X, int N) {
 	const int N2 = N / N1;
 	const int No2 = N / 2;
 	const auto& W = twiddles(N);
-	auto scratch = create_scratch(N1);
-	auto& z = scratch.z;
+	auto z = create_scratch(N1);
 	const int N1o2 = N1 / 2;
 	for (int n1 = 0; n1 < N1; n1++) {
 		fft(X + N2 * n1, N2);
@@ -69,5 +49,5 @@ void fft_cooley_tukey(int N1, complex<fft_simd4>* X, int N) {
 			X[N2 * k1 + k2] = z[k1];
 		}
 	}
-	destroy_scratch(std::move(scratch));
+	destroy_scratch(std::move(z));
 }

@@ -10,6 +10,7 @@
 #include <fftw3.h>
 #include <cassert>
 #include <memory>
+#include <stack>
 #include "types.hpp"
 #include "util.hpp"
 
@@ -117,7 +118,8 @@ double fftw(std::vector<std::complex<double>>& x) {
 	if (plans.find(N) == plans.end()) {
 		in[N] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
 		out[N] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
-		plans[N] = fftw_plan_dft_1d(N, in[N], out[N], FFTW_FORWARD, FFTW_MEASURE | FFTW_NO_SIMD);
+		//out[N] = in[N];
+		plans[N] = fftw_plan_dft_1d(N, in[N], out[N], FFTW_FORWARD, FFTW_MEASURE);
 	}
 	auto* i = in[N];
 	auto* o = out[N];
@@ -341,4 +343,24 @@ bool are_coprime(int a, int b) {
 		}
 	}
 	return true;
+}
+
+
+static std::vector<std::stack<std::vector<complex<fft_simd4>>>> spaces(32);
+
+void destroy_scratch(std::vector<complex<fft_simd4>>&& space) {
+	const int i = ilogb(space.size());
+	space.resize(0);
+	spaces[i].push(std::move(space));
+}
+
+std::vector<complex<fft_simd4>> create_scratch(int N) {
+	const int i = ilogb(N);
+	std::vector<complex<fft_simd4>> space;
+	if (spaces[i].size()) {
+		space = std::move(spaces[i].top());
+		spaces[i].pop();
+	}
+	space.resize(N);
+	return space;
 }
