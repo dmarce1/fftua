@@ -94,8 +94,6 @@ void fft_split(complex<fft_simd4>* X, int N) {
 
 void fft_split(int N1, complex<fft_simd4>* X, int N) {
 	switch(N1) {
-	case 2:
-		return fft_split<2>(X, N);
 	case 4:
 		return fft_split<4>(X, N);
 	case 8:
