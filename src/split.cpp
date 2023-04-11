@@ -49,10 +49,6 @@ void fft_split_indices(int R, int* I, int N) {
 
 
 void fft_split(int R, complex<fft_simd4>* X, int N) {
-	if (N < FFT_NMAX) {
-		fft_complex_simd4((fft_simd4*) X, N);
-		return;
-	}
 	const int N1 = R;
 	const int N1o2 = N1 / 2;
 	const int N1o4 = N1 / 4;
@@ -76,7 +72,20 @@ void fft_split(int R, complex<fft_simd4>* X, int N) {
 			zo[n1] = X[No2 + N2 * n1 + k2] * w;
 			zo[N1o2 - 1 - n1] = X[No2 + N2 * (N1o2 - 1 - n1) + k2] * w.conj();
 		}
-		fft_complex_odd_simd4((fft_simd4*) zo, N1);
+		switch(N1) {
+		case 4:
+			fft_complex_odd_4((fft_simd4*) zo);
+			break;
+		case 8:
+			fft_complex_odd_8((fft_simd4*) zo);
+			break;
+		case 16:
+			fft_complex_odd_16((fft_simd4*) zo);
+			break;
+		case 32:
+			fft_complex_odd_32((fft_simd4*) zo);
+			break;
+		}
 		for (int k1 = 0; k1 < N1o2; k1++) {
 			X[k1 * N2 + k2] = ze[k1] + zo[k1];
 			X[k1 * N2 + No2 + k2] = ze[k1] - zo[k1];

@@ -34,8 +34,19 @@ std::string fft_method_string(const fft_method method) {
 void fft(complex<double>* X, int N) {
 	static std::vector<complex<fft_simd4>> Y;
 	Y.resize(N / SIMD_SIZE);
-	if (N < FFT_NMAX) {
-		fft_complex((double*) X, N);
+	if (N <= FFT_NMAX) {
+		switch (N) {
+		case 2:
+			return fft_complex_2((double*) X);
+		case 4:
+			return fft_complex_4((double*) X);
+		case 8:
+			return fft_complex_8((double*) X);
+		case 16:
+			return fft_complex_16((double*) X);
+		case 32:
+			return fft_complex_32((double*) X);
+		}
 		return;
 	}
 	constexpr int N1 = 16;
@@ -65,7 +76,7 @@ void fft(complex<double>* X, int N) {
 				z[n1].imag()[i] = Y[(n1 / SIMD_SIZE) * N2 + k2 + i].imag()[n1 % SIMD_SIZE];
 			}
 		}
-		fft_complex_simd4((fft_simd4*) z.data(), N1);
+		fft_complex_16((fft_simd4*) z.data());
 		for (int k1 = 0; k1 < N1; k1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
 				X[k1 * N2 + k2 + i].real() = z[k1].real()[i];
@@ -122,24 +133,13 @@ fft_method select_fft(int N) {
 		std::vector<double> timers(M);
 		for (int m = 0; m < M; m++) {
 			fft(tests[m], X.data(), N);
-			timer t1, t2, t3;
-			t1.start();
-			fft(tests[m], X.data(), N);
-			t1.stop();
-			t2.start();
-			fft(tests[m], X.data(), N);
-			t2.stop();
-			t3.start();
-			fft(tests[m], X.data(), N);
-			t3.stop();
-			if ((t3.read() - t1.read()) * (t1.read() - t2.read()) <= 0.0) {
-				timers[m] = 0.1 * t1.read();
-			} else if ((t3.read() - t2.read()) * (t2.read() - t1.read()) <= 0.0) {
-				timers[m] = 0.1 * t2.read();
-			} else if ((t1.read() - t3.read()) * (t3.read() - t2.read()) <= 0.0) {
-				timers[m] = 0.1 * t3.read();
+			timer tm;
+			tm.start();
+			for( int n = 0; n < 10; n++) {
+				fft(tests[m], X.data(), N);
 			}
-			timers[m] += 0.9 * (t1.read() + t2.read() + t3.read());
+			tm.stop();
+			timers[m] = tm.read();
 		}
 		fft_method best_method;
 		double best_time = std::numeric_limits<double>::max();
@@ -159,7 +159,18 @@ fft_method select_fft(int N) {
 
 void fft(complex<fft_simd4>* X, int N) {
 	if (N <= FFT_NMAX) {
-		fft_complex_simd4((fft_simd4*) X, N);
+		switch (N) {
+		case 2:
+			return fft_complex_2((fft_simd4*) X);
+		case 4:
+			return fft_complex_4((fft_simd4*) X);
+		case 8:
+			return fft_complex_8((fft_simd4*) X);
+		case 16:
+			return fft_complex_16((fft_simd4*) X);
+		case 32:
+			return fft_complex_32((fft_simd4*) X);
+		}
 		return;
 	}
 	fft(select_fft(N), X, N);
