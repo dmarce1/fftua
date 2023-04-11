@@ -111,7 +111,9 @@ void fft(complex<double>* X, int N) {
 		fft<4>(X, N);
 		fft<8>(X, N);
 		fft<16>(X, N);
-		fft<32>(X, N);
+		if (N >= 128) {
+			fft<32>(X, N);
+		}
 		timer tm;
 		double best_time = 1e99;
 		tm.start();
@@ -136,17 +138,19 @@ void fft(complex<double>* X, int N) {
 			best = 16;
 		}
 		tm.reset();
-		tm.start();
-		fft<32>(X, N);
-		tm.stop();
-		if (best_time > tm.read()) {
-			best_time = tm.read();
-			best = 32;
+		if (N >= 128) {
+			tm.start();
+			fft<32>(X, N);
+			tm.stop();
+			if (best_time > tm.read()) {
+				best_time = tm.read();
+				best = 32;
+			}
+			tm.reset();
 		}
-		tm.reset();
 		cache[N] = best;
 		iter = cache.find(N);
-		printf( "simd width = %i\n", cache[N]);
+		printf("simd width = %i\n", cache[N]);
 	}
 	switch (cache[N]) {
 	case 4:
