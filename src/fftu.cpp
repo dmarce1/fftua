@@ -118,11 +118,15 @@ void fft(complex<double>* X, int N) {
 		double best_time = 1e99;
 		tm.start();
 		fft<4>(X, N);
+		fft<4>(X, N);
+		fft<4>(X, N);
 		tm.stop();
 		best_time = tm.read();
 		best = 4;
 		tm.reset();
 		tm.start();
+		fft<8>(X, N);
+		fft<8>(X, N);
 		fft<8>(X, N);
 		tm.stop();
 		if (best_time > tm.read()) {
@@ -132,6 +136,8 @@ void fft(complex<double>* X, int N) {
 		tm.reset();
 		tm.start();
 		fft<16>(X, N);
+		fft<16>(X, N);
+		fft<16>(X, N);
 		tm.stop();
 		if (best_time > tm.read()) {
 			best_time = tm.read();
@@ -140,6 +146,8 @@ void fft(complex<double>* X, int N) {
 		tm.reset();
 		if (N >= 128) {
 			tm.start();
+			fft<32>(X, N);
+			fft<32>(X, N);
 			fft<32>(X, N);
 			tm.stop();
 			if (best_time > tm.read()) {
