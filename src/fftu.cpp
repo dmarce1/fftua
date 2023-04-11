@@ -52,16 +52,16 @@ void fft(complex<double>* X, int N) {
 	constexpr int N1 = 16;
 	const int N2 = N / N1;
 	std::array<complex<fft_simd4>, N1> z;
+	const auto I = fft_indices(N2);
 	const auto& W = vector_twiddles(N1, N2);
 	for (int n2 = 0; n2 < N2; n2++) {
 		for (int n1 = 0; n1 < N1; n1++) {
-			Y[(n1 / SIMD_SIZE) * N2 + n2].real()[n1 % SIMD_SIZE] = X[N1 * n2 + n1].real();
-			Y[(n1 / SIMD_SIZE) * N2 + n2].imag()[n1 % SIMD_SIZE] = X[N1 * n2 + n1].imag();
+			Y[(n1 / SIMD_SIZE) * N2 + I[n2]].real()[n1 % SIMD_SIZE] = X[N1 * n2 + n1].real();
+			Y[(n1 / SIMD_SIZE) * N2 + I[n2]].imag()[n1 % SIMD_SIZE] = X[N1 * n2 + n1].imag();
 		}
 	}
 	for (int n1 = 0; n1 < N1; n1 += SIMD_SIZE) {
 		const int o = (n1 / SIMD_SIZE) * N2;
-		fft_scramble((complex<fft_simd4>*) Y.data() + o, N2);
 		fft((complex<fft_simd4>*) Y.data() + o, N2);
 	}
 	for (int k2 = 0; k2 < N2; k2++) {
@@ -181,6 +181,23 @@ void fft_indices(int* I, int N) {
 		return;
 	}
 	fft_indices(select_fft(N), I, N);
+}
+
+const std::vector<int>& fft_indices(int N) {
+	static std::unordered_map<int, std::vector<int>> cache;
+	auto iter = cache.find(N);
+	if (iter == cache.end()) {
+		std::vector<int> I(N);
+		std::vector<int> J(N);
+		std::iota(I.begin(), I.end(), 0);
+		fft_indices(I.data(), N);
+		for (int n = 0; n < N; n++) {
+			J[I[n]] = n;
+		}
+		cache[N] = std::move(J);
+		iter = cache.find(N);
+	}
+	return iter->second;
 }
 
 void fft_scramble(complex<fft_simd4>* X, int N) {

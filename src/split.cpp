@@ -48,13 +48,12 @@ void fft_split_indices(int R, int* I, int N) {
 
 
 
-void fft_split(int R, complex<fft_simd4>* X, int N) {
-	const int N1 = R;
-	const int N1o2 = N1 / 2;
-	const int N1o4 = N1 / 4;
-	std::vector<complex<fft_simd4>> scratch = create_scratch(2 * N1o2);
-	complex<fft_simd4>* ze = scratch.data();
-	complex<fft_simd4>* zo = scratch.data() + N1o2;
+template<int N1>
+void fft_split(complex<fft_simd4>* X, int N) {
+	constexpr int N1o2 = N1 / 2;
+	constexpr int N1o4 = N1 / 4;
+	std::array<complex<fft_simd4>, N1o2> ze;
+	std::array<complex<fft_simd4>, N1o2> zo;
 	const int N2 = N / N1;
 	const auto& W = twiddles(N);
 	const int No2 = N / 2;
@@ -74,16 +73,16 @@ void fft_split(int R, complex<fft_simd4>* X, int N) {
 		}
 		switch(N1) {
 		case 4:
-			fft_complex_odd_4((fft_simd4*) zo);
+			fft_complex_odd_4((fft_simd4*) zo.data());
 			break;
 		case 8:
-			fft_complex_odd_8((fft_simd4*) zo);
+			fft_complex_odd_8((fft_simd4*) zo.data());
 			break;
 		case 16:
-			fft_complex_odd_16((fft_simd4*) zo);
+			fft_complex_odd_16((fft_simd4*) zo.data());
 			break;
 		case 32:
-			fft_complex_odd_32((fft_simd4*) zo);
+			fft_complex_odd_32((fft_simd4*) zo.data());
 			break;
 		}
 		for (int k1 = 0; k1 < N1o2; k1++) {
@@ -91,6 +90,19 @@ void fft_split(int R, complex<fft_simd4>* X, int N) {
 			X[k1 * N2 + No2 + k2] = ze[k1] - zo[k1];
 		}
 	}
-	destroy_scratch(std::move(scratch));
 }
 
+void fft_split(int N1, complex<fft_simd4>* X, int N) {
+	switch(N1) {
+	case 2:
+		return fft_split<2>(X, N);
+	case 4:
+		return fft_split<4>(X, N);
+	case 8:
+		return fft_split<8>(X, N);
+	case 16:
+		return fft_split<16>(X, N);
+	case 32:
+		return fft_split<32>(X, N);
+	}
+}
