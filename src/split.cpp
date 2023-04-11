@@ -15,7 +15,7 @@ int bsqrt(int N) {
 }
 
 void fft_split_indices(int R, int* I, int N) {
-	if (N < FFT_NMAX) {
+	if (N <= FFT_NMAX) {
 		return;
 	}
 	const int N1 = R;
@@ -47,18 +47,12 @@ void fft_split_indices(int R, int* I, int N) {
 }
 
 
-
-void fft_split(int R, complex<fft_simd4>* X, int N) {
-	if (N < FFT_NMAX) {
-		fft_complex_simd4((fft_simd4*) X, N);
-		return;
-	}
-	const int N1 = R;
-	const int N1o2 = N1 / 2;
-	const int N1o4 = N1 / 4;
-	std::vector<complex<fft_simd4>> scratch = create_scratch(2 * N1o2);
-	complex<fft_simd4>* ze = scratch.data();
-	complex<fft_simd4>* zo = scratch.data() + N1o2;
+template<int N1>
+void fft_split(complex<fft_simd4>* X, int N) {
+	constexpr int N1o2 = N1 / 2;
+	constexpr int N1o4 = N1 / 4;
+	std::array<complex<fft_simd4>, N1> ze;
+	std::array<complex<fft_simd4>, N1> zo;
 	const int N2 = N / N1;
 	const auto& W = twiddles(N);
 	const int No2 = N / 2;
@@ -71,17 +65,51 @@ void fft_split(int R, complex<fft_simd4>* X, int N) {
 		for (int n1 = 0; n1 < N1o2; n1++) {
 			ze[n1] = X[n1 * N2 + k2];
 		}
+		const int twok2 = 2 * k2;
+		int wi = k2;
+		int m1 = N1o2 - 1;
+		int p = No2 + k2;
+		int q = No2 + N2 * m1 + k2;
 		for (int n1 = 0; n1 < N1o4; n1++) {
-			const auto& w = W[(2 * n1 + 1) * k2];
-			zo[n1] = X[No2 + N2 * n1 + k2] * w;
-			zo[N1o2 - 1 - n1] = X[No2 + N2 * (N1o2 - 1 - n1) + k2] * w.conj();
+			const auto& w = W[wi];
+			zo[n1] = X[p] * w;
+			zo[m1] = X[q] * w.conj();
+			wi += twok2;
+			m1--;
+			p += N2;
+			q -= N2;
 		}
-		fft_complex_odd_simd4((fft_simd4*) zo, N1);
+		if (N1 == 4) {
+			fft_complex_odd_exe_4((fft_simd4*) zo.data());
+		} else if (N1 == 8) {
+			fft_complex_odd_exe_8((fft_simd4*) zo.data());
+		} else if (N1 == 16) {
+			fft_complex_odd_exe_16((fft_simd4*) zo.data());
+		} else if (N1 == 32) {
+			fft_complex_odd_exe_32((fft_simd4*) zo.data());
+		}
+		p = k2;
 		for (int k1 = 0; k1 < N1o2; k1++) {
-			X[k1 * N2 + k2] = ze[k1] + zo[k1];
-			X[k1 * N2 + No2 + k2] = ze[k1] - zo[k1];
+			const auto& e = ze[k1];
+			const auto& o = zo[k1];
+			X[p] = e + o;
+			X[p + No2] = e - o;
+			p += N2;
 		}
 	}
-	destroy_scratch(std::move(scratch));
 }
 
+void fft_split(int R, complex<fft_simd4>* X, int N) {
+	switch (R) {
+	case 4:
+		return fft_split<4>(X, N);
+	case 8:
+		return fft_split<8>(X, N);
+	case 16:
+		return fft_split<16>(X, N);
+	case 32:
+		return fft_split<32>(X, N);
+	case 64:
+		return fft_split<64>(X, N);
+	}
+}
