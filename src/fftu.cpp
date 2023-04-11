@@ -10,6 +10,7 @@
 
 #define FFT_SPLIT 0
 #define FFT_CT 1
+#define FFT_6 2
 
 struct fft_method {
 	int type;
@@ -24,6 +25,9 @@ std::string fft_method_string(const fft_method method) {
 		break;
 	case FFT_CT:
 		str = "cooley-tukey-" + std::to_string(method.R);
+		break;
+	case FFT_6:
+		str = "6-step";
 		break;
 	default:
 		assert(false);
@@ -98,6 +102,8 @@ std::vector<fft_method> possible_ffts(int N) {
 	for (m.R = 2; m.R <= FFT_NMAX; m.R *= 2) {
 		ffts.push_back(m);
 	}
+	m.type = FFT_6;
+	ffts.push_back(m);
 	return ffts;
 }
 
@@ -107,6 +113,8 @@ void fft(const fft_method& method, complex<fft_simd4>* X, int N) {
 		return fft_split(method.R, X, N);
 	case FFT_CT:
 		return fft_cooley_tukey(method.R, X, N);
+	case FFT_6:
+		return fft_six_step(X, N);
 	}
 }
 
@@ -116,6 +124,8 @@ void fft_indices(const fft_method& method, int* I, int N) {
 		return fft_split_indices(method.R, I, N);
 	case FFT_CT:
 		return fft_cooley_tukey_indices(method.R, I, N);
+	case FFT_6:
+		return fft_six_step_indices(I, N);
 	}
 }
 
