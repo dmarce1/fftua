@@ -69,11 +69,13 @@ int main(int argc, char **argv) {
 	constexpr int w = 3;
 	constexpr int N = 1 << w;
 	timer tm3, tm4;
-	for (int N = 8; N <= 128 * 1024 * 1024; N *= 2) {
+	double t3 = 0.0;
+	double t4 = 0.0;
+	for (int N = 8; N <= 1024 * 1024; N *= 2) {
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 11; i++) {
 			std::vector<complex<double>> X(N);
 			std::vector<std::complex<double>> Y(N);
 			for (int n = 0; n < N; n++) {
@@ -84,8 +86,12 @@ int main(int argc, char **argv) {
 				fftw(Y);
 				FFT(X);
 			} else {
-				t1 += fftw(Y);
-				t2 += FFT(X);
+				auto a = fftw(Y);
+				auto b = FFT(X);
+				t1 += a;
+				t3 += a;
+				t2 += b;
+				t4 += b;
 			}
 			for (int n = 0; n < N; n++) {
 				double x = X[n].real() - Y[n].real();
@@ -101,7 +107,7 @@ int main(int argc, char **argv) {
 		for (auto i = pfac.begin(); i != pfac.end(); i++) {
 			f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
 		}
-		printf("%i: %32s | %e %e %e %e\n", N, f.c_str(), avg_err, t1, t2, t1 / t2);
+		printf("%i: %32s | %e %e %e %e %e\n", N, f.c_str(), avg_err, t1, t2, t1 / t2, t4);
 	}
 	return 0;
 }

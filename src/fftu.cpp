@@ -95,7 +95,7 @@ std::vector<fft_method> possible_ffts(int N) {
 		ffts.push_back(m);
 	}
 	m.type = FFT_CT;
-	for (m.R = 2; m.R < sqrt(N); m.R *= 2) {
+	for (m.R = 2; m.R <= FFT_NMAX; m.R *= 2) {
 		ffts.push_back(m);
 	}
 	return ffts;
