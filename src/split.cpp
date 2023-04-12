@@ -47,7 +47,7 @@ void fft_split_indices(int R, int* I, int N) {
 }
 
 template<int N1>
-void fft_split(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
+void fft_split(complex<fft_simd4>* X, int N) {
 	constexpr int N1o2 = N1 / 2;
 	constexpr int N1o4 = N1 / 4;
 	std::array<complex<fft_simd4>, N1o2> ze;
@@ -55,10 +55,10 @@ void fft_split(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
 	const int N2 = N / N1;
 	const auto& W = twiddles(N);
 	const int No2 = N / 2;
-	fft(X, Y, No2);
+	fft(X, No2);
 	for (int n1 = 0; n1 < N1o2; n1++) {
 		int o = No2 + N2 * n1;
-		fft(X + o, Y + o, N2);
+		fft(X + o, N2);
 	}
 	int k2pNo2 = No2;
 	for (int k2 = 0; k2 < N2; k2++) {
@@ -82,17 +82,17 @@ void fft_split(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
 	}
 }
 
-void fft_split(int N1, complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
+void fft_split(int N1, complex<fft_simd4>* X, int N) {
 	switch (N1) {
 	case 4:
-		return fft_split<4>(X, Y, N);
+		return fft_split<4>(X, N);
 	case 8:
-		return fft_split<8>(X, Y, N);
+		return fft_split<8>(X, N);
 	case 16:
-		return fft_split<16>(X, Y, N);
+		return fft_split<16>(X, N);
 	case 32:
-		return fft_split<32>(X, Y, N);
+		return fft_split<32>(X, N);
 	case 64:
-		return fft_split<64>(X, Y, N);
+		return fft_split<64>(X, N);
 	}
 }

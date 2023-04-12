@@ -22,11 +22,11 @@ void fft_six_step_indices(int* I, int N) {
 	}
 }
 
-void fft_six_step(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
+void fft_six_step(complex<fft_simd4>* X, int N) {
 	const int M = (1 << (ilogb(N) >> 1));
 	const auto& W = twiddles(N);
 	for (int n = 0; n < M; n++) {
-		fft(X + n * M, Y, M);
+		fft(X + n * M, M);
 	}
 	for (int n = 1; n < M; n++) {
 		X[M * n + n] *= W[n * n];
@@ -40,7 +40,7 @@ void fft_six_step(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
 	}
 	for (int n = 0; n < M; n++) {
 		fft_scramble(X + n * M, M);
-		fft(X + n * M, Y, M);
+		fft(X + n * M, M);
 	}
 	for (int n = 0; n < M; n++) {
 		for (int m = n + 1; m < M; m++) {

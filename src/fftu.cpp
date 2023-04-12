@@ -37,13 +37,11 @@ std::string fft_method_string(const fft_method method) {
 template<int N1>
 void fft(complex<double>* X, int N) {
 	static std::vector<complex<fft_simd4>> Y;
-	static std::vector<complex<fft_simd4>> Z;
 	if (N <= SFFT_NMAX) {
 		sfft_complex((double*) X, N);
 		return;
 	}
 	Y.resize(N / SIMD_SIZE);
-	Z.resize(N / SIMD_SIZE);
 	const int N2 = N / N1;
 	std::array<complex<fft_simd4>, N1> z;
 	const auto& I = fft_indices(N2);
@@ -59,7 +57,7 @@ void fft(complex<double>* X, int N) {
 	}
 	for (int n1 = 0; n1 < N1; n1 += SIMD_SIZE) {
 		const int o = (n1 / SIMD_SIZE) * N2;
-		fft((complex<fft_simd4>*) Y.data() + o, (complex<fft_simd4>*) Z.data() + o, N2);
+		fft((complex<fft_simd4>*) Y.data() + o, N2);
 	}
 	for (int k2 = 0; k2 < N2; k2++) {
 		for (int n1 = 0; n1 < N1; n1 += SIMD_SIZE) {
@@ -76,20 +74,7 @@ void fft(complex<double>* X, int N) {
 				}
 			}
 		}
-		switch (N1) {
-		case 4:
-			fft_complex_4((fft_simd4*) z.data());
-			break;
-		case 8:
-			fft_complex_8((fft_simd4*) z.data());
-			break;
-		case 16:
-			fft_complex_16((fft_simd4*) z.data());
-			break;
-		case 32:
-			fft_complex_32((fft_simd4*) z.data());
-			break;
-		}
+		sfft_complex((fft_simd4*) z.data(), N1);
 		for (int k1 = 0; k1 < N1; k1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
 				X[k1 * N2 + k2 + i].real() = z[k1].real()[i];
@@ -100,74 +85,7 @@ void fft(complex<double>* X, int N) {
 }
 
 void fft(complex<double>* X, int N) {
-	static std::unordered_map<int, int> cache;
-	auto iter = cache.find(N);
-	if (iter == cache.end()) {
-		std::vector<complex<double>> Y(N);
-		auto* X = Y.data();
-		int best;
-		fft<4>(X, N);
-		fft<8>(X, N);
-		fft<16>(X, N);
-		if (N >= 128) {
-			fft<32>(X, N);
-		}
-		timer tm;
-		double best_time = 1e99;
-		tm.start();
-		for (int n = 0; n < 10; n++) {
-			fft<4>(X, N);
-		}
-		tm.stop();
-		best_time = tm.read();
-		best = 4;
-		tm.reset();
-		tm.start();
-		for (int n = 0; n < 10; n++) {
-			fft<8>(X, N);
-		}
-		tm.stop();
-		if (best_time > tm.read()) {
-			best_time = tm.read();
-			best = 8;
-		}
-		tm.reset();
-		tm.start();
-		for (int n = 0; n < 10; n++) {
-			fft<16>(X, N);
-		}
-		tm.stop();
-		if (best_time > tm.read()) {
-			best_time = tm.read();
-			best = 16;
-		}
-		tm.reset();
-		if (N >= 128) {
-			tm.start();
-			for (int n = 0; n < 10; n++) {
-				fft<32>(X, N);
-			}
-			tm.stop();
-			if (best_time > tm.read()) {
-				best_time = tm.read();
-				best = 32;
-			}
-			tm.reset();
-		}
-		cache[N] = best;
-		iter = cache.find(N);
-		printf("simd width = %i\n", cache[N]);
-	}
-	switch (cache[N]) {
-	case 4:
-		return fft<4>(X, N);
-	case 8:
-		return fft<8>(X, N);
-	case 16:
-		return fft<16>(X, N);
-	case 32:
-		return fft<32>(X, N);
-	}
+	fft<4>(X, N);
 }
 
 std::vector<fft_method> possible_ffts(int N) {
@@ -189,14 +107,14 @@ std::vector<fft_method> possible_ffts(int N) {
 	return ffts;
 }
 
-void fft(const fft_method& method, complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
+void fft(const fft_method& method, complex<fft_simd4>* X, int N) {
 	switch (method.type) {
 	case FFT_SPLIT:
-		return fft_split(method.R, X, Y, N);
+		return fft_split(method.R, X, N);
 	case FFT_CT:
-		return fft_cooley_tukey(method.R, X, Y, N);
+		return fft_cooley_tukey(method.R, X, N);
 	case FFT_6:
-		return fft_six_step(X, Y, N);
+		return fft_six_step(X, N);
 	}
 }
 
@@ -216,7 +134,6 @@ fft_method select_fft(int N) {
 	auto iter = cache.find(N);
 	if (iter == cache.end()) {
 		std::vector<complex<fft_simd4>> X(N);
-		std::vector<complex<fft_simd4>> Y(N);
 		for (int n = 0; n < N; n++) {
 			X[n].real() = rand1();
 			X[n].imag() = rand1();
@@ -225,13 +142,13 @@ fft_method select_fft(int N) {
 		const int M = tests.size();
 		std::vector<double> timers(M);
 		for (int m = 0; m < M; m++) {
-			fft(tests[m], X.data(), Y.data(), N);
+			fft(tests[m], X.data(), N);
 			double best = -1.0;
 			double worst = 1e99;
 			for (int n = 0; n < 20; n++) {
 				timer tm;
 				tm.start();
-				fft(tests[m], X.data(), Y.data(), N);
+				fft(tests[m], X.data(), N);
 				tm.stop();
 				auto t = tm.read();
 				timers[m] += t;
@@ -257,12 +174,12 @@ fft_method select_fft(int N) {
 	return iter->second;
 }
 
-void fft(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
+void fft(complex<fft_simd4>* X, int N) {
 	if (N <= SFFT_NMAX) {
 		sfft_complex((fft_simd4*) X, N);
 		return;
 	}
-	fft(select_fft(N), X, Y, N);
+	fft(select_fft(N), X, N);
 }
 
 void fft_indices(int* I, int N) {

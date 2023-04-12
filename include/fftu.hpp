@@ -13,17 +13,17 @@
 
 #include "sfft.hpp"
 
-void fft_split(int R, complex<fft_simd4>* X, complex<fft_simd4>* Y, int N);
-void fft_cooley_tukey(int N1, complex<fft_simd4>* X, complex<fft_simd4>* Y, int N);
+void fft_split(int R, complex<fft_simd4>* X, int N);
+void fft_cooley_tukey(int N1, complex<fft_simd4>* X, int N);
 void fft_split_indices(int R, int* I, int N);
 void fft_cooley_tukey_indices(int N1, int* I, int N);
 const std::vector<int>& fft_indices(int N);
-void fft(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N);
+void fft(complex<fft_simd4>* X, int N);
 void fft(complex<double>* X, int N);
 void fft_indices(int*, int);
 void fft_scramble(complex<fft_simd4>* X, int N);
 void fft_six_step_indices(int* I, int N);
-void fft_six_step(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N);
+void fft_six_step(complex<fft_simd4>* X, int N);
 
 inline double rand1() {
 	return (rand() + 0.5) / (RAND_MAX + 1.0);
