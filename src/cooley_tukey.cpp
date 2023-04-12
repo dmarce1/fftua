@@ -1,5 +1,5 @@
 #include "fftu.hpp"
-#include "fft.hpp"
+#include "sfft.hpp"
 #include "util.hpp"
 #include <unordered_map>
 #include <cmath>
@@ -46,7 +46,7 @@ void fft_cooley_tukey(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
 			n1m--;
 		}
 		z[N1o2] = X[No2 + k2] * W[k2 * N1o2];
-		fft_complex_2pow(z.data(), N1);
+		sfft_complex((fft_simd4*) z.data(), N1);
 		for (int k1 = 0; k1 < N1; k1++) {
 			X[N2 * k1 + k2] = z[k1];
 		}

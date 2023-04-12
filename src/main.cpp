@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <fftw3.h>
-#include "fft.hpp"
+#include "sfft.hpp"
 #include "util.hpp"
 #include "types.hpp"
 #include "fftu.hpp"

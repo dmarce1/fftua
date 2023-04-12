@@ -1,4 +1,4 @@
-#include "fft.hpp"
+#include "sfft.hpp"
 #include "util.hpp"
 
 #include <array>
@@ -15,7 +15,7 @@ int bsqrt(int N) {
 }
 
 void fft_split_indices(int R, int* I, int N) {
-	if (N < FFT_NMAX) {
+	if (N < SFFT_NMAX) {
 		return;
 	}
 	const int N1 = R;
@@ -71,7 +71,7 @@ void fft_split(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
 			zo[n1] = X[k2pNo2 + N2 * n1] * w;
 			zo[n1m] = X[k2pNo2 + N2 * n1m] * w.conj();
 		}
-		fft_complex_odd_2pow(zo.data(), N1);
+		sfft_complex_odd((fft_simd4*) zo.data(), N1);
 		int k1N2 = 0;
 		for (int k1 = 0; k1 < N1o2; k1++) {
 			X[k1N2 + k2] = ze[k1] + zo[k1];

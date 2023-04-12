@@ -11,6 +11,8 @@
 #include "types.hpp"
 #include <vector>
 
+#include "sfft.hpp"
+
 void fft_split(int R, complex<fft_simd4>* X, complex<fft_simd4>* Y, int N);
 void fft_cooley_tukey(int N1, complex<fft_simd4>* X, complex<fft_simd4>* Y, int N);
 void fft_split_indices(int R, int* I, int N);

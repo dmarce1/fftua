@@ -1,6 +1,5 @@
 #include "fftu.hpp"
 #include "util.hpp"
-#include "fft.hpp"
 
 #include <vector>
 #include <unordered_map>
@@ -39,21 +38,8 @@ template<int N1>
 void fft(complex<double>* X, int N) {
 	static std::vector<complex<fft_simd4>> Y;
 	static std::vector<complex<fft_simd4>> Z;
-	if (N <= FFT_NMAX) {
-		switch (N) {
-		case 2:
-			return fft_complex_2((double*) X);
-		case 4:
-			return fft_complex_4((double*) X);
-		case 8:
-			return fft_complex_8((double*) X);
-		case 16:
-			return fft_complex_16((double*) X);
-		case 32:
-			return fft_complex_32((double*) X);
-		case 64:
-			return fft_complex_64((double*) X);
-		}
+	if (N <= SFFT_NMAX) {
+		sfft_complex((double*) X, N);
 		return;
 	}
 	Y.resize(N / SIMD_SIZE);
@@ -103,9 +89,6 @@ void fft(complex<double>* X, int N) {
 		case 32:
 			fft_complex_32((fft_simd4*) z.data());
 			break;
-		case 64:
-			fft_complex_64((fft_simd4*) z.data());
-			break;
 		}
 		for (int k1 = 0; k1 < N1; k1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
@@ -128,9 +111,6 @@ void fft(complex<double>* X, int N) {
 		fft<16>(X, N);
 		if (N >= 128) {
 			fft<32>(X, N);
-		}
-		if (N >= 256) {
-			fft<64>(X, N);
 		}
 		timer tm;
 		double best_time = 1e99;
@@ -174,18 +154,6 @@ void fft(complex<double>* X, int N) {
 			}
 			tm.reset();
 		}
-		if (N >= 256) {
-			tm.start();
-			for (int n = 0; n < 10; n++) {
-				fft<64>(X, N);
-			}
-			tm.stop();
-			if (best_time > tm.read()) {
-				best_time = tm.read();
-				best = 64;
-			}
-			tm.reset();
-		}
 		cache[N] = best;
 		iter = cache.find(N);
 		printf("simd width = %i\n", cache[N]);
@@ -199,8 +167,6 @@ void fft(complex<double>* X, int N) {
 		return fft<16>(X, N);
 	case 32:
 		return fft<32>(X, N);
-	case 64:
-		return fft<64>(X, N);
 	}
 }
 
@@ -212,11 +178,11 @@ std::vector<fft_method> possible_ffts(int N) {
 		ffts.push_back(m);
 	} //else {
 	m.type = FFT_SPLIT;
-	for (m.R = 4; m.R <= FFT_NMAX; m.R *= 2) {
+	for (m.R = 4; m.R <= SFFT_NMAX; m.R *= 2) {
 		ffts.push_back(m);
 	}
 	m.type = FFT_CT;
-	for (m.R = 2; m.R <= FFT_NMAX; m.R *= 2) {
+	for (m.R = 2; m.R <= SFFT_NMAX; m.R *= 2) {
 		ffts.push_back(m);
 	}
 //	}
@@ -292,28 +258,15 @@ fft_method select_fft(int N) {
 }
 
 void fft(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
-	if (N <= FFT_NMAX) {
-		switch (N) {
-		case 2:
-			return fft_complex_2((fft_simd4*) X);
-		case 4:
-			return fft_complex_4((fft_simd4*) X);
-		case 8:
-			return fft_complex_8((fft_simd4*) X);
-		case 16:
-			return fft_complex_16((fft_simd4*) X);
-		case 32:
-			return fft_complex_32((fft_simd4*) X);
-		case 64:
-			return fft_complex_64((fft_simd4*) X);
-		}
+	if (N <= SFFT_NMAX) {
+		sfft_complex((fft_simd4*) X, N);
 		return;
 	}
 	fft(select_fft(N), X, Y, N);
 }
 
 void fft_indices(int* I, int N) {
-	if (N <= FFT_NMAX) {
+	if (N <= SFFT_NMAX) {
 		return;
 	}
 	fft_indices(select_fft(N), I, N);
@@ -337,7 +290,7 @@ const std::vector<int>& fft_indices(int N) {
 }
 
 void fft_scramble(complex<fft_simd4>* X, int N) {
-	if (N <= FFT_NMAX) {
+	if (N <= SFFT_NMAX) {
 		return;
 	}
 	static std::unordered_map<int, std::vector<int>> cache;
