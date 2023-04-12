@@ -38,7 +38,7 @@ std::string fft_method_string(const fft_method method) {
 template<int N1>
 void fft(complex<double>* X, int N) {
 	static std::vector<complex<fft_simd4>> Y;
-	Y.resize(N / SIMD_SIZE);
+	static std::vector<complex<fft_simd4>> Z;
 	if (N <= FFT_NMAX) {
 		switch (N) {
 		case 2:
@@ -51,22 +51,29 @@ void fft(complex<double>* X, int N) {
 			return fft_complex_16((double*) X);
 		case 32:
 			return fft_complex_32((double*) X);
+		case 64:
+			return fft_complex_64((double*) X);
 		}
 		return;
 	}
+	Y.resize(N / SIMD_SIZE);
+	Z.resize(N / SIMD_SIZE);
 	const int N2 = N / N1;
 	std::array<complex<fft_simd4>, N1> z;
 	const auto& I = fft_indices(N2);
 	const auto& W = vector_twiddles(N1, N2);
 	for (int n2 = 0; n2 < N2; n2++) {
-		for (int n1 = 0; n1 < N1; n1++) {
-			Y[(n1 / SIMD_SIZE) * N2 + I[n2]].real()[n1 % SIMD_SIZE] = X[N1 * n2 + n1].real();
-			Y[(n1 / SIMD_SIZE) * N2 + I[n2]].imag()[n1 % SIMD_SIZE] = X[N1 * n2 + n1].imag();
+		for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
+			for (int n1r = 0; n1r < N1 / SIMD_SIZE; n1r++) {
+				const int n1 = n1r * SIMD_SIZE + n1c;
+				Y[n1r * N2 + I[n2]].real()[n1c] = X[N1 * n2 + n1].real();
+				Y[n1r * N2 + I[n2]].imag()[n1c] = X[N1 * n2 + n1].imag();
+			}
 		}
 	}
 	for (int n1 = 0; n1 < N1; n1 += SIMD_SIZE) {
 		const int o = (n1 / SIMD_SIZE) * N2;
-		fft((complex<fft_simd4>*) Y.data() + o, N2);
+		fft((complex<fft_simd4>*) Y.data() + o, (complex<fft_simd4>*) Z.data() + o, N2);
 	}
 	for (int k2 = 0; k2 < N2; k2++) {
 		for (int n1 = 0; n1 < N1; n1 += SIMD_SIZE) {
@@ -74,10 +81,13 @@ void fft(complex<double>* X, int N) {
 		}
 	}
 	for (int k2 = 0; k2 < N2; k2 += SIMD_SIZE) {
-		for (int n1 = 0; n1 < N1; n1++) {
-			for (int i = 0; i < SIMD_SIZE; i++) {
-				z[n1].real()[i] = Y[(n1 / SIMD_SIZE) * N2 + k2 + i].real()[n1 % SIMD_SIZE];
-				z[n1].imag()[i] = Y[(n1 / SIMD_SIZE) * N2 + k2 + i].imag()[n1 % SIMD_SIZE];
+		for (int n1r = 0; n1r < N1 / SIMD_SIZE; n1r++) {
+			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
+				const int n1 = n1r * SIMD_SIZE + n1c;
+				for (int i = 0; i < SIMD_SIZE; i++) {
+					z[n1].real()[i] = Y[(n1r) * N2 + k2 + i].real()[n1c];
+					z[n1].imag()[i] = Y[(n1r) * N2 + k2 + i].imag()[n1c];
+				}
 			}
 		}
 		switch (N1) {
@@ -90,6 +100,12 @@ void fft(complex<double>* X, int N) {
 		case 16:
 			fft_complex_16((fft_simd4*) z.data());
 			break;
+		case 32:
+			fft_complex_32((fft_simd4*) z.data());
+			break;
+		case 64:
+			fft_complex_64((fft_simd4*) z.data());
+			break;
 		}
 		for (int k1 = 0; k1 < N1; k1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
@@ -98,7 +114,6 @@ void fft(complex<double>* X, int N) {
 			}
 		}
 	}
-	Y.resize(0);
 }
 
 void fft(complex<double>* X, int N) {
@@ -114,20 +129,23 @@ void fft(complex<double>* X, int N) {
 		if (N >= 128) {
 			fft<32>(X, N);
 		}
+		if (N >= 256) {
+			fft<64>(X, N);
+		}
 		timer tm;
 		double best_time = 1e99;
 		tm.start();
-		fft<4>(X, N);
-		fft<4>(X, N);
-		fft<4>(X, N);
+		for (int n = 0; n < 10; n++) {
+			fft<4>(X, N);
+		}
 		tm.stop();
 		best_time = tm.read();
 		best = 4;
 		tm.reset();
 		tm.start();
-		fft<8>(X, N);
-		fft<8>(X, N);
-		fft<8>(X, N);
+		for (int n = 0; n < 10; n++) {
+			fft<8>(X, N);
+		}
 		tm.stop();
 		if (best_time > tm.read()) {
 			best_time = tm.read();
@@ -135,9 +153,9 @@ void fft(complex<double>* X, int N) {
 		}
 		tm.reset();
 		tm.start();
-		fft<16>(X, N);
-		fft<16>(X, N);
-		fft<16>(X, N);
+		for (int n = 0; n < 10; n++) {
+			fft<16>(X, N);
+		}
 		tm.stop();
 		if (best_time > tm.read()) {
 			best_time = tm.read();
@@ -146,13 +164,25 @@ void fft(complex<double>* X, int N) {
 		tm.reset();
 		if (N >= 128) {
 			tm.start();
-			fft<32>(X, N);
-			fft<32>(X, N);
-			fft<32>(X, N);
+			for (int n = 0; n < 10; n++) {
+				fft<32>(X, N);
+			}
 			tm.stop();
 			if (best_time > tm.read()) {
 				best_time = tm.read();
 				best = 32;
+			}
+			tm.reset();
+		}
+		if (N >= 256) {
+			tm.start();
+			for (int n = 0; n < 10; n++) {
+				fft<64>(X, N);
+			}
+			tm.stop();
+			if (best_time > tm.read()) {
+				best_time = tm.read();
+				best = 64;
 			}
 			tm.reset();
 		}
@@ -169,6 +199,8 @@ void fft(complex<double>* X, int N) {
 		return fft<16>(X, N);
 	case 32:
 		return fft<32>(X, N);
+	case 64:
+		return fft<64>(X, N);
 	}
 }
 
@@ -191,14 +223,14 @@ std::vector<fft_method> possible_ffts(int N) {
 	return ffts;
 }
 
-void fft(const fft_method& method, complex<fft_simd4>* X, int N) {
+void fft(const fft_method& method, complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
 	switch (method.type) {
 	case FFT_SPLIT:
-		return fft_split(method.R, X, N);
+		return fft_split(method.R, X, Y, N);
 	case FFT_CT:
-		return fft_cooley_tukey(method.R, X, N);
+		return fft_cooley_tukey(method.R, X, Y, N);
 	case FFT_6:
-		return fft_six_step(X, N);
+		return fft_six_step(X, Y, N);
 	}
 }
 
@@ -218,6 +250,7 @@ fft_method select_fft(int N) {
 	auto iter = cache.find(N);
 	if (iter == cache.end()) {
 		std::vector<complex<fft_simd4>> X(N);
+		std::vector<complex<fft_simd4>> Y(N);
 		for (int n = 0; n < N; n++) {
 			X[n].real() = rand1();
 			X[n].imag() = rand1();
@@ -226,19 +259,26 @@ fft_method select_fft(int N) {
 		const int M = tests.size();
 		std::vector<double> timers(M);
 		for (int m = 0; m < M; m++) {
-			fft(tests[m], X.data(), N);
-			timer tm;
-			tm.start();
-			for (int n = 0; n < 10; n++) {
-				fft(tests[m], X.data(), N);
+			fft(tests[m], X.data(), Y.data(), N);
+			double best = -1.0;
+			double worst = 1e99;
+			for (int n = 0; n < 20; n++) {
+				timer tm;
+				tm.start();
+				fft(tests[m], X.data(), Y.data(), N);
+				tm.stop();
+				auto t = tm.read();
+				timers[m] += t;
+				tm.reset();
+				best = std::max(t, best);
+				worst = std::min(t, worst);
 			}
-			tm.stop();
-			timers[m] = tm.read();
+			timers[m] -= best + worst;
 		}
 		fft_method best_method;
 		double best_time = std::numeric_limits<double>::max();
 		for (int m = 0; m < M; m++) {
-			//		printf("%s - %e\n", fft_method_string(tests[m]).c_str(), timers[m]);
+			//	printf("%s - %e\n", fft_method_string(tests[m]).c_str(), timers[m]);
 			if (timers[m] < best_time) {
 				best_time = timers[m];
 				best_method = tests[m];
@@ -251,7 +291,7 @@ fft_method select_fft(int N) {
 	return iter->second;
 }
 
-void fft(complex<fft_simd4>* X, int N) {
+void fft(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
 	if (N <= FFT_NMAX) {
 		switch (N) {
 		case 2:
@@ -264,10 +304,12 @@ void fft(complex<fft_simd4>* X, int N) {
 			return fft_complex_16((fft_simd4*) X);
 		case 32:
 			return fft_complex_32((fft_simd4*) X);
+		case 64:
+			return fft_complex_64((fft_simd4*) X);
 		}
 		return;
 	}
-	fft(select_fft(N), X, N);
+	fft(select_fft(N), X, Y, N);
 }
 
 void fft_indices(int* I, int N) {
@@ -308,7 +350,10 @@ void fft_scramble(complex<fft_simd4>* X, int N) {
 		for (int n = 0; n < N; n++) {
 			J[I[n]] = n;
 		}
-		cache[N] = std::move(J);
+		for (int n = 0; n < N; n++) {
+			I[J[n]] = n;
+		}
+		cache[N] = std::move(I);
 		iter = cache.find(N);
 	}
 	const auto& I = iter->second;

@@ -46,10 +46,8 @@ void fft_split_indices(int R, int* I, int N) {
 	std::memcpy(I, J.data(), sizeof(int) * N);
 }
 
-
-
 template<int N1>
-void fft_split(complex<fft_simd4>* X, int N) {
+void fft_split(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
 	constexpr int N1o2 = N1 / 2;
 	constexpr int N1o4 = N1 / 4;
 	std::array<complex<fft_simd4>, N1o2> ze;
@@ -57,50 +55,44 @@ void fft_split(complex<fft_simd4>* X, int N) {
 	const int N2 = N / N1;
 	const auto& W = twiddles(N);
 	const int No2 = N / 2;
-	fft(X, No2);
+	fft(X, Y, No2);
 	for (int n1 = 0; n1 < N1o2; n1++) {
 		int o = No2 + N2 * n1;
-		fft(X + o, N2);
+		fft(X + o, Y + o, N2);
 	}
+	int k2pNo2 = No2;
 	for (int k2 = 0; k2 < N2; k2++) {
 		for (int n1 = 0; n1 < N1o2; n1++) {
 			ze[n1] = X[n1 * N2 + k2];
 		}
+		int n1m = N1o2 - 1;
 		for (int n1 = 0; n1 < N1o4; n1++) {
 			const auto& w = W[(2 * n1 + 1) * k2];
-			zo[n1] = X[No2 + N2 * n1 + k2] * w;
-			zo[N1o2 - 1 - n1] = X[No2 + N2 * (N1o2 - 1 - n1) + k2] * w.conj();
+			zo[n1] = X[k2pNo2 + N2 * n1] * w;
+			zo[n1m] = X[k2pNo2 + N2 * n1m] * w.conj();
 		}
-		switch(N1) {
-		case 4:
-			fft_complex_odd_4((fft_simd4*) zo.data());
-			break;
-		case 8:
-			fft_complex_odd_8((fft_simd4*) zo.data());
-			break;
-		case 16:
-			fft_complex_odd_16((fft_simd4*) zo.data());
-			break;
-		case 32:
-			fft_complex_odd_32((fft_simd4*) zo.data());
-			break;
-		}
+		fft_complex_odd_2pow(zo.data(), N1);
+		int k1N2 = 0;
 		for (int k1 = 0; k1 < N1o2; k1++) {
-			X[k1 * N2 + k2] = ze[k1] + zo[k1];
-			X[k1 * N2 + No2 + k2] = ze[k1] - zo[k1];
+			X[k1N2 + k2] = ze[k1] + zo[k1];
+			X[k1N2 + k2pNo2] = ze[k1] - zo[k1];
+			k1N2 += N2;
 		}
+		k2pNo2++;
 	}
 }
 
-void fft_split(int N1, complex<fft_simd4>* X, int N) {
-	switch(N1) {
+void fft_split(int N1, complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
+	switch (N1) {
 	case 4:
-		return fft_split<4>(X, N);
+		return fft_split<4>(X, Y, N);
 	case 8:
-		return fft_split<8>(X, N);
+		return fft_split<8>(X, Y, N);
 	case 16:
-		return fft_split<16>(X, N);
+		return fft_split<16>(X, Y, N);
 	case 32:
-		return fft_split<32>(X, N);
+		return fft_split<32>(X, Y, N);
+	case 64:
+		return fft_split<64>(X, Y, N);
 	}
 }

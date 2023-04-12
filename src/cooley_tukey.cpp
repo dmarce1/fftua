@@ -27,58 +27,45 @@ void fft_cooley_tukey_indices(int N1, int* I, int N) {
 }
 
 template<int N1>
-void fft_cooley_tukey(complex<fft_simd4>* X, int N) {
+void fft_cooley_tukey(complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
 	const int N2 = N / N1;
 	const int No2 = N / 2;
 	const auto& W = twiddles(N);
 	std::array<complex<fft_simd4>, N1> z;
 	const int N1o2 = N1 / 2;
 	for (int n1 = 0; n1 < N1; n1++) {
-		fft(X + N2 * n1, N2);
+		fft(X + N2 * n1, Y + N2 * n1, N2);
 	}
 	for (int k2 = 0; k2 < N2; k2++) {
 		z[0] = X[k2];
-		z[N1o2] = X[No2 + k2] * W[k2 * N1o2];
+		int n1m = N1 - 1;
 		for (int n1 = 1; n1 < N1o2; n1++) {
 			const auto& w = W[k2 * n1];
 			z[n1] = X[N2 * n1 + k2] * w;
-			z[N1 - n1] = X[N2 * (N1 - n1) + k2] * w.conj();
+			z[n1m] = X[N2 * n1m + k2] * w.conj();
+			n1m--;
 		}
-		switch (N1) {
-		case 2:
-			fft_complex_2((fft_simd4*) z.data());
-			break;
-		case 4:
-			fft_complex_4((fft_simd4*) z.data());
-			break;
-		case 8:
-			fft_complex_8((fft_simd4*) z.data());
-			break;
-		case 16:
-			fft_complex_16((fft_simd4*) z.data());
-			break;
-		case 32:
-			fft_complex_32((fft_simd4*) z.data());
-			break;
-		}
+		z[N1o2] = X[No2 + k2] * W[k2 * N1o2];
+		fft_complex_2pow(z.data(), N1);
 		for (int k1 = 0; k1 < N1; k1++) {
 			X[N2 * k1 + k2] = z[k1];
 		}
 	}
 }
 
-
-void fft_cooley_tukey(int N1, complex<fft_simd4>* X, int N) {
-	switch(N1) {
+void fft_cooley_tukey(int N1, complex<fft_simd4>* X, complex<fft_simd4>* Y, int N) {
+	switch (N1) {
 	case 2:
-		return fft_cooley_tukey<2>(X, N);
+		return fft_cooley_tukey<2>(X, Y, N);
 	case 4:
-		return fft_cooley_tukey<4>(X, N);
+		return fft_cooley_tukey<4>(X, Y, N);
 	case 8:
-		return fft_cooley_tukey<8>(X, N);
+		return fft_cooley_tukey<8>(X, Y, N);
 	case 16:
-		return fft_cooley_tukey<16>(X, N);
+		return fft_cooley_tukey<16>(X, Y, N);
 	case 32:
-		return fft_cooley_tukey<32>(X, N);
+		return fft_cooley_tukey<32>(X, Y, N);
+	case 64:
+		return fft_cooley_tukey<64>(X, Y, N);
 	}
 }

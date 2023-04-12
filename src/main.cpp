@@ -15,7 +15,7 @@
 
 void * operator new(std::size_t n) {
 	void* memptr;
-	posix_memalign(&memptr, 32, n);
+	memptr = aligned_alloc(32, n);
 	return memptr;
 }
 
@@ -25,7 +25,7 @@ void operator delete(void * p) {
 
 void *operator new[](std::size_t s) {
 	void* memptr;
-	posix_memalign(&memptr, 32, s);
+	memptr = aligned_alloc(32, s);
 	return memptr;
 }
 
@@ -67,11 +67,10 @@ int permute_index(int index, int width) {
 
 int main(int argc, char **argv) {
 	constexpr int w = 3;
-	constexpr int N = 1 << w;
 	timer tm3, tm4;
 	double t3 = 0.0;
 	double t4 = 0.0;
-	for (int N = 8; N <= 1024 * 1024; N *= 2) {
+	for (int N = 2; N <= 1024 * 1024; N *= 2) {
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
