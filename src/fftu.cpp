@@ -161,7 +161,7 @@ void fft(complex<double>* X, int N) {
 			if (N % R == 0) {
 				std::vector<double> times;
 				std::vector<complex<double>> X(N);
-				for (int k = 0; k < 11; k++) {
+				for (int k = 0; k < 21; k++) {
 					for (int n = 0; n < N; n++) {
 						X[n].real() = rand1();
 						X[n].imag() = rand1();
@@ -255,7 +255,7 @@ fft_method select_fft(int N) {
 		for (int m = 0; m < M; m++) {
 			fft(tests[m], X.data(), N);
 			std::vector<double> times;
-			for (int n = 0; n < 11; n++) {
+			for (int n = 0; n < 21; n++) {
 				timer tm;
 				for (int n = 0; n < N; n++) {
 					X[n].real() = rand1();

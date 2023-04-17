@@ -72,10 +72,10 @@ int main(int argc, char **argv) {
 	double t3 = 0.0;
 	double t4 = 0.0;
 	std::vector<int> Ns;
-	for (int n = 3; n < 3 * 1024 * 1024; n *= 3) {
+	for (int n = 2; n < 2 * 1024 * 1024; n *= 2) {
 		Ns.push_back(n);
 	}
-	for (int n = 2; n < 2 * 1024 * 1024; n *= 2) {
+	for (int n = 3; n < 3 * 1024 * 1024; n *= 3) {
 		Ns.push_back(n);
 	}
 	for (auto N : Ns) {
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
-		for (int i = 0; i < 11; i++) {
+		for (int i = 0; i < 21; i++) {
 			std::vector<complex<double>> X(N);
 			std::vector<std::complex<double>> Y(N);
 			for (int n = 0; n < N; n++) {
@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
 				//	printf("%e %e | %e %e | %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), err);
 			}
 		}
-		avg_err /= (11 * N);
+		avg_err /= (21 * N);
 		std::string f;
 		for (auto i = pfac.begin(); i != pfac.end(); i++) {
 			f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
