@@ -55,6 +55,7 @@ void fft(int N1, complex<double>* X, int N) {
 		return;
 	}
 	const int N1v = round_down(N1, SIMD_SIZE);
+	const int N1voS = round_down(N1, SIMD_SIZE) / SIMD_SIZE;
 	const int N1s = N1 - N1v;
 	const int N2 = N / N1;
 	const int N2v = round_down(N2, SIMD_SIZE);
@@ -68,18 +69,20 @@ void fft(int N1, complex<double>* X, int N) {
 		Ys = std::move(sstack.top());
 		sstack.pop();
 	}
-	Yv.resize(N2 * (N1v / SIMD_SIZE));
-	Ys.resize(N2 * N1s, std::numeric_limits<double>::signaling_NaN());
+	Yv.resize(N2 * N1voS);
+	Ys.resize(N2 * N1s);
 	complex<fft_simd4> z[N1];
 	const auto& I = fft_indices(N2);
 	const auto& Wv = vector_twiddles(N1, N2);
 	const auto& Ws = twiddles(N);
 	for (int n2 = 0; n2 < N2; n2++) {
-		for (int n1r = 0; n1r < N1v / SIMD_SIZE; n1r++) {
+		for (int n1r = 0; n1r < N1voS; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
 				const int n1 = n1r * SIMD_SIZE + n1c;
-				Yv[n1r * N2 + n2].real()[n1c] = X[N1 * I[n2] + n1].real();
-				Yv[n1r * N2 + n2].imag()[n1c] = X[N1 * I[n2] + n1].imag();
+				const int to = n1r * N2 + n2;
+				const int from = N1 * I[n2] + n1;
+				Yv[to].real()[n1c] = X[from].real();
+				Yv[to].imag()[n1c] = X[from].imag();
 			}
 		}
 	}
@@ -105,7 +108,7 @@ void fft(int N1, complex<double>* X, int N) {
 		}
 	}
 	for (int k2 = 0; k2 < N2v; k2 += SIMD_SIZE) {
-		for (int n1r = 0; n1r < N1v / SIMD_SIZE; n1r++) {
+		for (int n1r = 0; n1r < N1voS; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
 				const int n1 = n1r * SIMD_SIZE + n1c;
 				for (int i = 0; i < SIMD_SIZE; i++) {
@@ -130,7 +133,7 @@ void fft(int N1, complex<double>* X, int N) {
 	}
 	for (int k2 = N2v; k2 < N2; k2++) {
 		complex<double> z[N1];
-		for (int n1r = 0; n1r < N1v / SIMD_SIZE; n1r++) {
+		for (int n1r = 0; n1r < N1voS; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
 				const int n1 = n1r * SIMD_SIZE + n1c;
 				z[n1].real() = Yv[n1r * N2 + k2].real()[n1c];
