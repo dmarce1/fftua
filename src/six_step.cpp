@@ -7,7 +7,7 @@
 #include <cstring>
 
 void fft_six_step_indices(int* I, int N) {
-	const int M = (1 << (ilogb(N) >> 1));
+	const int M = lround(sqrt(N));
 	std::vector<int> J(N);
 	for (int n = 0; n < M; n++) {
 		for (int m = 0; m < M; m++) {
@@ -24,7 +24,7 @@ void fft_six_step_indices(int* I, int N) {
 
 template<class T>
 void fft_six_step1(complex<T>* X, int N) {
-	const int M = (1 << (ilogb(N) >> 1));
+	const int M = lround(sqrt(N));
 	const auto& W = twiddles(N);
 	for (int n = 0; n < M; n++) {
 		fft(X + n * M, M);
@@ -47,7 +47,6 @@ void fft_six_step1(complex<T>* X, int N) {
 		}
 	}
 }
-
 
 void fft_six_step(complex<double>* X, int N) {
 	fft_six_step1(X, N);

@@ -6,14 +6,12 @@
 #include <numeric>
 #include <limits>
 #include <cassert>
+#include <algorithm>
 #include <stack>
 
 #define FFT_SPLIT 0
 #define FFT_CT 1
 #define FFT_6 2
-
-
-
 
 struct fft_method {
 	int type;
@@ -38,8 +36,7 @@ std::string fft_method_string(const fft_method method) {
 	return str;
 }
 
-template<int N1>
-void fft(complex<double>* X, int N) {
+void fft(int N1, complex<double>* X, int N) {
 	static std::stack<std::vector<complex<fft_simd4>>>vstack;
 	static std::stack<std::vector<complex<double>>> sstack;
 //	printf( "%i\n", N);
@@ -47,8 +44,8 @@ void fft(complex<double>* X, int N) {
 		sfft_complex((double*) X, N);
 		return;
 	}
-	constexpr int N1v = round_down(N1, SIMD_SIZE);
-	constexpr int N1s = N1 - N1v;
+	const int N1v = round_down(N1, SIMD_SIZE);
+	const int N1s = N1 - N1v;
 	const int N2 = N / N1;
 	const int N2v = round_down(N2, SIMD_SIZE);
 	std::vector<complex<fft_simd4>> Yv;
@@ -63,7 +60,7 @@ void fft(complex<double>* X, int N) {
 	}
 	Yv.resize(N2 * (N1v / SIMD_SIZE));
 	Ys.resize(N2 * N1s, std::numeric_limits<double>::signaling_NaN());
-	std::array<complex<fft_simd4>, N1> z;
+	complex<fft_simd4> z[N1];
 	const auto& I = fft_indices(N2);
 	const auto& Wv = vector_twiddles(N1, N2);
 	const auto& Ws = twiddles(N);
@@ -111,7 +108,7 @@ void fft(complex<double>* X, int N) {
 				z[n1].imag()[i] = Ys[(n1 - N1v) * N2 + k2 + i].imag();
 			}
 		}
-		sfft_complex((fft_simd4*) z.data(), N1);
+		sfft_complex((fft_simd4*) z, N1);
 		for (int k1 = 0; k1 < N1; k1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
 				X[k1 * N2 + k2 + i].real() = z[k1].real()[i];
@@ -120,7 +117,7 @@ void fft(complex<double>* X, int N) {
 		}
 	}
 	for (int k2 = N2v; k2 < N2; k2++) {
-		std::array<complex<double>, N1> z;
+		complex<double> z[N1];
 		for (int n1r = 0; n1r < N1v / SIMD_SIZE; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
 				const int n1 = n1r * SIMD_SIZE + n1c;
@@ -131,7 +128,7 @@ void fft(complex<double>* X, int N) {
 		for (int n1 = N1v; n1 < N1; n1++) {
 			z[n1] = Ys[(n1 - N1v) * N2 + k2];
 		}
-		sfft_complex((double*) z.data(), N1);
+		sfft_complex((double*) z, N1);
 		for (int k1 = 0; k1 < N1; k1++) {
 			X[k1 * N2 + k2] = z[k1];
 		}
@@ -145,14 +142,50 @@ void fft(complex<double>* X, int N) {
 		sfft_complex((double*) X, N);
 		return;
 	}
-	if (N % 4 == 0) {
-		fft<4>(X, N);
-	} else if (N % 9 == 0) {
-		fft<9>(X, N);
-	} else {
-		printf("FFT not found!\n");
-		abort();
+	static std::unordered_map<int, int> cache;
+	auto iter = cache.find(N);
+	if (iter == cache.end()) {
+		for (int R = SIMD_SIZE; R <= SFFT_NMAX; R++) {
+			if (N % R == 0) {
+				std::vector<complex<double>> X(N);
+				for (int n = 0; n < N; n++) {
+					X[n].real() = rand1();
+					X[n].imag() = rand1();
+				}
+				fft(R, X.data(), N);
+			}
+		}
+		double best_time = 1e99;
+		int best_R;
+		for (int R = SIMD_SIZE; R <= SFFT_NMAX; R++) {
+			if (N % R == 0) {
+				std::vector<double> times;
+				std::vector<complex<double>> X(N);
+				for (int k = 0; k < 11; k++) {
+					for (int n = 0; n < N; n++) {
+						X[n].real() = rand1();
+						X[n].imag() = rand1();
+					}
+					timer tm;
+					tm.start();
+					fft(R, X.data(), N);
+					tm.stop();
+					times.push_back(tm.read());
+				}
+				std::sort(times.begin(), times.end());
+				double tm = times[(times.size() + 1) / 2];
+				if (tm < best_time) {
+					best_time = tm;
+					best_R = R;
+				}
+			}
+		}
+		cache[N] = best_R;
+		printf("%i\n", best_R);
+		iter = cache.find(N);
+
 	}
+	fft(iter->second, X, N);
 }
 
 std::vector<fft_method> possible_ffts(int N) {
@@ -174,6 +207,10 @@ std::vector<fft_method> possible_ffts(int N) {
 	} else if (N % 9 == 0) {
 		m.type = FFT_CT;
 		for (m.R = 3; m.R <= std::min(N, SFFT_NMAX); m.R *= 3) {
+			ffts.push_back(m);
+		}
+		if (lround(sqrt(N)) % 3 == 0) {
+			m.type = FFT_6;
 			ffts.push_back(m);
 		}
 	}
@@ -217,20 +254,20 @@ fft_method select_fft(int N) {
 		std::vector<double> timers(M);
 		for (int m = 0; m < M; m++) {
 			fft(tests[m], X.data(), N);
-			double best = -1.0;
-			double worst = 1e99;
-			for (int n = 0; n < 20; n++) {
+			std::vector<double> times;
+			for (int n = 0; n < 11; n++) {
 				timer tm;
+				for (int n = 0; n < N; n++) {
+					X[n].real() = rand1();
+					X[n].imag() = rand1();
+				}
 				tm.start();
 				fft(tests[m], X.data(), N);
 				tm.stop();
-				auto t = tm.read();
-				timers[m] += t;
-				tm.reset();
-				best = std::max(t, best);
-				worst = std::min(t, worst);
+				times.push_back(tm.read());
 			}
-			timers[m] -= best + worst;
+			std::sort(times.begin(), times.end());
+			timers[m] = times[(times.size() + 1) / 2];
 		}
 		fft_method best_method;
 		double best_time = std::numeric_limits<double>::max();
@@ -240,6 +277,7 @@ fft_method select_fft(int N) {
 				best_method = tests[m];
 			}
 		}
+		printf("%s\n", fft_method_string(best_method).c_str());
 		cache[N] = best_method;
 		iter = cache.find(N);
 	}
@@ -253,7 +291,6 @@ void fft(complex<fft_simd4>* X, int N) {
 	}
 	fft(select_fft(N), X, N);
 }
-
 
 void fft_indices(int* I, int N) {
 	if (N <= SFFT_NMAX) {
@@ -270,9 +307,6 @@ const std::vector<int>& fft_indices(int N) {
 		std::vector<int> J(N);
 		std::iota(I.begin(), I.end(), 0);
 		fft_indices(I.data(), N);
-		for (int n = 0; n < N; n++) {
-			J[I[n]] = n;
-		}
 		cache[N] = std::move(I);
 		iter = cache.find(N);
 	}
@@ -287,14 +321,12 @@ void fft_scramble1(complex<T>* X, int N) {
 	static std::unordered_map<int, std::vector<int>> cache;
 	auto iter = cache.find(N);
 	if (iter == cache.end()) {
-		std::vector<int> I(N);
+		std::vector<int> I = fft_indices(N);
 		std::vector<int> J(N);
-		std::iota(I.begin(), I.end(), 0);
-		fft_indices(I.data(), N);
 		for (int n = 0; n < N; n++) {
 			J[I[n]] = n;
 		}
-		cache[N] = std::move(I);
+		cache[N] = std::move(J);
 		iter = cache.find(N);
 	}
 	const auto& I = iter->second;

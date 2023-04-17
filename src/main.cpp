@@ -67,18 +67,19 @@ int permute_index(int index, int width) {
 #include <fenv.h>
 
 int main(int argc, char **argv) {
-//	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+	//feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	timer tm3, tm4;
 	double t3 = 0.0;
 	double t4 = 0.0;
-	for (int N = 2; N <= 1024 * 1024; N++) {
+	std::vector<int> Ns;
+	for (int n = 3; n < 3 * 1024 * 1024; n *= 3) {
+		Ns.push_back(n);
+	}
+	for (int n = 2; n < 2 * 1024 * 1024; n *= 2) {
+		Ns.push_back(n);
+	}
+	for (auto N : Ns) {
 		auto pfac = prime_factorization(N);
-		if (pfac.size() > 1) {
-			continue;
-		}
-		if (pfac.begin()->first != 2 && pfac.begin()->first != 3) {
-			continue;
-		}
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
