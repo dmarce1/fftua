@@ -9,9 +9,13 @@
 #include <algorithm>
 #include <stack>
 
+#define NTRIAL 5
+
 #define FFT_SPLIT 0
+#define FFT_SPLIT_CONJ 4
 #define FFT_CT 1
-#define FFT_6 2
+#define FFT_CONJ 2
+#define FFT_6 3
 
 struct fft_method {
 	int type;
@@ -24,8 +28,14 @@ std::string fft_method_string(const fft_method method) {
 	case FFT_SPLIT:
 		str = "split-" + std::to_string(method.R);
 		break;
+	case FFT_SPLIT_CONJ:
+		str = "split-conjugate-" + std::to_string(method.R);
+		break;
 	case FFT_CT:
 		str = "cooley-tukey-" + std::to_string(method.R);
+		break;
+	case FFT_CONJ:
+		str = "conjugate-" + std::to_string(method.R);
 		break;
 	case FFT_6:
 		str = "6-step";
@@ -65,14 +75,16 @@ void fft(int N1, complex<double>* X, int N) {
 	const auto& Wv = vector_twiddles(N1, N2);
 	const auto& Ws = twiddles(N);
 	for (int n2 = 0; n2 < N2; n2++) {
-		for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
-			for (int n1r = 0; n1r < N1v / SIMD_SIZE; n1r++) {
+		for (int n1r = 0; n1r < N1v / SIMD_SIZE; n1r++) {
+			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
 				const int n1 = n1r * SIMD_SIZE + n1c;
 				Yv[n1r * N2 + n2].real()[n1c] = X[N1 * I[n2] + n1].real();
 				Yv[n1r * N2 + n2].imag()[n1c] = X[N1 * I[n2] + n1].imag();
 			}
 		}
-		for (int n1 = N1v; n1 < N1; n1++) {
+	}
+	for (int n1 = N1v; n1 < N1; n1++) {
+		for (int n2 = 0; n2 < N2; n2++) {
 			Ys[(n1 - N1v) * N2 + n2] = X[N1 * n2 + n1];
 		}
 	}
@@ -161,7 +173,7 @@ void fft(complex<double>* X, int N) {
 			if (N % R == 0) {
 				std::vector<double> times;
 				std::vector<complex<double>> X(N);
-				for (int k = 0; k < 21; k++) {
+				for (int k = 0; k < NTRIAL; k++) {
 					for (int n = 0; n < N; n++) {
 						X[n].real() = rand1();
 						X[n].imag() = rand1();
@@ -196,20 +208,26 @@ std::vector<fft_method> possible_ffts(int N) {
 			m.type = FFT_6;
 			ffts.push_back(m);
 		}
-		m.type = FFT_SPLIT;
 		for (m.R = 4; m.R <= std::min(N, SFFT_NMAX); m.R *= 2) {
+			m.type = FFT_SPLIT;
+			ffts.push_back(m);
+			m.type = FFT_SPLIT_CONJ;
 			ffts.push_back(m);
 		}
-		m.type = FFT_CT;
 		for (m.R = 2; m.R <= std::min(N, SFFT_NMAX); m.R *= 2) {
+			m.type = FFT_CT;
+			ffts.push_back(m);
+			m.type = FFT_CONJ;
 			ffts.push_back(m);
 		}
 	} else if (N % 9 == 0) {
-		m.type = FFT_CT;
 		for (m.R = 3; m.R <= std::min(N, SFFT_NMAX); m.R *= 3) {
+			m.type = FFT_CT;
+			ffts.push_back(m);
+			m.type = FFT_CONJ;
 			ffts.push_back(m);
 		}
-		if (lround(sqrt(N)) % 3 == 0) {
+		if (close2(0.5 * log(N) / log(3), round(0.5 * log(N) / log(3)))) {
 			m.type = FFT_6;
 			ffts.push_back(m);
 		}
@@ -222,8 +240,12 @@ void fft(const fft_method& method, complex<T>* X, int N) {
 	switch (method.type) {
 	case FFT_SPLIT:
 		return fft_split(method.R, X, N);
+	case FFT_SPLIT_CONJ:
+		return fft_split_conjugate(method.R, X, N);
 	case FFT_CT:
 		return fft_cooley_tukey(method.R, X, N);
+	case FFT_CONJ:
+		return fft_conjugate(method.R, X, N);
 	case FFT_6:
 		return fft_six_step(X, N);
 	}
@@ -233,8 +255,12 @@ void fft_indices(const fft_method& method, int* I, int N) {
 	switch (method.type) {
 	case FFT_SPLIT:
 		return fft_split_indices(method.R, I, N);
+	case FFT_SPLIT_CONJ:
+		return fft_split_conjugate_indices(method.R, I, N);
 	case FFT_CT:
 		return fft_cooley_tukey_indices(method.R, I, N);
+	case FFT_CONJ:
+		return fft_conjugate_indices(method.R, I, N);
 	case FFT_6:
 		return fft_six_step_indices(I, N);
 	}
@@ -255,7 +281,7 @@ fft_method select_fft(int N) {
 		for (int m = 0; m < M; m++) {
 			fft(tests[m], X.data(), N);
 			std::vector<double> times;
-			for (int n = 0; n < 21; n++) {
+			for (int n = 0; n < NTRIAL; n++) {
 				timer tm;
 				for (int n = 0; n < N; n++) {
 					X[n].real() = rand1();
@@ -307,6 +333,9 @@ const std::vector<int>& fft_indices(int N) {
 		std::vector<int> J(N);
 		std::iota(I.begin(), I.end(), 0);
 		fft_indices(I.data(), N);
+		for (int n = 0; n < N; n++) {
+			J[I[n]] = n;
+		}
 		cache[N] = std::move(I);
 		iter = cache.find(N);
 	}

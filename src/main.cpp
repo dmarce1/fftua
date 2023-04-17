@@ -15,7 +15,7 @@
 
 void * operator new(std::size_t n) {
 	void* memptr;
-	memptr = aligned_alloc(32, round_up(n, 32));
+	posix_memalign(&memptr, 32, round_up(n, 32));
 	return memptr;
 }
 
@@ -25,7 +25,7 @@ void operator delete(void * p) {
 
 void *operator new[](std::size_t n) {
 	void* memptr;
-	memptr = aligned_alloc(32, round_up(n, 32));
+	posix_memalign(&memptr, 32, round_up(n, 32));
 	return memptr;
 }
 

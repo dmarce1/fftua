@@ -15004,8 +15004,110 @@ inline void sfft_complex(T* x, int N) {
 }
 
 
-template<class T>
-inline void sfft_complex_odd(T* x, int N) {
+template<int N, class T>
+inline void sfft_complex(T* x) {
+	switch(N) {
+	case 2:
+		fft_complex_2(x);
+		break;
+	case 3:
+		fft_complex_3(x);
+		break;
+	case 4:
+		fft_complex_4(x);
+		break;
+	case 5:
+		fft_complex_5(x);
+		break;
+	case 6:
+		fft_complex_6(x);
+		break;
+	case 7:
+		fft_complex_7(x);
+		break;
+	case 8:
+		fft_complex_8(x);
+		break;
+	case 9:
+		fft_complex_9(x);
+		break;
+	case 10:
+		fft_complex_10(x);
+		break;
+	case 11:
+		fft_complex_11(x);
+		break;
+	case 12:
+		fft_complex_12(x);
+		break;
+	case 13:
+		fft_complex_13(x);
+		break;
+	case 14:
+		fft_complex_14(x);
+		break;
+	case 15:
+		fft_complex_15(x);
+		break;
+	case 16:
+		fft_complex_16(x);
+		break;
+	case 17:
+		fft_complex_17(x);
+		break;
+	case 18:
+		fft_complex_18(x);
+		break;
+	case 19:
+		fft_complex_19(x);
+		break;
+	case 20:
+		fft_complex_20(x);
+		break;
+	case 21:
+		fft_complex_21(x);
+		break;
+	case 22:
+		fft_complex_22(x);
+		break;
+	case 23:
+		fft_complex_23(x);
+		break;
+	case 24:
+		fft_complex_24(x);
+		break;
+	case 25:
+		fft_complex_25(x);
+		break;
+	case 26:
+		fft_complex_26(x);
+		break;
+	case 27:
+		fft_complex_27(x);
+		break;
+	case 28:
+		fft_complex_28(x);
+		break;
+	case 29:
+		fft_complex_29(x);
+		break;
+	case 30:
+		fft_complex_30(x);
+		break;
+	case 31:
+		fft_complex_31(x);
+		break;
+	case 32:
+		fft_complex_32(x);
+		break;
+	default:
+		assert(false);
+	}
+}
+
+
+template<int N, class T>
+inline void sfft_complex_odd(T* x) {
 	switch(N) {
 	case 4:
 		fft_complex_odd_4(x);
