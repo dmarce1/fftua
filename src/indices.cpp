@@ -3,8 +3,10 @@
 #include <numeric>
 #include <unordered_map>
 
-
 void fft_indices(int* I, int N) {
+	if (N <= SFFT_NMAX) {
+		return;
+	}
 	const auto method = fft_select(N);
 	switch (method.type) {
 	case FFT_COOLEY_TUKEY:
@@ -17,9 +19,8 @@ void fft_indices(int* I, int N) {
 
 }
 
-
 const std::vector<int>& fft_indices(int N) {
-	static thread_local std::unordered_map<int, std::shared_ptr<std::vector<int>>> values;
+	static thread_local std::unordered_map<int, std::shared_ptr<std::vector<int>>>values;
 	auto i = values.find(N);
 	if (i == values.end()) {
 		std::vector<int> I(N);
@@ -27,10 +28,10 @@ const std::vector<int>& fft_indices(int N) {
 		std::iota(I.begin(), I.end(), 0);
 		auto method = fft_select(N);
 		switch(method.type) {
-		case FFT_COOLEY_TUKEY:
+			case FFT_COOLEY_TUKEY:
 			fft_cooley_tukey_indices(method.radix, I.data(), N);
 			break;
-		default:
+			default:
 			assert(false);
 			abort();
 		}

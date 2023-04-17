@@ -90,7 +90,7 @@ const std::map<int, int>& prime_factorization(int N) {
 			}
 		}
 		int r = 3;
-		while( r <= sqrt(n)) {
+		while( r <= sqrt(N)) {
 			if( n % r == 0 ) {
 				map[r] = 0;
 				while( n % r == 0 ) {

@@ -3,32 +3,15 @@
 #include "timer.hpp"
 #include <cmath>
 
-bool allowed_N(int N) {
-	int k = 2;
-	while (k <= SFFT_NMAX) {
-		if (N % k == 0) {
-			break;
-		}
-		k++;
-	}
-	if (k > SFFT_NMAX) {
-		return false;
-	}
-	while (N > k) {
-		N /= k;
-		if (N % k != 0) {
-			return false;
-		}
-	}
-	return true;
-}
-
 int main(int argc, char **argv) {
 	double t3 = 0.0;
 	double t4 = 0.0;
 	for (int N = 2; N <= 1024 * 1024; N++) {
 		const auto pfac = prime_factorization(N);
-		if (!allowed_N(N)) {
+		if (pfac.size() > 1) {
+			continue;
+		}
+		if (pfac.begin()->first > SFFT_NMAX) {
 			continue;
 		}
 		double avg_err = 0.0;
