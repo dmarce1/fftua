@@ -77,6 +77,8 @@ void fft_conjugate1(int N1, complex<T>* X, int N) {
 		return fft_conjugate<T, 27>(X, N);
 	case 32:
 		return fft_conjugate<T, 32>(X, N);
+	case 64:
+		return fft_conjugate<T, 64>(X, N);
 	}
 }
 

@@ -60,6 +60,8 @@ void fft_cooley_tukey1(int N1, complex<T>* X, int N) {
 		return fft_cooley_tukey<T, 27>(X, N);
 	case 32:
 		return fft_cooley_tukey<T, 32>(X, N);
+	case 64:
+		return fft_cooley_tukey<T, 64>(X, N);
 	}
 }
 

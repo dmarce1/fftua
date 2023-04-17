@@ -201,6 +201,7 @@ void fft(complex<double>* X, int N) {
 }
 
 std::vector<fft_method> possible_ffts(int N) {
+	constexpr int FFT_NMAX = 32;
 	std::vector<fft_method> ffts;
 	fft_method m;
 	if (N % 4 == 0) {
@@ -208,20 +209,20 @@ std::vector<fft_method> possible_ffts(int N) {
 			m.type = FFT_6;
 			ffts.push_back(m);
 		}
-		for (m.R = 4; m.R <= std::min(N, SFFT_NMAX); m.R *= 2) {
+		for (m.R = 4; m.R <= std::min(N, FFT_NMAX); m.R *= 2) {
 			m.type = FFT_SPLIT;
 			ffts.push_back(m);
 			m.type = FFT_SPLIT_CONJ;
 			ffts.push_back(m);
 		}
-		for (m.R = 2; m.R <= std::min(N, SFFT_NMAX); m.R *= 2) {
+		for (m.R = 2; m.R <= std::min(N, FFT_NMAX); m.R *= 2) {
 			m.type = FFT_CT;
 			ffts.push_back(m);
 			m.type = FFT_CONJ;
 			ffts.push_back(m);
 		}
 	} else if (N % 9 == 0) {
-		for (m.R = 3; m.R <= std::min(N, SFFT_NMAX); m.R *= 3) {
+		for (m.R = 3; m.R <= std::min(N, FFT_NMAX); m.R *= 3) {
 			m.type = FFT_CT;
 			ffts.push_back(m);
 			m.type = FFT_CONJ;
