@@ -63,8 +63,11 @@ const std::vector<complex<double>> raders_twiddle(int N, int M, bool padded);
 bool are_coprime(int a, int b);
 std::vector<complex<double>> chirp_z_filter(int N);
 const std::vector<complex<double>>& twiddles(int N);
-inline int round_down(int i, int m) {
+constexpr inline int round_down(int i, int m) {
 	return m * (i / m);
+}
+constexpr inline int round_up(int i, int m) {
+	return m * (((i - 1) / m) + 1);
 }
 const std::vector<std::vector<complex<fft_simd4>>>& vector_twiddles(int N1, int N2);
 void destroy_scratch(std::vector<complex<fft_simd4>>&& space);

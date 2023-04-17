@@ -46,12 +46,12 @@ void fft_split_indices(int R, int* I, int N) {
 	std::memcpy(I, J.data(), sizeof(int) * N);
 }
 
-template<int N1>
-void fft_split(complex<fft_simd4>* X, int N) {
+template<class T, int N1>
+void fft_split(complex<T>* X, int N) {
 	constexpr int N1o2 = N1 / 2;
 	constexpr int N1o4 = N1 / 4;
-	std::array<complex<fft_simd4>, N1o2> ze;
-	std::array<complex<fft_simd4>, N1o2> zo;
+	std::array<complex<T>, N1o2> ze;
+	std::array<complex<T>, N1o2> zo;
 	const int N2 = N / N1;
 	const auto& W = twiddles(N);
 	const int No2 = N / 2;
@@ -66,12 +66,16 @@ void fft_split(complex<fft_simd4>* X, int N) {
 			ze[n1] = X[n1 * N2 + k2];
 		}
 		int n1m = N1o2 - 1;
+		int wi = k2;
+		const int twok2 = 2 * k2;
 		for (int n1 = 0; n1 < N1o4; n1++) {
-			const auto& w = W[(2 * n1 + 1) * k2];
+			const auto& w = W[wi];
 			zo[n1] = X[k2pNo2 + N2 * n1] * w;
 			zo[n1m] = X[k2pNo2 + N2 * n1m] * w.conj();
+			n1m--;
+			wi += twok2;
 		}
-		sfft_complex_odd((fft_simd4*) zo.data(), N1);
+		sfft_complex_odd((T*) zo.data(), N1);
 		int k1N2 = 0;
 		for (int k1 = 0; k1 < N1o2; k1++) {
 			X[k1N2 + k2] = ze[k1] + zo[k1];
@@ -82,17 +86,27 @@ void fft_split(complex<fft_simd4>* X, int N) {
 	}
 }
 
-void fft_split(int N1, complex<fft_simd4>* X, int N) {
+template<class T>
+void fft_split1(int N1, complex<T>* X, int N) {
 	switch (N1) {
 	case 4:
-		return fft_split<4>(X, N);
+		return fft_split<T, 4>(X, N);
 	case 8:
-		return fft_split<8>(X, N);
+		return fft_split<T, 8>(X, N);
 	case 16:
-		return fft_split<16>(X, N);
+		return fft_split<T, 16>(X, N);
 	case 32:
-		return fft_split<32>(X, N);
+		return fft_split<T, 32>(X, N);
 	case 64:
-		return fft_split<64>(X, N);
+		return fft_split<T, 64>(X, N);
 	}
 }
+
+void fft_split(int N1, complex<double>* X, int N) {
+	fft_split1(N1, X, N);
+}
+
+void fft_split(int N1, complex<fft_simd4>* X, int N) {
+	fft_split1(N1, X, N);
+}
+

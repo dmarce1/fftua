@@ -15,7 +15,7 @@
 
 void * operator new(std::size_t n) {
 	void* memptr;
-	memptr = aligned_alloc(32, n);
+	memptr = aligned_alloc(32, round_up(n, 32));
 	return memptr;
 }
 
@@ -23,9 +23,9 @@ void operator delete(void * p) {
 	free(p);
 }
 
-void *operator new[](std::size_t s) {
+void *operator new[](std::size_t n) {
 	void* memptr;
-	memptr = aligned_alloc(32, s);
+	memptr = aligned_alloc(32, round_up(n, 32));
 	return memptr;
 }
 
@@ -46,7 +46,6 @@ double FFT(std::vector<complex<double>>& X) {
 	return tm.read();
 }
 
-
 int permute_index(int index, int width) {
 	for (int pos = 0; pos < width; pos++) {
 		if (pos < width - 1) {
@@ -65,12 +64,21 @@ int permute_index(int index, int width) {
 	return index;
 }
 
+#include <fenv.h>
+
 int main(int argc, char **argv) {
-	constexpr int w = 3;
+//	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	timer tm3, tm4;
 	double t3 = 0.0;
 	double t4 = 0.0;
-	for (int N = 2; N <= 1024 * 1024; N *= 2) {
+	for (int N = 2; N <= 1024 * 1024; N++) {
+		auto pfac = prime_factorization(N);
+		if (pfac.size() > 1) {
+			continue;
+		}
+		if (pfac.begin()->first != 2 && pfac.begin()->first != 3) {
+			continue;
+		}
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
@@ -97,16 +105,15 @@ int main(int argc, char **argv) {
 				double y = X[n].imag() - Y[n].imag();
 				double err = sqrt(x * x + y * y);
 				avg_err += err;
-				//		printf("%e %e | %e %e | %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), err);
+				//	printf("%e %e | %e %e | %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), err);
 			}
 		}
-		avg_err /= (255 * N);
-		auto pfac = prime_factorization(N);
+		avg_err /= (11 * N);
 		std::string f;
 		for (auto i = pfac.begin(); i != pfac.end(); i++) {
 			f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
 		}
-		printf("%i: %32s | %e %e %e %e %e\n", N, f.c_str(), avg_err, t1, t2, t1 / t2, t4);
+		printf("%i: %32s | %e %e %e %e %e\n", N, f.c_str(), avg_err, t1, t2, t1 / (t2 + 1e-20), t4);
 	}
 	return 0;
 }

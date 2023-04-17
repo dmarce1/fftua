@@ -163,8 +163,9 @@ const std::vector<std::vector<complex<fft_simd4>>>& vector_twiddles(int N1, int 
 		return *(iter->second);
 	} else {
 		const int N = N1 * N2;
-		std::vector<std::vector<complex<fft_simd4>>>W(N1/SIMD_SIZE, std::vector<complex<fft_simd4>>(N2));
-		for (int n = 0; n < N1; n += SIMD_SIZE) {
+		const int N1v = round_down(N1, SIMD_SIZE);
+		std::vector<std::vector<complex<fft_simd4>>>W(N1v/SIMD_SIZE, std::vector<complex<fft_simd4>>(N2));
+		for (int n = 0; n < N1v; n += SIMD_SIZE) {
 			for (int k = 0; k < N2; k++) {
 				for (int i = 0; i < SIMD_SIZE; i++) {
 					W[n / SIMD_SIZE][k].real()[i] = cos(-2.0 * M_PI * (n+i) * k / N);
@@ -345,22 +346,3 @@ bool are_coprime(int a, int b) {
 	return true;
 }
 
-
-static std::vector<std::stack<std::vector<complex<fft_simd4>>>> spaces(32);
-
-void destroy_scratch(std::vector<complex<fft_simd4>>&& space) {
-	const int i = ilogb(space.size());
-	space.resize(0);
-	spaces[i].push(std::move(space));
-}
-
-std::vector<complex<fft_simd4>> create_scratch(int N) {
-	const int i = ilogb(N);
-	std::vector<complex<fft_simd4>> space;
-	if (spaces[i].size()) {
-		space = std::move(spaces[i].top());
-		spaces[i].pop();
-	}
-	space.resize(N);
-	return space;
-}

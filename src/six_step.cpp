@@ -22,16 +22,15 @@ void fft_six_step_indices(int* I, int N) {
 	}
 }
 
-void fft_six_step(complex<fft_simd4>* X, int N) {
+template<class T>
+void fft_six_step1(complex<T>* X, int N) {
 	const int M = (1 << (ilogb(N) >> 1));
 	const auto& W = twiddles(N);
 	for (int n = 0; n < M; n++) {
 		fft(X + n * M, M);
 	}
-	for (int n = 1; n < M; n++) {
-		X[M * n + n] *= W[n * n];
-	}
 	for (int n = 0; n < M; n++) {
+		X[M * n + n] *= W[n * n];
 		for (int m = n + 1; m < M; m++) {
 			X[M * n + m] *= W[n * m];
 			X[M * m + n] *= W[n * m];
@@ -47,4 +46,13 @@ void fft_six_step(complex<fft_simd4>* X, int N) {
 			std::swap(X[M * n + m], X[M * m + n]);
 		}
 	}
+}
+
+
+void fft_six_step(complex<double>* X, int N) {
+	fft_six_step1(X, N);
+}
+
+void fft_six_step(complex<fft_simd4>* X, int N) {
+	fft_six_step1(X, N);
 }
