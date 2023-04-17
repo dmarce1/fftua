@@ -15,7 +15,7 @@
 
 void * operator new(std::size_t n) {
 	void* memptr;
-	memptr = aligned_alloc(32, n);
+	memptr = aligned_alloc(32, round_up(n, 32));
 	return memptr;
 }
 
@@ -23,9 +23,9 @@ void operator delete(void * p) {
 	free(p);
 }
 
-void *operator new[](std::size_t s) {
+void *operator new[](std::size_t n) {
 	void* memptr;
-	memptr = aligned_alloc(32, s);
+	memptr = aligned_alloc(32, round_up(n, 32));
 	return memptr;
 }
 
@@ -65,7 +65,10 @@ int permute_index(int index, int width) {
 	return index;
 }
 
+#include <fenv.h>
+
 int main(int argc, char **argv) {
+   feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	constexpr int w = 3;
 	timer tm3, tm4;
 	double t3 = 0.0;

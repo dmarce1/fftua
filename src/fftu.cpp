@@ -118,6 +118,9 @@ void fft(const fft_method& method, complex<fft_simd4>* X, int N) {
 	}
 }
 
+#include <fenv.h>
+
+
 void fft_indices(const fft_method& method, int* I, int N) {
 	switch (method.type) {
 	case FFT_SPLIT:
@@ -141,6 +144,7 @@ fft_method select_fft(int N) {
 		const auto tests = possible_ffts(N);
 		const int M = tests.size();
 		std::vector<double> timers(M);
+	   fedisableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 		for (int m = 0; m < M; m++) {
 			fft(tests[m], X.data(), N);
 			double best = -1.0;
@@ -158,6 +162,7 @@ fft_method select_fft(int N) {
 			}
 			timers[m] -= best + worst;
 		}
+	   feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 		fft_method best_method;
 		double best_time = std::numeric_limits<double>::max();
 		for (int m = 0; m < M; m++) {
