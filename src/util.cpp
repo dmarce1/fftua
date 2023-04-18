@@ -43,10 +43,10 @@ int mod_pow(int a, int b, int m) {
 	}
 	while (b) {
 		if (b & 1) {
-			rc = ((rc % m) * (apow % m)) % m;
+			rc = ((long long) (rc % m) * (long long) (apow % m)) % m;
 		}
 		b >>= 1;
-		apow = ((apow % m) * (apow % m)) % m;
+		apow = ((long long) (apow % m) * (long long) (apow % m)) % m;
 	}
 	return rc;
 }
@@ -200,9 +200,9 @@ const std::vector<complex<double>> raders_twiddle(int N) {
 	int M = std::pow(P, c - 1) * (P - 1);
 	std::vector<complex<double>> b(M, 0.0);
 	const auto tws = twiddles(N);
-	const auto ginvq = raders_ginvq(N);
+	const auto gq = raders_gq(N);
 	for (int q = 0; q < M; q++) {
-		b[q] = (1.0 / M) * tws[ginvq[q]];
+		b[q] = (1.0 / M) * tws[gq[mod(M - q, M)]];
 	}
 	fftw(b);
 	return b;

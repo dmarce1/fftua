@@ -8,7 +8,6 @@ void fft_raders1(complex<T>* X, int N, bool scramble) {
 	std::vector<complex<T>>& Y = cache[N];
 	Y.resize(N - 1);
 	const auto& gq = raders_gq(N);
-	const auto& ginvq = raders_ginvq(N);
 	const auto& tw = raders_twiddle(N);
 	constexpr bool simd = !std::is_same<double, T>::value;
 	complex<T> xo = (simd && !scramble) ? X[N - 1] : X[0];
@@ -26,9 +25,6 @@ void fft_raders1(complex<T>* X, int N, bool scramble) {
 			for (int q = 0; q < N - 1; q++) {
 				Y[q] *= tw[q];
 			}
-			for (int q = 1; q < N - 1 - q; q++) {
-				std::swap(Y[q], Y[N - 1 - q]);
-			}
 			fft_scramble(Y.data(), N - 1);
 		} else {
 			for (int n = 0; n < N - 1; n++) {
@@ -39,9 +35,8 @@ void fft_raders1(complex<T>* X, int N, bool scramble) {
 				X[q] *= tw[q];
 			}
 			const auto& I = fft_inv_indices(N - 1);
-			Y[I[0]] = X[0];
-			for (int q = 1; q < N - 1; q++) {
-				Y[I[q]] = X[N - 1 - q];
+			for (int q = 0; q < N - 1; q++) {
+				Y[I[q]] = X[q];
 			}
 		}
 	} else {
@@ -55,9 +50,6 @@ void fft_raders1(complex<T>* X, int N, bool scramble) {
 		for (int q = 0; q < N - 1; q++) {
 			Y[q] *= tw[q];
 		}
-		for (int q = 1; q < N - 1 - q; q++) {
-			std::swap(Y[q], Y[N - 1 - q]);
-		}
 	}
 	fft(Y.data(), N - 1);
 	for (int p = 0; p < N - 1; p++) {
@@ -65,7 +57,7 @@ void fft_raders1(complex<T>* X, int N, bool scramble) {
 	}
 	X[0] = x0;
 	for (int p = 0; p < N - 1; p++) {
-		X[ginvq[p]] = Y[p];
+		X[gq[p]] = Y[p];
 	}
 }
 

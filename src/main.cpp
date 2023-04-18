@@ -67,6 +67,7 @@ int permute_index(int index, int width) {
 #include <fenv.h>
 
 int main(int argc, char **argv) {
+	//printf( "PRIMITIVE ROOT OF 93871 = %i\n", generator(93871));
 	//feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	timer tm3, tm4;
 	double t3 = 0.0;
