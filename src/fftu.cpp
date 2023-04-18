@@ -75,7 +75,8 @@ void fft(int N1, complex<double>* X, int N) {
 	}
 	Yv.resize(N2 * N1voS);
 	Ys.resize(N2 * N1s);
-	complex<fft_simd4> z[N1];
+	static std::vector<complex<fft_simd4>> z;
+	z.resize(N1);
 	const auto& I = fft_indices(N2);
 	const auto& Wv = vector_twiddles(N1, N2);
 	const auto& Ws = twiddles(N);
@@ -132,10 +133,9 @@ void fft(int N1, complex<double>* X, int N) {
 			}
 		}
 		if (N1 <= SFFT_NMAX) {
-			sfft_complex((fft_simd4*) z, N1);
+			sfft_complex((fft_simd4*) z.data(), N1);
 		} else {
-			//		fft_scramble(z, N1);
-			fft_raders(z, N1, true);
+			fft_raders(z.data(), N1, true);
 		}
 		for (int k1 = 0; k1 < N1; k1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
@@ -145,7 +145,8 @@ void fft(int N1, complex<double>* X, int N) {
 		}
 	}
 	for (int k2 = N2v; k2 < N2; k2++) {
-		complex<double> z[N1];
+		static std::vector<complex<double>> z;
+		z.resize(N1);
 		for (int n1r = 0; n1r < N1voS; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
 				const int n1 = n1r * SIMD_SIZE + n1c;
@@ -157,10 +158,9 @@ void fft(int N1, complex<double>* X, int N) {
 			z[n1] = Ys[(n1 - N1v) * N2 + k2];
 		}
 		if (N1 <= SFFT_NMAX) {
-			sfft_complex((double*) z, N1);
+			sfft_complex((double*) z.data(), N1);
 		} else {
-			//		fft_scramble(z, N1);
-			fft_raders(z, N1);
+			fft_raders(z.data(), N1);
 		}
 		for (int k1 = 0; k1 < N1; k1++) {
 			X[k1 * N2 + k2] = z[k1];
@@ -258,9 +258,20 @@ std::vector<fft_method> possible_ffts(int N) {
 		}
 	}
 	if (ffts.size() == 0) {
-		m.type = FFT_RADERS;
-		m.R = N;
-		ffts.push_back(m);
+		auto factors = prime_factorization(N);
+		if (factors.size() == 1) {
+			m.type = FFT_RADERS;
+			m.R = N;
+			ffts.push_back(m);
+		} else {
+			for (auto i = factors.begin(); i != factors.end(); i++) {
+				m.R = i->first;
+				m.type = FFT_CT;
+				ffts.push_back(m);
+				m.type = FFT_CONJ;
+				ffts.push_back(m);
+			}
+		}
 
 	}
 	return ffts;

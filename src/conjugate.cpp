@@ -51,11 +51,38 @@ void fft_conjugate(complex<T>* X, int N) {
 		if (even) {
 			z[N1o2] = X[No2 + k2] * W[k2 * N1o2];
 		}
-		if (N1 <= SFFT_NMAX) {
-			sfft_complex<N1>((T*) z.data());
-		} else {
-			fft_raders(z.data(), N1);
+		sfft_complex<N1>((T*) z.data());
+		for (int k1 = 0; k1 < N1; k1++) {
+			X[N2 * k1 + k2] = z[k1];
 		}
+	}
+}
+
+template<class T>
+void fft_conjugate_big(int N1, complex<T>* X, int N) {
+	const int N2 = N / N1;
+	const int No2 = N / 2;
+	const auto& W = twiddles(N);
+	const int N1o2 = (N1 + 1) / 2;
+	const bool even = N1 % 2 == 0;
+	static std::vector<complex<T>> z;
+	z.resize(N1);
+	for (int n1 = 0; n1 < N1; n1++) {
+		fft(X + N2 * n1, N2);
+	}
+	for (int k2 = 0; k2 < N2; k2++) {
+		z[0] = X[k2];
+		int n1m = N1 - 1;
+		for (int n1 = 1; n1 < N1o2; n1++) {
+			const auto& w = W[k2 * n1];
+			z[n1] = X[N2 * n1 + k2] * w;
+			z[n1m] = X[N2 * n1m + k2] * w.conj();
+			n1m--;
+		}
+		if (even) {
+			z[N1o2] = X[No2 + k2] * W[k2 * N1o2];
+		}
+		fft_raders(z.data(), N1, true);
 		for (int k1 = 0; k1 < N1; k1++) {
 			X[N2 * k1 + k2] = z[k1];
 		}
@@ -127,6 +154,8 @@ void fft_conjugate1(int N1, complex<T>* X, int N) {
 		return fft_conjugate<T, 31>(X, N);
 	case 32:
 		return fft_conjugate<T, 32>(X, N);
+	default:
+		return fft_conjugate_big<T>(N1, X, N);
 	}
 }
 
