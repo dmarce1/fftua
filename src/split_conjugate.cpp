@@ -86,14 +86,34 @@ void fft_split_conjugate1(int N1, complex<T>* X, int N) {
 	switch (N1) {
 	case 4:
 		return fft_split_conjugate<T, 4>(X, N);
+	case 6:
+		return fft_split_conjugate<T, 6>(X, N);
 	case 8:
 		return fft_split_conjugate<T, 8>(X, N);
+	case 10:
+		return fft_split_conjugate<T, 10>(X, N);
+	case 12:
+		return fft_split_conjugate<T, 12>(X, N);
+	case 14:
+		return fft_split_conjugate<T, 14>(X, N);
 	case 16:
 		return fft_split_conjugate<T, 16>(X, N);
+	case 18:
+		return fft_split_conjugate<T, 18>(X, N);
+	case 20:
+		return fft_split_conjugate<T, 20>(X, N);
+	case 22:
+		return fft_split_conjugate<T, 22>(X, N);
+	case 24:
+		return fft_split_conjugate<T, 24>(X, N);
+	case 26:
+		return fft_split_conjugate<T, 26>(X, N);
+	case 28:
+		return fft_split_conjugate<T, 28>(X, N);
+	case 30:
+		return fft_split_conjugate<T, 30>(X, N);
 	case 32:
 		return fft_split_conjugate<T, 32>(X, N);
-	case 64:
-		return fft_split_conjugate<T, 64>(X, N);
 	}
 }
 

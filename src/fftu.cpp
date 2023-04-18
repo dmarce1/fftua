@@ -91,13 +91,17 @@ void fft(int N1, complex<double>* X, int N) {
 			Ys[(n1 - N1v) * N2 + n2] = X[N1 * n2 + n1];
 		}
 	}
-	for (int n1 = 0; n1 < N1v; n1 += SIMD_SIZE) {
-		const int o = (n1 / SIMD_SIZE) * N2;
-		fft(Yv.data() + o, N2);
+	if( N1v ) {
+		for (int n1 = 0; n1 < N1v; n1 += SIMD_SIZE) {
+			const int o = (n1 / SIMD_SIZE) * N2;
+			fft(Yv.data() + o, N2);
+		}
 	}
-	for (int n1 = N1v; n1 < N1; n1++) {
-		const int o = (n1 - N1v) * N2;
-		fft(Ys.data() + o, N2);
+	if( N1 - N1v ) {
+		for (int n1 = N1v; n1 < N1; n1++) {
+			const int o = (n1 - N1v) * N2;
+			fft(Ys.data() + o, N2);
+		}
 	}
 	for (int k2 = 0; k2 < N2; k2++) {
 		for (int n1 = 0; n1 < N1v; n1 += SIMD_SIZE) {
@@ -195,8 +199,8 @@ void fft(complex<double>* X, int N) {
 				}
 			}
 		}
+	//	printf("SIMD radix = %i - %i\n", N, best_R);
 		cache[N] = best_R;
-		printf("%i\n", best_R);
 		iter = cache.find(N);
 
 	}
@@ -207,32 +211,29 @@ std::vector<fft_method> possible_ffts(int N) {
 	constexpr int FFT_NMAX = 32;
 	std::vector<fft_method> ffts;
 	fft_method m;
-	if (N % 4 == 0) {
-		if (ilogb(N) % 2 == 0) {
-			m.type = FFT_6;
-			ffts.push_back(m);
+	if (lround(sqrt(N)) * lround(sqrt(N)) == N) {
+		m.type = FFT_6;
+		ffts.push_back(m);
+	}
+	if (N % 2 == 0) {
+		for (m.R = 6; m.R <= std::min(N, FFT_NMAX); m.R += 2) {
+			if (N % m.R == 0) {
+				m.type = FFT_SPLIT;
+				ffts.push_back(m);
+			}
 		}
-		for (m.R = 4; m.R <= std::min(N, FFT_NMAX); m.R *= 2) {
-			m.type = FFT_SPLIT;
-			ffts.push_back(m);
-			m.type = FFT_SPLIT_CONJ;
-			ffts.push_back(m);
+		for (m.R = 4; m.R <= std::min(N, FFT_NMAX); m.R += 4) {
+			if (N % m.R == 0) {
+				m.type = FFT_SPLIT_CONJ;
+				ffts.push_back(m);
+			}
 		}
-		for (m.R = 2; m.R <= std::min(N, FFT_NMAX); m.R *= 2) {
+	}
+	for (m.R = 2; m.R <= std::min(N, FFT_NMAX); m.R++) {
+		if (N % m.R == 0) {
 			m.type = FFT_CT;
 			ffts.push_back(m);
 			m.type = FFT_CONJ;
-			ffts.push_back(m);
-		}
-	} else if (N % 9 == 0) {
-		for (m.R = 3; m.R <= std::min(N, FFT_NMAX); m.R *= 3) {
-			m.type = FFT_CT;
-			ffts.push_back(m);
-			m.type = FFT_CONJ;
-			ffts.push_back(m);
-		}
-		if (close2(0.5 * log(N) / log(3), round(0.5 * log(N) / log(3)))) {
-			m.type = FFT_6;
 			ffts.push_back(m);
 		}
 	}
@@ -307,7 +308,7 @@ fft_method select_fft(int N) {
 				best_method = tests[m];
 			}
 		}
-		printf("%s\n", fft_method_string(best_method).c_str());
+//		printf("%i - %s\n", N, fft_method_string(best_method).c_str());
 		cache[N] = best_method;
 		iter = cache.find(N);
 	}

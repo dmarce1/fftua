@@ -14905,6 +14905,9 @@ void fft_complex_32(T* x) {
 template<class T>
 inline void sfft_complex(T* x, int N) {
 	switch(N) {
+	case 0:
+	case 1:
+		break;
 	case 2:
 		fft_complex_2(x);
 		break;
@@ -15007,6 +15010,9 @@ inline void sfft_complex(T* x, int N) {
 template<int N, class T>
 inline void sfft_complex(T* x) {
 	switch(N) {
+	case 0:
+	case 1:
+		break;
 	case 2:
 		fft_complex_2(x);
 		break;

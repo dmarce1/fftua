@@ -72,14 +72,18 @@ int main(int argc, char **argv) {
 	double t3 = 0.0;
 	double t4 = 0.0;
 	std::vector<int> Ns;
-	for (int n = 2; n < 2 * 1024 * 1024; n *= 2) {
-		Ns.push_back(n);
-	}
-	for (int n = 3; n < 3 * 1024 * 1024; n *= 3) {
-		Ns.push_back(n);
-	}
-	for (auto N : Ns) {
+	for (int N = 2; N <= 1024 * 1024; N++) {
 		auto pfac = prime_factorization(N);
+		bool flag = true;
+		for (auto i = pfac.begin(); i != pfac.end(); i++) {
+			if (i->first > SFFT_NMAX) {
+				flag = false;
+				break;
+			}
+		}
+		if (!flag) {
+			continue;
+		}
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
