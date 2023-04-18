@@ -88,29 +88,43 @@ int generator(int N) {
 }
 
 std::vector<int> raders_ginvq(int N) {
-	const int g = generator(N);
-	std::vector<int> ginvq;
-	for (int q = 0; q < N - 1; q++) {
-		for (int gqinv = 1; gqinv < N; gqinv++) {
-			if ((gqinv * mod_pow(g, q, N)) % N == 1) {
-				ginvq.push_back(gqinv);
-				break;
+	static thread_local std::unordered_map<int, std::vector<int>> values;
+	auto i = values.find(N);
+	if (i == values.end()) {
+		const int g = generator(N);
+		std::vector<int> ginvq;
+		for (int q = 0; q < N - 1; q++) {
+			for (int gqinv = 1; gqinv < N; gqinv++) {
+				if ((gqinv * mod_pow(g, q, N)) % N == 1) {
+					ginvq.push_back(gqinv);
+					break;
+				}
 			}
 		}
+		ginvq.push_back(0);
+		values[N] = ginvq;
+		i = values.find(N);
 	}
-	return ginvq;
+	return i->second;
 }
 
 const std::vector<int> raders_gq(int N) {
-	const int g = generator(N);
-	std::vector<int> gq;
-	for (int q = 0; q < N - 1; q++) {
-		gq.push_back(mod_pow(g, q, N));
+	static thread_local std::unordered_map<int, std::vector<int>> values;
+	auto i = values.find(N);
+	if (i == values.end()) {
+		const int g = generator(N);
+		std::vector<int> gq;
+		for (int q = 0; q < N - 1; q++) {
+			gq.push_back(mod_pow(g, q, N));
+		}
+		gq.push_back(0);
+		values[N] = gq;
+		i = values.find(N);
 	}
-	return gq;
+	return i->second;
 }
 
-double fftw(std::vector<std::complex<double>>& x) {
+double fftw(std::vector<complex<double>>& x) {
 	const int N = x.size();
 	static std::unordered_map<int, fftw_plan> plans;
 	static std::unordered_map<int, fftw_complex*> in;
@@ -132,8 +146,8 @@ double fftw(std::vector<std::complex<double>>& x) {
 	fftw_execute(plans[N]);
 	tm.stop();
 	for (int n = 0; n < N; n++) {
-		x[n].real(o[n][0]);
-		x[n].imag(o[n][1]);
+		x[n].real() = (o[n][0]);
+		x[n].imag() = (o[n][1]);
 	}
 	return tm.read();
 }
@@ -188,32 +202,10 @@ const std::vector<complex<double>> raders_twiddle(int N) {
 	const auto tws = twiddles(N);
 	const auto ginvq = raders_ginvq(N);
 	for (int q = 0; q < M; q++) {
-		b[q] = tws[ginvq[q]];
+		b[q] = (1.0 / M) * tws[ginvq[q]];
 	}
-	//fftw(b);
+	fftw(b);
 	return b;
-}
-
-const std::vector<complex<double>> raders_twiddle(int N, int M, bool padded) {
-	if (!padded) {
-		return raders_twiddle(N);
-	} else {
-		auto factors = prime_factorization(N);
-		assert(factors.size() == 1);
-		int P = factors.begin()->first;
-		int c = factors.begin()->second;
-		int L = std::pow(P, c - 1) * (P - 1);
-		std::vector<complex<double>> b(M, 0.0);
-		const auto tws = twiddles(N);
-		const auto ginvq = raders_ginvq(N);
-		for (int q = 0; q < L; q++) {
-			b[q] = tws[ginvq[q]];
-		}
-		for (int q = 1; q < L; q++) {
-			b[M - q] = b[L - q];
-		}
-		return b;
-	}
 }
 
 std::vector<complex<double>> chirp_z_filter(int N) {

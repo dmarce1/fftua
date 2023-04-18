@@ -34,13 +34,16 @@ void fft_cooley_tukey(complex<T>* X, int N) {
 		for (int n1 = 1; n1 < N1; n1++) {
 			z[n1] = X[N2 * n1 + k2] * W[k2 * n1];
 		}
-		sfft_complex<N1>((T*) z.data());
+		if (N1 <= SFFT_NMAX) {
+			sfft_complex<N1>((T*) z.data());
+		} else {
+			fft_raders(z.data(), N1);
+		}
 		for (int k1 = 0; k1 < N1; k1++) {
 			X[N2 * k1 + k2] = z[k1];
 		}
 	}
 }
-
 
 template<class T>
 void fft_cooley_tukey1(int N1, complex<T>* X, int N) {

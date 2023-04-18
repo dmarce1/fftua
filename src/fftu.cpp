@@ -16,6 +16,7 @@
 #define FFT_CT 1
 #define FFT_CONJ 2
 #define FFT_6 3
+#define FFT_RADERS 5
 
 struct fft_method {
 	int type;
@@ -39,6 +40,9 @@ std::string fft_method_string(const fft_method method) {
 		break;
 	case FFT_6:
 		str = "6-step";
+		break;
+	case FFT_RADERS:
+		str = "raders-" + std::to_string(method.R);
 		break;
 	default:
 		assert(false);
@@ -127,7 +131,12 @@ void fft(int N1, complex<double>* X, int N) {
 				z[n1].imag()[i] = Ys[(n1 - N1v) * N2 + k2 + i].imag();
 			}
 		}
-		sfft_complex((fft_simd4*) z, N1);
+		if (N1 <= SFFT_NMAX) {
+			sfft_complex((fft_simd4*) z, N1);
+		} else {
+			//		fft_scramble(z, N1);
+			fft_raders(z, N1, true);
+		}
 		for (int k1 = 0; k1 < N1; k1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
 				X[k1 * N2 + k2 + i].real() = z[k1].real()[i];
@@ -147,7 +156,12 @@ void fft(int N1, complex<double>* X, int N) {
 		for (int n1 = N1v; n1 < N1; n1++) {
 			z[n1] = Ys[(n1 - N1v) * N2 + k2];
 		}
-		sfft_complex((double*) z, N1);
+		if (N1 <= SFFT_NMAX) {
+			sfft_complex((double*) z, N1);
+		} else {
+			//		fft_scramble(z, N1);
+			fft_raders(z, N1);
+		}
 		for (int k1 = 0; k1 < N1; k1++) {
 			X[k1 * N2 + k2] = z[k1];
 		}
@@ -175,8 +189,8 @@ void fft(complex<double>* X, int N) {
 			}
 		}
 		double best_time = 1e99;
-		int best_R;
-		for (int R = SIMD_SIZE; R <= SFFT_NMAX; R++) {
+		int best_R = -1;
+		for (int R = 4; R <= SFFT_NMAX; R++) {
 			if (N % R == 0) {
 				std::vector<double> times;
 				std::vector<complex<double>> X(N);
@@ -199,7 +213,13 @@ void fft(complex<double>* X, int N) {
 				}
 			}
 		}
-	//	printf("SIMD radix = %i - %i\n", N, best_R);
+		if (best_R == -1) {
+			best_R = SFFT_NMAX + 1;
+			while (N % best_R != 0) {
+				best_R++;
+			}
+		}
+		//	printf("SIMD radix = %i - %i\n", N, best_R);
 		cache[N] = best_R;
 		iter = cache.find(N);
 
@@ -237,6 +257,12 @@ std::vector<fft_method> possible_ffts(int N) {
 			ffts.push_back(m);
 		}
 	}
+	if (ffts.size() == 0) {
+		m.type = FFT_RADERS;
+		m.R = N;
+		ffts.push_back(m);
+
+	}
 	return ffts;
 }
 
@@ -253,6 +279,8 @@ void fft(const fft_method& method, complex<T>* X, int N) {
 		return fft_conjugate(method.R, X, N);
 	case FFT_6:
 		return fft_six_step(X, N);
+	case FFT_RADERS:
+		return fft_raders(X, N);
 	}
 }
 
@@ -266,6 +294,8 @@ void fft_indices(const fft_method& method, int* I, int N) {
 		return fft_cooley_tukey_indices(method.R, I, N);
 	case FFT_CONJ:
 		return fft_conjugate_indices(method.R, I, N);
+	case FFT_RADERS:
+		return fft_raders_indices(I, N);
 	case FFT_6:
 		return fft_six_step_indices(I, N);
 	}
@@ -308,7 +338,7 @@ fft_method select_fft(int N) {
 				best_method = tests[m];
 			}
 		}
-//		printf("%i - %s\n", N, fft_method_string(best_method).c_str());
+		//	printf("%i - %s\n", N, fft_method_string(best_method).c_str());
 		cache[N] = best_method;
 		iter = cache.find(N);
 	}
@@ -338,32 +368,32 @@ const std::vector<int>& fft_indices(int N) {
 		std::vector<int> J(N);
 		std::iota(I.begin(), I.end(), 0);
 		fft_indices(I.data(), N);
-		for (int n = 0; n < N; n++) {
-			J[I[n]] = n;
-		}
 		cache[N] = std::move(I);
 		iter = cache.find(N);
 	}
 	return iter->second;
 }
 
-template<class T>
-void fft_scramble1(complex<T>* X, int N) {
-	if (N <= SFFT_NMAX) {
-		return;
-	}
+const std::vector<int>& fft_inv_indices(int N) {
 	static std::unordered_map<int, std::vector<int>> cache;
 	auto iter = cache.find(N);
 	if (iter == cache.end()) {
-		std::vector<int> I = fft_indices(N);
+		std::vector<int> I(N);
 		std::vector<int> J(N);
+		std::iota(I.begin(), I.end(), 0);
+		fft_indices(I.data(), N);
 		for (int n = 0; n < N; n++) {
 			J[I[n]] = n;
 		}
 		cache[N] = std::move(J);
 		iter = cache.find(N);
 	}
-	const auto& I = iter->second;
+	return iter->second;
+}
+
+template<class T>
+void fft_permute1(const std::vector<int>& I, complex<T>* X) {
+	const int N = I.size();
 	static std::vector<bool> flag;
 	flag.resize(N, false);
 	for (int n = 0; n < N; n++) {
@@ -380,6 +410,23 @@ void fft_scramble1(complex<T>* X, int N) {
 		}
 	}
 	flag.resize(0);
+
+}
+
+template<class T>
+void fft_scramble1(complex<T>* X, int N) {
+	if (N <= SFFT_NMAX) {
+		return;
+	}
+	static std::unordered_map<int, std::vector<int>> cache;
+	auto iter = cache.find(N);
+	if (iter == cache.end()) {
+		std::vector<int> I = fft_inv_indices(N);
+		cache[N] = std::move(I);
+		iter = cache.find(N);
+	}
+	const auto& I = iter->second;
+	fft_permute(I, X);
 }
 
 void fft_scramble(complex<double>* X, int N) {
@@ -388,5 +435,13 @@ void fft_scramble(complex<double>* X, int N) {
 
 void fft_scramble(complex<fft_simd4>* X, int N) {
 	fft_scramble1(X, N);
+}
+
+void fft_permute(const std::vector<int>& I, complex<double>* X) {
+	fft_permute1(I, X);
+}
+
+void fft_permute(const std::vector<int>& I, complex<fft_simd4>* X) {
+	fft_permute1(I, X);
 }
 

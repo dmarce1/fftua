@@ -51,7 +51,11 @@ void fft_conjugate(complex<T>* X, int N) {
 		if (even) {
 			z[N1o2] = X[No2 + k2] * W[k2 * N1o2];
 		}
-		sfft_complex<N1>((T*) z.data());
+		if (N1 <= SFFT_NMAX) {
+			sfft_complex<N1>((T*) z.data());
+		} else {
+			fft_raders(z.data(), N1);
+		}
 		for (int k1 = 0; k1 < N1; k1++) {
 			X[N2 * k1 + k2] = z[k1];
 		}
