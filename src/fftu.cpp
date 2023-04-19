@@ -621,12 +621,39 @@ void fft_scramble1(complex<T>* X, int N) {
 	fft_permute(I, X);
 }
 
+template<class T>
+void fft_scramble2(complex<T>* X, int N) {
+	if (N <= SFFT_NMAX) {
+		return;
+	}
+	static std::unordered_map<int, std::vector<int>> cache;
+	auto iter = cache.find(N);
+	if (iter == cache.end()) {
+		std::vector<int> I = fft_inv_indices(N);
+		for (int n = 1; n < N - n; n++) {
+			std::swap(I[n], I[N - n]);
+		}
+		cache[N] = std::move(I);
+		iter = cache.find(N);
+	}
+	const auto& I = iter->second;
+	fft_permute(I, X);
+}
+
 void fft_scramble(complex<double>* X, int N) {
 	fft_scramble1(X, N);
 }
 
 void fft_scramble(complex<fft_simd4>* X, int N) {
 	fft_scramble1(X, N);
+}
+
+void fft_scramble_inv(complex<double>* X, int N) {
+	fft_scramble2(X, N);
+}
+
+void fft_scramble_inv(complex<fft_simd4>* X, int N) {
+	fft_scramble2(X, N);
 }
 
 void fft_permute(const std::vector<int>& I, complex<double>* X) {

@@ -32,6 +32,8 @@ void fft(complex<double>* X, int N);
 void fft_indices(int*, int);
 void fft_scramble(complex<fft_simd4>* X, int N);
 void fft_scramble(complex<double>* X, int N);
+void fft_scramble_inv(complex<fft_simd4>* X, int N);
+void fft_scramble_inv(complex<double>* X, int N);
 void fft_six_step_indices(int* I, int N);
 void fft_six_step(complex<double>* X, int N);
 void fft_six_step(complex<fft_simd4>* X, int N);

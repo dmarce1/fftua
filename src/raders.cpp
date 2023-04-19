@@ -55,19 +55,10 @@ void fft_raders(complex<fft_simd4>* X, int N) {
 	fft(X, N - 1);
 	x0 += X[0];
 	for (int q = 0; q < N - 1; q++) {
-		X[q] *= tw[q];
+		Y[q] = X[q] * tw[q];
 	}
-	const auto& I = fft_inv_indices(N - 1);
-	for (int q = 0; q < N - 1; q++) {
-		Y[I[q]] = X[q];
-	}
-	for (int q = 0; q < N - 1; q++) {
-		std::swap(Y[q].real(), Y[q].imag());
-	}
+	fft_scramble_inv(Y.data(), N - 1);
 	fft(Y.data(), N - 1);
-	for (int q = 0; q < N - 1; q++) {
-		std::swap(Y[q].real(), Y[q].imag());
-	}
 	for (int p = 0; p < N - 1; p++) {
 		Y[p] += xo;
 	}
@@ -99,14 +90,8 @@ void fft_raders_padded(complex<fft_simd4>* X, int N) {
 	for (int q = 0; q < M; q++) {
 		Y[q] *= tw[q];
 	}
-	fft_scramble(Y.data(), M);
-	for (int q = 0; q < M; q++) {
-		std::swap(Y[q].real(), Y[q].imag());
-	}
+	fft_scramble_inv(Y.data(), M);
 	fft(Y.data(), M);
-	for (int q = 0; q < M; q++) {
-		std::swap(Y[q].real(), Y[q].imag());
-	}
 	for (int p = 0; p < N - 1; p++) {
 		Y[p] += xo;
 	}
@@ -129,10 +114,10 @@ void fft_raders(complex<double>* X, int N, bool padded) {
 	complex<double> xo = X[0];
 	complex<double> x0 = xo;
 	fft_simd4 z0;
-	for( int n = 0; n < SIMD_SIZE; n += 2) {
+	for( int n = 1; n < SIMD_SIZE; n += 2) {
 		z0[n] = xo.real();
 	}
-	for( int n = 1; n < SIMD_SIZE; n += 2) {
+	for( int n = 0; n < SIMD_SIZE; n += 2) {
 		z0[n] = xo.imag();
 	}
 	for (int n = 0; n < N - 1; n++) {
@@ -147,20 +132,17 @@ void fft_raders(complex<double>* X, int N, bool padded) {
 		__m256d& y = *((__m256d*) &Y[q]);
 		__m256d t = *((__m256d*) &tw[q]);
 		y = mul(y, t);
-	}
-	for (int q = 0; q < M; q++) {
-		std::swap(Y[q].real(), Y[q].imag());
+		y = _mm256_permute_pd(y, 0x5);
 	}
 	fft(Y.data(), M);
-	for (int q = 0; q < N - 1; q++) {
-		std::swap(Y[q].real(), Y[q].imag());
-	}
 	for (int p = 0; p < 2 * ysize / SIMD_SIZE; p++) {
 		Z[p] += z0;
 	}
 	X[0] = x0;
 	for (int p = 0; p < N - 1; p++) {
-		X[ginvq[p]] = Y[p];
+		const int pp = ginvq[p];
+		X[pp].imag() = Y[p].real();
+		X[pp].real() = Y[p].imag();
 	}
 }
 
