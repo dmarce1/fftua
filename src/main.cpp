@@ -69,13 +69,26 @@ int permute_index(int index, int width) {
 int main(int argc, char **argv) {
 	//printf( "PRIMITIVE ROOT OF 93871 = %i\n", generator(93871));
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+	std::pair<complex<double>, complex<double>> A;
+	std::pair<complex<double>, complex<double>> B;
+	std::pair<complex<double>, complex<double>> C;
+	A.first.real() = 1.0;
+	A.first.imag() = 1.0;
+	B.first.real() = 1.0;
+	B.first.imag() = 1.0;
+	A.second.real() = 2.0;
+	A.second.imag() = 2.0;
+	B.second.real() = 2.0;
+	B.second.imag() = 2.0;
+	(__m256d&) C = mul((__m256d&) A,(__m256d&)  B);
+	printf("%e %e\n", C.first.real(), C.first.imag());
 	timer tm3, tm4;
 	double t3 = 0.0;
 	double t4 = 0.0;
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 10; N <= 1024*1024; N = (N * 11) / 10) {
+	for (int N = 10; N <= 1024 * 1024; N = (N * 11) / 10) {
 		auto pfac = prime_factorization(N);
 		std::string f;
 		for (auto i = pfac.begin(); i != pfac.end(); i++) {
@@ -83,7 +96,7 @@ int main(int argc, char **argv) {
 		}
 		printf("%i: %32s ", N, f.c_str());
 		fflush(stdout);
-	/*bool flag = true;
+		/*bool flag = true;
 		 for (auto i = pfac.begin(); i != pfac.end(); i++) {
 		 if (i->first > SFFT_NMAX) {
 		 flag = false;
@@ -129,7 +142,7 @@ int main(int argc, char **argv) {
 		score += t1 / (t2 + 1e-20);
 		cnt++;
 		score /= cnt;
-		printf("| %e %e %e %e %e | %e\n",  avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
+		printf("| %e %e %e %e %e | %e\n", avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
 	}
 	return 0;
 }

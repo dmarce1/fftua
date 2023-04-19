@@ -17,6 +17,7 @@
 #define FFT_CONJ 2
 #define FFT_6 3
 #define FFT_RADERS 5
+#define FFT_RADERS_PADDED 6
 
 struct fft_method {
 	int type;
@@ -44,13 +45,141 @@ std::string fft_method_string(const fft_method method) {
 	case FFT_RADERS:
 		str = "raders-" + std::to_string(method.R);
 		break;
+	case FFT_RADERS_PADDED:
+		str = "raders-padded-" + std::to_string(method.R);
+		break;
 	default:
 		assert(false);
 	}
 	return str;
 }
 
-void fft(int N1, complex<double>* X, int N) {
+void fft2simd_raders(int N1, complex<double>* X, int N);
+
+void fft2simd(int N1, complex<double>* X, int N) {
+	if (N1 > SFFT_NMAX) {
+		fft2simd_raders(N1, X, N);
+		return;
+	}
+	static std::stack<std::vector<complex<fft_simd4>>>vstack;
+	static std::stack<std::vector<complex<double>>>sstack;
+//	printf( "%i\n", N);
+	if (N <= SFFT_NMAX) {
+		sfft_complex((double*) X, N);
+		return;
+	}
+	const int N1v = round_down(N1, SIMD_SIZE);
+	const int N1voS = round_down(N1, SIMD_SIZE) / SIMD_SIZE;
+	const int N1s = N1 - N1v;
+	const int N2 = N / N1;
+	const int N2v = round_down(N2, SIMD_SIZE);
+	std::vector<complex<fft_simd4>> Yv;
+	std::vector<complex<double>> Ys;
+	if (vstack.size()) {
+		Yv = std::move(vstack.top());
+		vstack.pop();
+	}
+	if (sstack.size()) {
+		Ys = std::move(sstack.top());
+		sstack.pop();
+	}
+	Yv.resize(N2 * N1voS);
+	Ys.resize(N2 * N1s);
+	complex<fft_simd4> z[N1];
+	const auto& I = fft_indices(N2);
+	const auto& Wv = vector_twiddles(N1, N2);
+	const auto& Ws = twiddles(N);
+	for (int n2 = 0; n2 < N2; n2++) {
+		for (int n1r = 0; n1r < N1voS; n1r++) {
+			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
+				const int n1 = n1r * SIMD_SIZE + n1c;
+				const int to = n1r * N2 + n2;
+				const int from = N1 * I[n2] + n1;
+				Yv[to].real()[n1c] = X[from].real();
+				Yv[to].imag()[n1c] = X[from].imag();
+			}
+		}
+	}
+	for (int n1 = N1v; n1 < N1; n1++) {
+		for (int n2 = 0; n2 < N2; n2++) {
+			Ys[(n1 - N1v) * N2 + n2] = X[N1 * n2 + n1];
+		}
+	}
+	if (N1v) {
+		for (int n1 = 0; n1 < N1v; n1 += SIMD_SIZE) {
+			const int o = (n1 / SIMD_SIZE) * N2;
+			fft(Yv.data() + o, N2);
+		}
+	}
+	if (N1 - N1v) {
+		for (int n1 = N1v; n1 < N1; n1++) {
+			const int o = (n1 - N1v) * N2;
+			fft(Ys.data() + o, N2);
+		}
+	}
+	for (int k2 = 0; k2 < N2; k2++) {
+		for (int n1 = 0; n1 < N1v; n1 += SIMD_SIZE) {
+			Yv[(n1 / SIMD_SIZE) * N2 + k2] *= Wv[n1 / SIMD_SIZE][k2];
+		}
+		for (int n1 = N1v; n1 < N1; n1++) {
+			Ys[(n1 - N1v) * N2 + k2] *= Ws[n1 * k2];
+		}
+	}
+	for (int k2 = 0; k2 < N2v; k2 += SIMD_SIZE) {
+		for (int n1r = 0; n1r < N1voS; n1r++) {
+			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
+				const int n1 = n1r * SIMD_SIZE + n1c;
+				for (int i = 0; i < SIMD_SIZE; i++) {
+					z[n1].real()[i] = Yv[n1r * N2 + k2 + i].real()[n1c];
+					z[n1].imag()[i] = Yv[n1r * N2 + k2 + i].imag()[n1c];
+				}
+			}
+		}
+		for (int n1 = N1v; n1 < N1; n1++) {
+			for (int i = 0; i < SIMD_SIZE; i++) {
+				z[n1].real()[i] = Ys[(n1 - N1v) * N2 + k2 + i].real();
+				z[n1].imag()[i] = Ys[(n1 - N1v) * N2 + k2 + i].imag();
+			}
+		}
+		if (N1 <= SFFT_NMAX) {
+			sfft_complex((fft_simd4*) z, N1);
+		} else {
+			fft_scramble(z, N1);
+			fft(z, N1);
+		}
+		for (int k1 = 0; k1 < N1; k1++) {
+			for (int i = 0; i < SIMD_SIZE; i++) {
+				X[k1 * N2 + k2 + i].real() = z[k1].real()[i];
+				X[k1 * N2 + k2 + i].imag() = z[k1].imag()[i];
+			}
+		}
+	}
+	for (int k2 = N2v; k2 < N2; k2++) {
+		complex<double> z[N1];
+		for (int n1r = 0; n1r < N1voS; n1r++) {
+			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
+				const int n1 = n1r * SIMD_SIZE + n1c;
+				z[n1].real() = Yv[n1r * N2 + k2].real()[n1c];
+				z[n1].imag() = Yv[n1r * N2 + k2].imag()[n1c];
+			}
+		}
+		for (int n1 = N1v; n1 < N1; n1++) {
+			z[n1] = Ys[(n1 - N1v) * N2 + k2];
+		}
+		if (N1 <= SFFT_NMAX) {
+			sfft_complex((double*) z, N1);
+		} else {
+			fft(z, N1);
+		}
+		for (int k1 = 0; k1 < N1; k1++) {
+			X[k1 * N2 + k2] = z[k1];
+		}
+	}
+	vstack.push(std::move(Yv));
+	sstack.push(std::move(Ys));
+}
+
+void fft2simd_raders(int N1, complex<double>* X, int N) {
 	static std::stack<std::vector<complex<fft_simd4>>>vstack;
 	static std::stack<std::vector<complex<double>>> sstack;
 //	printf( "%i\n", N);
@@ -75,7 +204,12 @@ void fft(int N1, complex<double>* X, int N) {
 	}
 	Yv.resize(N2 * N1voS);
 	Ys.resize(N2 * N1s);
-	static std::vector<complex<fft_simd4>> z;
+	static std::stack<std::vector<complex<fft_simd4>>> zstack;
+	std::vector<complex<fft_simd4>> z;
+	if( zstack.size() ) {
+		z = std::move(zstack.top());
+		zstack.pop();
+	}
 	z.resize(N1);
 	const auto& I = fft_indices(N2);
 	const auto& Wv = vector_twiddles(N1, N2);
@@ -145,8 +279,14 @@ void fft(int N1, complex<double>* X, int N) {
 			}
 		}
 	}
+	zstack.push(std::move(z));
 	for (int k2 = N2v; k2 < N2; k2++) {
-		static std::vector<complex<double>> z;
+		static std::stack<std::vector<complex<double>>> zstack;
+		std::vector<complex<double>> z;
+		if( zstack.size() ) {
+			z = std::move(zstack.top());
+			zstack.pop();
+		}
 		z.resize(N1);
 		for (int n1r = 0; n1r < N1voS; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
@@ -166,6 +306,7 @@ void fft(int N1, complex<double>* X, int N) {
 		for (int k1 = 0; k1 < N1; k1++) {
 			X[k1 * N2 + k2] = z[k1];
 		}
+		zstack.push(std::move(z));
 	}
 	vstack.push(std::move(Yv));
 	sstack.push(std::move(Ys));
@@ -176,8 +317,37 @@ void fft(complex<double>* X, int N) {
 		sfft_complex((double*) X, N);
 		return;
 	} else if (is_prime(N)) {
-	//	fft_scramble(X, N);
-		fft_raders(X, N);
+		//	fft_scramble(X, N);
+		static std::unordered_map<int, bool> cache;
+		auto iter = cache.find(N);
+		if (iter == cache.end()) {
+			timer tm1, tm2;
+			tm1.start();
+			std::vector<complex<double>> X(N);
+			for (int n = 0; n < N; n++) {
+				X[n].real() = rand1();
+				X[n].imag() = rand1();
+			}
+			fft_raders(X.data(), N, true);
+			for (int n = 0; n < N; n++) {
+				X[n].real() = rand1();
+				X[n].imag() = rand1();
+			}
+			fft_raders(X.data(), N, false);
+			tm1.start();
+			for (int n = 0; n < NTRIAL; n++) {
+				fft_raders(X.data(), N, true);
+			}
+			tm1.stop();
+			tm2.start();
+			for (int n = 0; n < NTRIAL; n++) {
+				fft_raders(X.data(), N, false);
+			}
+			tm2.stop();
+			cache[N] = tm1.read() < tm2.read();
+			iter = cache.find(N);
+		}
+		fft_raders(X, N, true);
 	} else {
 		static std::unordered_map<int, int> cache;
 		auto iter = cache.find(N);
@@ -189,7 +359,7 @@ void fft(complex<double>* X, int N) {
 						X[n].real() = rand1();
 						X[n].imag() = rand1();
 					}
-					fft(R, X.data(), N);
+					fft2simd(R, X.data(), N);
 				}
 			}
 			double best_time = 1e99;
@@ -205,7 +375,7 @@ void fft(complex<double>* X, int N) {
 						}
 						timer tm;
 						tm.start();
-						fft(R, X.data(), N);
+						fft2simd(R, X.data(), N);
 						tm.stop();
 						times.push_back(tm.read());
 					}
@@ -228,7 +398,7 @@ void fft(complex<double>* X, int N) {
 			iter = cache.find(N);
 
 		}
-		fft(iter->second, X, N);
+		fft2simd(iter->second, X, N);
 	}
 }
 
@@ -268,6 +438,8 @@ std::vector<fft_method> possible_ffts(int N) {
 			m.type = FFT_RADERS;
 			m.R = N;
 			ffts.push_back(m);
+			m.type = FFT_RADERS_PADDED;
+			ffts.push_back(m);
 		} else {
 			for (auto i = factors.begin(); i != factors.end(); i++) {
 				m.R = i->first;
@@ -297,6 +469,8 @@ void fft(const fft_method& method, complex<T>* X, int N) {
 		return fft_six_step(X, N);
 	case FFT_RADERS:
 		return fft_raders(X, N);
+	case FFT_RADERS_PADDED:
+		return fft_raders_padded(X, N);
 	}
 }
 
@@ -312,6 +486,8 @@ void fft_indices(const fft_method& method, int* I, int N) {
 		return fft_conjugate_indices(method.R, I, N);
 	case FFT_RADERS:
 		return fft_raders_indices(I, N);
+	case FFT_RADERS_PADDED:
+		return fft_raders_padded_indices(I, N);
 	case FFT_6:
 		return fft_six_step_indices(I, N);
 	}

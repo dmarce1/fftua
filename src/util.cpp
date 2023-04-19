@@ -51,10 +51,6 @@ int mod_pow(int a, int b, int m) {
 	return rc;
 }
 
-int mod_inv(int a, int m) {
-	return mod_pow(a, m - 2, m);
-}
-
 int generator(int N) {
 	static thread_local std::unordered_map<int, int> values;
 	auto i = values.find(N);
@@ -94,12 +90,7 @@ std::vector<int> raders_ginvq(int N) {
 		const int g = generator(N);
 		std::vector<int> ginvq;
 		for (int q = 0; q < N - 1; q++) {
-			for (int gqinv = 1; gqinv < N; gqinv++) {
-				if ((gqinv * mod_pow(g, q, N)) % N == 1) {
-					ginvq.push_back(gqinv);
-					break;
-				}
-			}
+			ginvq.push_back(mod_inv(mod_pow(g, q, N), N));
 		}
 		ginvq.push_back(0);
 		values[N] = ginvq;
@@ -206,9 +197,9 @@ const std::vector<complex<double>> raders_twiddle(int N, int M) {
 		int L = std::pow(P, c - 1) * (P - 1);
 		std::vector<complex<double>> b(M, 0.0);
 		const auto tws = twiddles(N);
-		const auto gq = raders_gq(N);
+		const auto ginvq = raders_ginvq(N);
 		for (int q = 0; q < L; q++) {
-			b[q] = (1.0 / M) * tws[gq[mod(L - q, L)]];
+			b[q] = (1.0 / M) * tws[ginvq[q]];
 		}
 		if (M != N - 1) {
 			for (int q = 1; q < L; q++) {
@@ -343,6 +334,20 @@ std::map<int, int> prime_factorization(int N) {
 		i = values.find(N);
 	}
 	return i->second;
+}
+
+int totient(int N) {
+	auto P = prime_factorization(N);
+	int T = 1;
+	for (auto i = P.begin(); i != P.end(); i++) {
+		T *= std::pow(i->first, i->second - 1);
+		T *= (i->first - 1);
+	}
+	return T;
+}
+
+int mod_inv(int a, int m) {
+	return mod_pow(a, totient(m) - 1, m);
 }
 
 bool are_coprime(int a, int b) {

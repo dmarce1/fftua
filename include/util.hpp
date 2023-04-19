@@ -72,5 +72,6 @@ constexpr inline int round_up(int i, int m) {
 const std::vector<std::vector<complex<fft_simd4>>>& vector_twiddles(int N1, int N2);
 void destroy_scratch(std::vector<complex<fft_simd4>>&& space);
 std::vector<complex<fft_simd4>> create_scratch(int N);
+int totient(int N);
 
 #endif
