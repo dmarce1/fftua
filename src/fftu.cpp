@@ -135,7 +135,8 @@ void fft(int N1, complex<double>* X, int N) {
 		if (N1 <= SFFT_NMAX) {
 			sfft_complex((fft_simd4*) z.data(), N1);
 		} else {
-			fft_raders(z.data(), N1, true);
+			fft_scramble(z.data(), N1);
+			fft(z.data(), N1);
 		}
 		for (int k1 = 0; k1 < N1; k1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
@@ -160,7 +161,7 @@ void fft(int N1, complex<double>* X, int N) {
 		if (N1 <= SFFT_NMAX) {
 			sfft_complex((double*) z.data(), N1);
 		} else {
-			fft_raders(z.data(), N1);
+			fft(z.data(), N1);
 		}
 		for (int k1 = 0; k1 < N1; k1++) {
 			X[k1 * N2 + k2] = z[k1];
@@ -175,7 +176,8 @@ void fft(complex<double>* X, int N) {
 		sfft_complex((double*) X, N);
 		return;
 	} else if (is_prime(N)) {
-		fft_raders(X, N, true);
+	//	fft_scramble(X, N);
+		fft_raders(X, N);
 	} else {
 		static std::unordered_map<int, int> cache;
 		auto iter = cache.find(N);

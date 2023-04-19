@@ -36,8 +36,8 @@ void fft_six_step_indices(int* I, int N);
 void fft_six_step(complex<double>* X, int N);
 void fft_six_step(complex<fft_simd4>* X, int N);
 void fft_raders_indices(int* I, int N);
-void fft_raders(complex<fft_simd4>* X, int N, bool scramble = false);
-void fft_raders(complex<double>* X, int N, bool scramble = false);
+void fft_raders(complex<fft_simd4>* X, int N);
+void fft_raders(complex<double>* X, int N);
 void fft_permute(const std::vector<int>&, complex<double>* X);
 void fft_permute(const std::vector<int>&, complex<fft_simd4>* X);
 

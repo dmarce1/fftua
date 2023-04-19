@@ -82,7 +82,8 @@ void fft_conjugate_big(int N1, complex<T>* X, int N) {
 		if (even) {
 			z[N1o2] = X[No2 + k2] * W[k2 * N1o2];
 		}
-		fft_raders(z.data(), N1, true);
+		fft_scramble(z.data(), N1);
+		fft(z.data(), N1);
 		for (int k1 = 0; k1 < N1; k1++) {
 			X[N2 * k1 + k2] = z[k1];
 		}

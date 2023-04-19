@@ -192,28 +192,33 @@ const std::vector<std::vector<complex<fft_simd4>>>& vector_twiddles(int N1, int 
 	}
 }
 
-const std::vector<complex<double>> raders_twiddle(int N) {
+const std::vector<complex<double>> raders_twiddle(int N, int M) {
 	using entry_type = std::shared_ptr<std::vector<complex<double>>>;
-	static std::unordered_map<int, entry_type> cache;
-	auto iter = cache.find(N);
-	if (iter != cache.end()) {
+	static std::unordered_map<int, std::unordered_map<int, entry_type>> cache;
+	auto iter = cache[N].find(M);
+	if (iter != cache[N].end()) {
 		return *(iter->second);
 	} else {
 		auto factors = prime_factorization(N);
 		assert(factors.size() == 1);
 		int P = factors.begin()->first;
 		int c = factors.begin()->second;
-		int M = std::pow(P, c - 1) * (P - 1);
+		int L = std::pow(P, c - 1) * (P - 1);
 		std::vector<complex<double>> b(M, 0.0);
 		const auto tws = twiddles(N);
 		const auto gq = raders_gq(N);
-		for (int q = 0; q < M; q++) {
-			b[q] = (1.0 / M) * tws[gq[mod(M - q, M)]];
+		for (int q = 0; q < L; q++) {
+			b[q] = (1.0 / M) * tws[gq[mod(L - q, L)]];
+		}
+		if (M != N - 1) {
+			for (int q = 1; q < L; q++) {
+				b[M - q] = b[L - q];
+			}
 		}
 		fftw(b);
 		b.resize(round_up(b.size(), SIMD_SIZE));
-		cache[N] = std::make_shared<std::vector<complex<double>>>(std::move(b));
-		return *(cache[N]);
+		cache[N][M] = std::make_shared<std::vector<complex<double>>>(std::move(b));
+		return *(cache[N][M]);
 	}
 }
 
@@ -321,7 +326,6 @@ int least_prime_factor(int N) {
 	return i->second;
 }
 
-
 std::map<int, int> prime_factorization(int N) {
 	static thread_local std::unordered_map<int, std::map<int, int>> values;
 	auto i = values.find(N);
@@ -340,7 +344,6 @@ std::map<int, int> prime_factorization(int N) {
 	}
 	return i->second;
 }
-
 
 bool are_coprime(int a, int b) {
 	auto afacs = prime_factorization(a);

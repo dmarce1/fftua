@@ -59,7 +59,7 @@ int generator(int N);
 std::vector<int> raders_ginvq(int N);
 const std::vector<int> raders_gq(int N);
 double fftw(std::vector<complex<double>>& x);
-const std::vector<complex<double>> raders_twiddle(int N);
+const std::vector<complex<double>> raders_twiddle(int N, int M);
 bool are_coprime(int a, int b);
 std::vector<complex<double>> chirp_z_filter(int N);
 const std::vector<complex<double>>& twiddles(int N);
