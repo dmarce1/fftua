@@ -193,19 +193,28 @@ const std::vector<std::vector<complex<fft_simd4>>>& vector_twiddles(int N1, int 
 }
 
 const std::vector<complex<double>> raders_twiddle(int N) {
-	auto factors = prime_factorization(N);
-	assert(factors.size() == 1);
-	int P = factors.begin()->first;
-	int c = factors.begin()->second;
-	int M = std::pow(P, c - 1) * (P - 1);
-	std::vector<complex<double>> b(M, 0.0);
-	const auto tws = twiddles(N);
-	const auto gq = raders_gq(N);
-	for (int q = 0; q < M; q++) {
-		b[q] = (1.0 / M) * tws[gq[mod(M - q, M)]];
+	using entry_type = std::shared_ptr<std::vector<complex<double>>>;
+	static std::unordered_map<int, entry_type> cache;
+	auto iter = cache.find(N);
+	if (iter != cache.end()) {
+		return *(iter->second);
+	} else {
+		auto factors = prime_factorization(N);
+		assert(factors.size() == 1);
+		int P = factors.begin()->first;
+		int c = factors.begin()->second;
+		int M = std::pow(P, c - 1) * (P - 1);
+		std::vector<complex<double>> b(M, 0.0);
+		const auto tws = twiddles(N);
+		const auto gq = raders_gq(N);
+		for (int q = 0; q < M; q++) {
+			b[q] = (1.0 / M) * tws[gq[mod(M - q, M)]];
+		}
+		fftw(b);
+		b.resize(round_up(b.size(), SIMD_SIZE));
+		cache[N] = std::make_shared<std::vector<complex<double>>>(std::move(b));
+		return *(cache[N]);
 	}
-	fftw(b);
-	return b;
 }
 
 std::vector<complex<double>> chirp_z_filter(int N) {
@@ -312,18 +321,26 @@ int least_prime_factor(int N) {
 	return i->second;
 }
 
+
 std::map<int, int> prime_factorization(int N) {
-	std::map<int, int> map;
-	while (N != 1) {
-		int k = greatest_prime_factor(N);
-		if (map.find(k) == map.end()) {
-			map[k] = 0;
+	static thread_local std::unordered_map<int, std::map<int, int>> values;
+	auto i = values.find(N);
+	if (i == values.end()) {
+		std::map<int, int> map;
+		while (N != 1) {
+			int k = greatest_prime_factor(N);
+			if (map.find(k) == map.end()) {
+				map[k] = 0;
+			}
+			map[k]++;
+			N /= k;
 		}
-		map[k]++;
-		N /= k;
+		values[N] = std::move(map);
+		i = values.find(N);
 	}
-	return map;
+	return i->second;
 }
+
 
 bool are_coprime(int a, int b) {
 	auto afacs = prime_factorization(a);

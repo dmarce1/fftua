@@ -174,57 +174,60 @@ void fft(complex<double>* X, int N) {
 	if (N <= SFFT_NMAX) {
 		sfft_complex((double*) X, N);
 		return;
-	}
-	static std::unordered_map<int, int> cache;
-	auto iter = cache.find(N);
-	if (iter == cache.end()) {
-		for (int R = SIMD_SIZE; R <= SFFT_NMAX; R++) {
-			if (N % R == 0) {
-				std::vector<complex<double>> X(N);
-				for (int n = 0; n < N; n++) {
-					X[n].real() = rand1();
-					X[n].imag() = rand1();
-				}
-				fft(R, X.data(), N);
-			}
-		}
-		double best_time = 1e99;
-		int best_R = -1;
-		for (int R = 4; R <= SFFT_NMAX; R++) {
-			if (N % R == 0) {
-				std::vector<double> times;
-				std::vector<complex<double>> X(N);
-				for (int k = 0; k < NTRIAL; k++) {
+	} else if (is_prime(N)) {
+		fft_raders(X, N, true);
+	} else {
+		static std::unordered_map<int, int> cache;
+		auto iter = cache.find(N);
+		if (iter == cache.end()) {
+			for (int R = SIMD_SIZE; R <= SFFT_NMAX; R++) {
+				if (N % R == 0) {
+					std::vector<complex<double>> X(N);
 					for (int n = 0; n < N; n++) {
 						X[n].real() = rand1();
 						X[n].imag() = rand1();
 					}
-					timer tm;
-					tm.start();
 					fft(R, X.data(), N);
-					tm.stop();
-					times.push_back(tm.read());
-				}
-				std::sort(times.begin(), times.end());
-				double tm = times[(times.size() + 1) / 2];
-				if (tm < best_time) {
-					best_time = tm;
-					best_R = R;
 				}
 			}
-		}
-		if (best_R == -1) {
-			best_R = SFFT_NMAX + 1;
-			while (N % best_R != 0) {
-				best_R++;
+			double best_time = 1e99;
+			int best_R = -1;
+			for (int R = 4; R <= SFFT_NMAX; R++) {
+				if (N % R == 0) {
+					std::vector<double> times;
+					std::vector<complex<double>> X(N);
+					for (int k = 0; k < NTRIAL; k++) {
+						for (int n = 0; n < N; n++) {
+							X[n].real() = rand1();
+							X[n].imag() = rand1();
+						}
+						timer tm;
+						tm.start();
+						fft(R, X.data(), N);
+						tm.stop();
+						times.push_back(tm.read());
+					}
+					std::sort(times.begin(), times.end());
+					double tm = times[(times.size() + 1) / 2];
+					if (tm < best_time) {
+						best_time = tm;
+						best_R = R;
+					}
+				}
 			}
-		}
-		//	printf("SIMD radix = %i - %i\n", N, best_R);
-		cache[N] = best_R;
-		iter = cache.find(N);
+			if (best_R == -1) {
+				best_R = SFFT_NMAX + 1;
+				while (N % best_R != 0) {
+					best_R++;
+				}
+			}
+			//	printf("SIMD radix = %i - %i\n", N, best_R);
+			cache[N] = best_R;
+			iter = cache.find(N);
 
+		}
+		fft(iter->second, X, N);
 	}
-	fft(iter->second, X, N);
 }
 
 std::vector<fft_method> possible_ffts(int N) {
