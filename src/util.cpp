@@ -421,3 +421,26 @@ bool are_coprime(int a, int b) {
 	return true;
 }
 
+void fftw_real(std::vector<complex<double>>& xout, const std::vector<double>& xin) {
+	const int N = xin.size();
+	static std::unordered_map<int, fftw_plan> plans;
+	static std::unordered_map<int, double*> in;
+	static std::unordered_map<int, fftw_complex*> out;
+	if (plans.find(N) == plans.end()) {
+		in[N] = (double*) malloc(sizeof(double) * N);
+		out[N] = (fftw_complex*) malloc(sizeof(fftw_complex) * (N / 2 + 1));
+		plans[N] = fftw_plan_dft_r2c_1d(N, in[N], out[N], FFTW_ESTIMATE);
+	}
+	auto* i = in[N];
+	auto* o = out[N];
+	for (int n = 0; n < N; n++) {
+		i[n] = xin[n];
+	}
+	fftw_execute(plans[N]);
+	for (int n = 0; n < N / 2 + 1; n++) {
+		xout[n].real() = (o[n][0]);
+		xout[n].imag() = (o[n][1]);
+	}
+
+}
+

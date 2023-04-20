@@ -78,4 +78,6 @@ void destroy_scratch(std::vector<complex<fft_simd4>>&& space);
 std::vector<complex<fft_simd4>> create_scratch(int N);
 int totient(int N);
 
+
+void fftw_real(std::vector<complex<double>>& xout, const std::vector<double>& xin);
 #endif
