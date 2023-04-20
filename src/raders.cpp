@@ -2,32 +2,6 @@
 #include "util.hpp"
 #include <cstring>
 
-int compute_padding(int N) {
-	static std::unordered_map<int, int> cache;
-	auto iter = cache.find(N);
-	if (iter == cache.end()) {
-		int M = 2 * N - 1;
-		bool done;
-		do {
-			done = true;
-			auto factors = prime_factorization(M);
-			const int two_pow = factors.begin()->first == 2 ? factors.begin()->second : 0;
-			for (auto i = factors.begin(); i != factors.end(); i++) {
-				if ((i->second > two_pow) || (i->first != 2 && i->first != 3 && i->first != 5)) {
-					done = false;
-					break;
-				}
-			}
-			if (!done) {
-				M++;
-			}
-		} while (!done);
-		cache[N] = M;
-		iter = cache.find(N);
-	}
-	return iter->second;
-	//return 1 << (ilogb(2 * N - 1) + 1);
-}
 
 void fft_raders_indices(int* I, int N) {
 	std::vector<int> J(N);

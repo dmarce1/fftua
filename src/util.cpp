@@ -84,7 +84,7 @@ int generator(int N) {
 }
 
 std::vector<int> raders_ginvq(int N) {
-	static thread_local std::unordered_map<int, std::vector<int>> values;
+	static thread_local std::unordered_map<int, std::shared_ptr<std::vector<int>>>values;
 	auto i = values.find(N);
 	if (i == values.end()) {
 		const int g = generator(N);
@@ -93,14 +93,14 @@ std::vector<int> raders_ginvq(int N) {
 			ginvq.push_back(mod_inv(mod_pow(g, q, N), N));
 		}
 		ginvq.push_back(0);
-		values[N] = ginvq;
+		values[N] = std::make_shared<std::vector<int>>(std::move(ginvq));
 		i = values.find(N);
 	}
-	return i->second;
+	return *i->second;
 }
 
 const std::vector<int> raders_gq(int N) {
-	static thread_local std::unordered_map<int, std::vector<int>> values;
+	static thread_local std::unordered_map<int, std::shared_ptr<std::vector<int>>>values;
 	auto i = values.find(N);
 	if (i == values.end()) {
 		const int g = generator(N);
@@ -109,10 +109,10 @@ const std::vector<int> raders_gq(int N) {
 			gq.push_back(mod_pow(g, q, N));
 		}
 		gq.push_back(0);
-		values[N] = gq;
+		values[N] = std::make_shared<std::vector<int>>(std::move(gq));
 		i = values.find(N);
 	}
-	return i->second;
+	return *i->second;
 }
 
 double fftw(std::vector<complex<double>>& x) {
@@ -183,7 +183,38 @@ const std::vector<std::vector<complex<fft_simd4>>>& vector_twiddles(int N1, int 
 	}
 }
 
-const std::vector<complex<double>> raders_twiddle(int N, int M) {
+bool padded_length(int M) {
+	auto factors = prime_factorization(M);
+	const int two_pow = factors.begin()->first == 2 ? factors.begin()->second : 0;
+	for (auto i = factors.begin(); i != factors.end(); i++) {
+		if ((i->second > two_pow) || (i->first != 2 && i->first != 3 && i->first != 5)) {
+			return false;
+		}
+	}
+	return true;
+}
+
+int compute_padding(int N) {
+	static std::unordered_map<int, int> cache;
+	auto iter = cache.find(N);
+	if (iter == cache.end()) {
+		int M = 2 * N - 1;
+		bool done;
+		do {
+			if (!padded_length(M)) {
+				M++;
+				done = false;
+			} else {
+				done = true;
+			}
+		} while (!done);
+		cache[N] = M;
+		iter = cache.find(N);
+	}
+	return iter->second;
+}
+
+const std::vector<complex<double>>& raders_twiddle(int N, int M) {
 	using entry_type = std::shared_ptr<std::vector<complex<double>>>;
 	static std::unordered_map<int, std::unordered_map<int, entry_type>> cache;
 	auto iter = cache[N].find(M);
@@ -213,13 +244,40 @@ const std::vector<complex<double>> raders_twiddle(int N, int M) {
 	}
 }
 
-std::vector<complex<double>> chirp_z_filter(int N) {
-	std::vector<complex<double>> z(N);
-	for (int n = 0; n < N; n++) {
-		z[n].real() = cos(M_PI * n * n / N);
-		z[n].imag() = sin(M_PI * n * n / N);
+const std::vector<complex<double>>& bluestein_multiplier(int N) {
+	static thread_local std::unordered_map<int, std::shared_ptr<std::vector<complex<double>>> >values;
+	auto i = values.find(N);
+	if (i == values.end()) {
+		std::vector<complex<double>> z(N);
+		for (int n = 0; n < N; n++) {
+			const auto phi = fmodl(M_PIl * n * n / N, 2.0l * M_PIl);
+			z[n].real() = cos(phi);
+			z[n].imag() = -sin(phi);
+		}
+		values[N] = std::make_shared<std::vector<complex<double>>>(std::move(z));
+		i = values.find(N);
 	}
-	return z;
+	return *i->second;
+}
+
+const std::vector<complex<double>>& bluestein_filter(int N, int M) {
+	static thread_local std::unordered_map<int, std::unordered_map<int, std::shared_ptr<std::vector<complex<double>>>>>values;
+	auto i = values[N].find(M);
+	if (i == values[N].end()) {
+		std::vector<complex<double>> z(M, 0.0);
+		for (int n = 0; n < N; n++) {
+			const auto phi = fmodl(M_PIl * n * n / N, 2.0l * M_PIl);
+			z[n].real() = cos(phi) / M;
+			z[n].imag() = sin(phi) / M;
+		}
+		for (int n = 1; n < N; n++) {
+			z[M - n] = z[n];
+		}
+		fftw(z);
+		values[N][M] = std::make_shared<std::vector<complex<double>>>(std::move(z));
+		i = values[N].find(M);
+	}
+	return *i->second;
 }
 
 __int128 factorial(__int128 k) {
