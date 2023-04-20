@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 4; N <= 16 * 1024 * 1024; N *= 4) {
+	for (int N = 5; N <= 16 * 1024 * 1024; N *= 5) {
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
 		}
 		/*		if (i == 0) {*/
 		fftw_real(Y, y);
-		fft_real(4, x.data(), N);
+		fft_real(5, x.data(), N);
 		X[0].real() = x[0];
 		X[0].imag() = 0.0;
 		for (int n = 1; n < N - n; n++) {
