@@ -75,23 +75,21 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 2; N <= 1024; N *= 2) {
+	for (int N = 4; N <= 16 * 1024 * 1024; N *= 4) {
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
 		//	for (int i = 0; i < 21; i++) {
 		std::vector<double> x(N);
-		//std::vector<double> y(N);
+		std::vector<double> y(N);
 		std::vector<complex<double>> X(N / 2 + 1);
-		std::vector<complex<double>> Y(N);
+		std::vector<complex<double>> Y(N / 2 + 1);
 		for (int n = 0; n < N; n++) {
-			x[n] = rand1();
-			Y[n].real() = x[n];
-			Y[n].imag() = 0.0;
+			x[n] = (y[n] = rand1());
 		}
 		/*		if (i == 0) {*/
-		fftw(Y);
-		fft_real(2, x.data(), N);
+		fftw_real(Y, y);
+		fft_real(4, x.data(), N);
 		X[0].real() = x[0];
 		X[0].imag() = 0.0;
 		for (int n = 1; n < N - n; n++) {
@@ -115,7 +113,7 @@ int main(int argc, char **argv) {
 			double y = X[n].imag() - Y[n].imag();
 			double err = sqrt(x * x + y * y);
 			avg_err += err;
-			printf("%e %e | %e %e | %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), err);
+	//		printf("%e %e | %e %e | %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), err);
 //			}
 		}
 		avg_err /= (21 * N);
