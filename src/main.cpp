@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
 		}
 		/*		if (i == 0) {*/
 		fftw_real(Y, y);
-		fft_real(5, x.data(), N);
+		fft_real(x.data(), N);
 		X[0].real() = x[0];
 		X[0].imag() = 0.0;
 		for (int n = 1; n < N - n; n++) {

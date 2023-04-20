@@ -10,6 +10,7 @@
 
 #include "types.hpp"
 #include <vector>
+#include <string>
 
 #include "sfft.hpp"
 
@@ -45,10 +46,72 @@ void fft_permute(const std::vector<int>&, complex<double>* X);
 void fft_permute(const std::vector<int>&, complex<fft_simd4>* X);
 void fft_raders_padded(complex<fft_simd4>* X, int N);
 void fft_bluestein(complex<double>* X, int N);
-void fft_real(int N1, double* X, int N);
+void fft_real(double* X, int N);
+
+#define FFT_SPLIT 0
+#define FFT_SPLIT_CONJ 4
+#define FFT_CT 1
+#define FFT_CONJ 2
+#define FFT_6 3
+#define FFT_RADERS 5
+#define FFT_RADERS_PADDED 6
+
+struct fft_method {
+	int type;
+	int R;
+};
+
+std::string fft_method_string(const fft_method method);
 
 inline double rand1() {
 	return (rand() + 0.5) / (RAND_MAX + 1.0);
 }
+
+
+template<class T>
+void fft_permute1(const std::vector<int>& I, T* X) {
+	const int N = I.size();
+	static std::vector<bool> flag;
+	flag.resize(N, false);
+	for (int n = 0; n < N; n++) {
+		if (!flag[n]) {
+			flag[n] = true;
+			T tmp = X[n];
+			int m = I[n];
+			while (m != n) {
+				flag[m] = true;
+				std::swap(tmp, X[m]);
+				m = I[m];
+			}
+			X[n] = tmp;
+		}
+	}
+	flag.resize(0);
+
+}
+
+
+inline void fft_permute(const std::vector<int>& I, complex<double>* X) {
+	fft_permute1(I, X);
+}
+
+inline void fft_permute(const std::vector<int>& I, complex<fft_simd4>* X) {
+	fft_permute1(I, X);
+}
+
+inline void fft_permute(const std::vector<int>& I, double* X) {
+	fft_permute1(I, X);
+}
+
+inline void fft_permute(const std::vector<int>& I, fft_simd4* X) {
+	fft_permute1(I, X);
+}
+
+
+void fft_cooley_tukey_real(int N1, double* X, int N);
+void fft_cooley_tukey_real(int N1, complex<double>* X, int N);
+void fft_cooley_tukey_indices_real(int N1, int* I, int N);
+void fft_cooley_tukey_real(int N1, fft_simd4* X, int N);
+void fft_cooley_tukey_real(int N1, double* X, int N);
 
 #endif /* FFTU_HPP_ */

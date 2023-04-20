@@ -12,18 +12,6 @@
 
 #define NTRIAL 5
 
-#define FFT_SPLIT 0
-#define FFT_SPLIT_CONJ 4
-#define FFT_CT 1
-#define FFT_CONJ 2
-#define FFT_6 3
-#define FFT_RADERS 5
-#define FFT_RADERS_PADDED 6
-
-struct fft_method {
-	int type;
-	int R;
-};
 fft_method select_fft(int N);
 
 std::string fft_method_string(const fft_method method) {
@@ -63,17 +51,16 @@ void fft2simd(int N1, complex<double>* X, int N) {
 		fft2simd_raders(N1, X, N);
 		return;
 	}
-	static std::stack<std::vector<complex<fft_simd4>>>vstack;
-	static std::stack<std::vector<complex<double>>>sstack;
-//	printf( "%i\n", N);
+	static std::stack<std::vector<complex<fft_simd4>>> vstack;
+	static std::stack<std::vector<complex<double>>> sstack;
 	if (N <= SFFT_NMAX) {
 		sfft_complex((double*) X, N);
 		return;
 	}
+	const int N2 = N / N1;
 	const int N1v = round_down(N1, SIMD_SIZE);
 	const int N1voS = round_down(N1, SIMD_SIZE) / SIMD_SIZE;
 	const int N1s = N1 - N1v;
-	const int N2 = N / N1;
 	const int N2v = round_down(N2, SIMD_SIZE);
 	std::vector<complex<fft_simd4>> Yv;
 	std::vector<complex<double>> Ys;
@@ -628,27 +615,6 @@ const std::vector<int>& fft_inv_indices(int N) {
 	return *iter->second;
 }
 
-template<class T>
-void fft_permute1(const std::vector<int>& I, complex<T>* X) {
-	const int N = I.size();
-	static std::vector<bool> flag;
-	flag.resize(N, false);
-	for (int n = 0; n < N; n++) {
-		if (!flag[n]) {
-			flag[n] = true;
-			complex<T> tmp = X[n];
-			int m = I[n];
-			while (m != n) {
-				flag[m] = true;
-				std::swap(tmp, X[m]);
-				m = I[m];
-			}
-			X[n] = tmp;
-		}
-	}
-	flag.resize(0);
-
-}
 
 template<class T>
 void fft_scramble1(complex<T>* X, int N) {
@@ -699,13 +665,5 @@ void fft_scramble_inv(complex<double>* X, int N) {
 
 void fft_scramble_inv(complex<fft_simd4>* X, int N) {
 	fft_scramble2(X, N);
-}
-
-void fft_permute(const std::vector<int>& I, complex<double>* X) {
-	fft_permute1(I, X);
-}
-
-void fft_permute(const std::vector<int>& I, complex<fft_simd4>* X) {
-	fft_permute1(I, X);
 }
 
