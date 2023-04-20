@@ -46,6 +46,7 @@ public:
 inline bool close2(double a, double b) {
 	return std::abs(a - b) < 1.0e-10;
 }
+bool padded_length(int M);
 int least_prime_factor(int N);
 int mod(int a, int b);
 bool power_of(int N, int M);
@@ -59,16 +60,19 @@ int generator(int N);
 std::vector<int> raders_ginvq(int N);
 const std::vector<int> raders_gq(int N);
 double fftw(std::vector<complex<double>>& x);
-const std::vector<complex<double>> raders_twiddle(int N, int M);
+const std::vector<complex<double>>& raders_twiddle(int N, int M);
 bool are_coprime(int a, int b);
 std::vector<complex<double>> chirp_z_filter(int N);
 const std::vector<complex<double>>& twiddles(int N);
+int compute_padding(int N);
 constexpr inline int round_down(int i, int m) {
 	return m * (i / m);
 }
 constexpr inline int round_up(int i, int m) {
 	return m * (((i - 1) / m) + 1);
 }
+const std::vector<complex<double>>& bluestein_multiplier(int N);
+const std::vector<complex<double>>&  bluestein_filter(int N, int M);
 const std::vector<std::vector<complex<fft_simd4>>>& vector_twiddles(int N1, int N2);
 void destroy_scratch(std::vector<complex<fft_simd4>>&& space);
 std::vector<complex<fft_simd4>> create_scratch(int N);

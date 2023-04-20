@@ -44,6 +44,8 @@ void fft_raders(complex<double>* X, int N, bool padded);
 void fft_permute(const std::vector<int>&, complex<double>* X);
 void fft_permute(const std::vector<int>&, complex<fft_simd4>* X);
 void fft_raders_padded(complex<fft_simd4>* X, int N);
+void fft_bluestein(complex<double>* X, int N);
+void fft_real(int N1, double* X, int N);
 
 inline double rand1() {
 	return (rand() + 0.5) / (RAND_MAX + 1.0);
