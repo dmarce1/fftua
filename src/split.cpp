@@ -15,7 +15,7 @@ int bsqrt(int N) {
 }
 
 void fft_split_indices(int R, int* I, int N) {
-	if (N < SFFT_NMAX) {
+	if (N <= SFFT_NMAX) {
 		return;
 	}
 	const int N1 = R;
