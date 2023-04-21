@@ -75,53 +75,62 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 5; N <= 16 * 1024 * 1024; N *= 5) {
+	for (int N = 10; N <= 1024 * 1024; N = (11 * N / 10)) {
+		auto pfac = prime_factorization(N);
+		do {
+			if (pfac.rbegin()->first > SFFT_NMAX) {
+				N++;
+				pfac = prime_factorization(N);
+			}
+		} while(pfac.rbegin()->first > SFFT_NMAX);
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
-		//	for (int i = 0; i < 21; i++) {
-		std::vector<double> x(N);
-		std::vector<double> y(N);
-		std::vector<complex<double>> X(N / 2 + 1);
-		std::vector<complex<double>> Y(N / 2 + 1);
-		for (int n = 0; n < N; n++) {
-			x[n] = (y[n] = rand1());
+		for (int i = 0; i < 20; i++) {
+			std::vector<double> x(N);
+			std::vector<double> y(N);
+			std::vector<complex<double>> X(N / 2 + 1);
+			std::vector<complex<double>> Y(N / 2 + 1);
+			for (int n = 0; n < N; n++) {
+				x[n] = (y[n] = rand1());
+			}
+			if (i == 0) {
+				fftw_real(Y, y);
+				fft_real(x.data(), N);
+			} else {
+				auto b = fftw_real(Y, y);
+				timer tm;
+				tm.start();
+				fft_real(x.data(), N);
+				X[0].real() = x[0];
+				X[0].imag() = 0.0;
+				for (int n = 1; n < N - n; n++) {
+					X[n].real() = x[n];
+					X[n].imag() = x[N - n];
+				}
+				if (N % 2 == 0) {
+					X[N / 2].real() = x[N / 2];
+					X[N / 2].imag() = 0.0;
+				}
+				tm.stop();
+				t2 += tm.read();
+				t4 += tm.read();
+				t1 += b;
+				t3 += b;
+				for (int n = 0; n < N / 2 + 1; n++) {
+					double x = X[n].real() - Y[n].real();
+					double y = X[n].imag() - Y[n].imag();
+					double err = sqrt(x * x + y * y);
+					avg_err += err;
+					//printf("%e %e | %e %e | %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), err);
+				}
+			}
 		}
-		/*		if (i == 0) {*/
-		fftw_real(Y, y);
-		fft_real(x.data(), N);
-		X[0].real() = x[0];
-		X[0].imag() = 0.0;
-		for (int n = 1; n < N - n; n++) {
-			X[n].real() = x[n];
-			X[n].imag() = x[N - n];
-		}
-		if (N % 2 == 0) {
-			X[N / 2].real() = x[N / 2];
-			X[N / 2].imag() = 0.0;
-		}
-		/*	} else {
-		 auto a = fftw(Y);
-		 auto b = FFT(X);
-		 t1 += a;
-		 t3 += a;
-		 t2 += b;
-		 t4 += b;
-		 }*/
-		for (int n = 0; n < N / 2 + 1; n++) {
-			double x = X[n].real() - Y[n].real();
-			double y = X[n].imag() - Y[n].imag();
-			double err = sqrt(x * x + y * y);
-			avg_err += err;
-	//		printf("%e %e | %e %e | %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), err);
-//			}
-		}
-		avg_err /= (21 * N);
+		avg_err /= (20 * N);
 		score *= cnt;
 		score += t1 / (t2 + 1e-20);
 		cnt++;
 		score /= cnt;
-		auto pfac = prime_factorization(N);
 		std::string f;
 		for (auto i = pfac.begin(); i != pfac.end(); i++) {
 			f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";

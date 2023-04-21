@@ -17,13 +17,13 @@ void fft2simd_real(int N1, double* X, int N);
 
 void fft_real(double* X, int N) {
 	if (N <= SFFT_NMAX) {
-		sfft_complex((double*) X, N);
+		sfft_real(X, N);
 		return;
 	} else {
 		static std::unordered_map<int, int> cache;
 		auto iter = cache.find(N);
 		if (iter == cache.end()) {
-			for (int R = SIMD_SIZE; R <= SFFT_NMAX; R++) {
+			for (int R = 4; R <= std::min(SFFT_NMAX, N); R++) {
 				if (N % R == 0) {
 					std::vector<double> X(N);
 					for (int n = 0; n < N; n++) {
@@ -34,8 +34,8 @@ void fft_real(double* X, int N) {
 			}
 			double best_time = 1e99;
 			int best_R = -1;
-			for (int R = 4; R <= SFFT_NMAX; R++) {
-				if (N % R == 0 || R == 3) {
+			for (int R = 4; R <= std::min(SFFT_NMAX, N); R++) {
+				if (N % R == 0) {
 					std::vector<double> times;
 					std::vector<double> X(N);
 					for (int k = 0; k < NTRIAL; k++) {
@@ -67,7 +67,7 @@ std::vector<fft_method> possible_ffts_real(int N) {
 	constexpr int FFT_NMAX = 32;
 	std::vector<fft_method> ffts;
 	fft_method m;
-	for (m.R = 2; m.R <= std::min(N, FFT_NMAX); m.R++) {
+	for (m.R = 2; m.R <= std::min(SFFT_NMAX, N); m.R++) {
 		if (N % m.R == 0) {
 			m.type = FFT_CT;
 			ffts.push_back(m);
@@ -126,6 +126,7 @@ fft_method select_fft_real(int N) {
 				best_method = tests[m];
 			}
 		}
+		//	printf("%i - %s\n", N, fft_method_string(best_method).c_str());
 		cache[N] = best_method;
 		iter = cache.find(N);
 	}
@@ -245,7 +246,7 @@ void fft2simd_real(int N1, double* X, int N) {
 	const int N1s = N1 - N1v;
 	const int N2p1o2v = round_down((N2p1o2 - 1), SIMD_SIZE) + 1;
 
-	static std::stack<std::vector<fft_simd4>>vstack;
+	static std::stack<std::vector<fft_simd4>> vstack;
 	static std::stack<std::vector<double>> sstack;
 	std::vector<fft_simd4> Yv;
 	std::vector<double> Ys;
@@ -260,14 +261,15 @@ void fft2simd_real(int N1, double* X, int N) {
 	Yv.resize(N2 * N1voS);
 	Ys.resize(N2 * N1s);
 
-	const auto& W = twiddles(N);
+	const auto& Ws = twiddles(N);
+	const auto& Wv = vector_twiddles(N1, N2);
 
 	const auto& I = fft_indices_real(N2);
 	for (int n2 = 0; n2 < N2; n2++) {
 		for (int n1r = 0; n1r < N1voS; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
 				const int n1 = n1r * SIMD_SIZE + n1c;
-				Yv[n1r * N2 + n2][n1c] = X[N2 * n1 + I[n2]];
+				Yv[n1r * N2 + n2][n1c] = X[I[n2] * N1 + n1];
 			}
 		}
 	}
@@ -288,16 +290,14 @@ void fft2simd_real(int N1, double* X, int N) {
 
 	for (int k2 = 1; k2 < N2p1o2; k2++) {
 		for (int n1r = 0; n1r < N1voS; n1r++) {
-			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
-				complex<double> z;
-				const int ir = N2 * n1r + k2;
-				const int ii = N2 * n1r - k2 + N2;
-				z.real() = Yv[ir][n1c];
-				z.imag() = Yv[ii][n1c];
-				z *= W[(n1c + n1r * SIMD_SIZE) * k2];
-				Yv[ir][n1c] = z.real();
-				Yv[ii][n1c] = z.imag();
-			}
+			complex<fft_simd4> z;
+			const int ir = N2 * n1r + k2;
+			const int ii = N2 * n1r - k2 + N2;
+			z.real() = Yv[ir];
+			z.imag() = Yv[ii];
+			z *= Wv[n1r][k2];
+			Yv[ir] = z.real();
+			Yv[ii] = z.imag();
 		}
 		for (int n1 = N1v; n1 < N1; n1++) {
 			complex<double> z;
@@ -305,17 +305,17 @@ void fft2simd_real(int N1, double* X, int N) {
 			const int ii = N2 * (n1 - N1v) - k2 + N2;
 			z.real() = Ys[ir];
 			z.imag() = Ys[ii];
-			z *= W[n1 * k2];
+			z *= Ws[n1 * k2];
 			Ys[ir] = z.real();
 			Ys[ii] = z.imag();
 		}
 	}
-
 	{
 		double q[N1];
 		for (int n1r = 0; n1r < N1voS; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
-				q[n1r * SIMD_SIZE + n1c] = Yv[N2 * n1r][n1c];
+				const int n1 = n1r * SIMD_SIZE + n1c;
+				q[n1] = Yv[N2 * n1r][n1c];
 			}
 		}
 		for (int n1 = N1v; n1 < N1; n1++) {
@@ -338,27 +338,27 @@ void fft2simd_real(int N1, double* X, int N) {
 				const int n1 = n1r * SIMD_SIZE + n1c;
 				for (int i = 0; i < SIMD_SIZE; i++) {
 					p[n1].real()[i] = Yv[n1r * N2 + k2 + i][n1c];
-					p[n1].imag()[i] = Yv[n1r * N2 - k2 + i + N2][n1c];
+					p[n1].imag()[i] = Yv[n1r * N2 - k2 - i + N2][n1c];
 				}
 			}
 		}
-		for (int n1 = N2p1o2v; n1 < N2p1o2; n1++) {
+		for (int n1 = N1v; n1 < N1; n1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
 				p[n1].real()[i] = Ys[(n1 - N1v) * N2 + k2 + i];
-				p[n1].imag()[i] = Ys[(n1 - N1v) * N2 - k2 + i + N2];
+				p[n1].imag()[i] = Ys[(n1 - N1v) * N2 - k2 - i + N2];
 			}
 		}
 		sfft_complex((fft_simd4*) p, N1);
-		for (int k1 = 0; k1 < N1p1o2; k1++) {
+		for (int k1 = 0; k1 < N1; k1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
-				X[k2 + i] = p[k1].real()[i];
-				X[N - k2 - i] = p[k1].imag()[i];
-			}
-		}
-		for (int k1 = N1p1o2; k1 < N1; k1++) {
-			for (int i = 0; i < SIMD_SIZE; i++) {
-				X[N - k2 - i] = p[k1].real()[i];
-				X[k2 + i] = -p[k1].imag()[i];
+				const int k = N2 * k1 + k2 + i;
+				if (k < N - k) {
+					X[k] = p[k1].real()[i];
+					X[N - k] = p[k1].imag()[i];
+				} else {
+					X[N - k] = p[k1].real()[i];
+					X[k] = -p[k1].imag()[i];
+				}
 			}
 		}
 	}
@@ -391,11 +391,11 @@ void fft2simd_real(int N1, double* X, int N) {
 		double q[N1];
 		for (int n1r = 0; n1r < N1voS; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
-				q[n1r * SIMD_SIZE + n1c] = Yv[N2 * n1r][n1c];
+				q[n1r * SIMD_SIZE + n1c] = Yv[N2 * n1r + N2 / 2][n1c];
 			}
 		}
 		for (int n1 = N1v; n1 < N1; n1++) {
-			q[n1] = Ys[N2 * (n1 - N1v)];
+			q[n1] = Ys[N2 * (n1 - N1v) + N2 / 2];
 		}
 		sfft_skew(q, N1);
 		for (int k1 = 0; k1 < N1p1o2; k1++) {
@@ -408,108 +408,5 @@ void fft2simd_real(int N1, double* X, int N) {
 	}
 	vstack.push(std::move(Yv));
 	sstack.push(std::move(Ys));
-}
-
-void fft_cooley_tukey_indices_real(int N1, int* I, int N) {
-	std::vector<int> J(N);
-	const int N2 = N / N1;
-	for (int n1 = 0; n1 < N1; n1++) {
-		for (int n2 = 0; n2 < N2; n2++) {
-			J[N2 * n1 + n2] = I[N1 * n2 + n1];
-		}
-	}
-	std::memcpy(I, J.data(), sizeof(int) * N);
-	for (int n1 = 0; n1 < N1; n1++) {
-		fft_indices_real(&I[n1 * N2], N2);
-	}
-}
-
-template<class T>
-void fft_cooley_tukey_real1(int N1, T* X, int N) {
-	if (N <= SFFT_NMAX) {
-		sfft_real(X, N);
-		return;
-	}
-
-	const int N2 = N / N1;
-	const int No2 = N / 2;
-	const int N1p1o2 = (N1 + 1) / 2;
-	const int N2p1o2 = (N2 + 1) / 2;
-	const int N1o2 = N1 / 2;
-
-	const auto& W = twiddles(N);
-
-	for (int n1 = 0; n1 < N1; n1++) {
-		fft_real(&X[n1 * N2], N2);
-	}
-
-	for (int k2 = 1; k2 < N2p1o2; k2++) {
-		for (int n1 = 1; n1 < N1; n1++) {
-			complex<T> z;
-			const int ir = N2 * n1 + k2;
-			const int ii = N2 * n1 - k2 + N2;
-			z.real() = X[ir];
-			z.imag() = X[ii];
-			z *= W[n1 * k2];
-			X[ir] = z.real();
-			X[ii] = z.imag();
-		}
-	}
-
-	{
-		T q[N1];
-		for (int n1 = 0; n1 < N1; n1++) {
-			q[n1] = X[N2 * n1];
-		}
-		sfft_real(q, N1);
-		X[0] = q[0];
-		for (int k1 = 1; k1 < N1p1o2; k1++) {
-			X[0 + N2 * k1] = q[k1];
-			X[N - N2 * k1] = q[N1 - k1];
-		}
-		if (N1 % 2 == 0) {
-			X[No2] = q[N1o2];
-		}
-	}
-	complex<T> p[N1];
-	for (int k2 = 1; k2 < N2p1o2; k2++) {
-		for (int n1 = 0; n1 < N1; n1++) {
-			p[n1].real() = X[N2 * n1 + k2];
-			p[n1].imag() = X[N2 * n1 - k2 + N2];
-		}
-		sfft_complex((T*) p, N1);
-		for (int k1 = 0; k1 < N1p1o2; k1++) {
-			const int k = N2 * k1 + k2;
-			X[k] = p[k1].real();
-			X[N - k] = p[k1].imag();
-		}
-		for (int k1 = N1p1o2; k1 < N1; k1++) {
-			const int k = N2 * k1 + k2;
-			X[N - k] = p[k1].real();
-			X[k] = -p[k1].imag();
-		}
-	}
-	if (N2 % 2 == 0) {
-		T q[N1];
-		for (int n1 = 0; n1 < N1; n1++) {
-			q[n1] = X[N2 * n1 + N2 / 2];
-		}
-		sfft_skew(q, N1);
-		for (int k1 = 0; k1 < N1p1o2; k1++) {
-			X[0 + (N2 * k1 + N2 / 2)] = q[k1];
-			X[N - (N2 * k1 + N2 / 2)] = q[N1 - k1 - 1];
-		}
-		if (N1 % 2 == 1) {
-			X[No2] = q[N1o2];
-		}
-	}
-}
-
-void fft_cooley_tukey_real(int N1, fft_simd4* X, int N) {
-	fft_cooley_tukey_real1<fft_simd4>(N1, X, N);
-}
-
-void fft_cooley_tukey_real(int N1, double* X, int N) {
-	fft_cooley_tukey_real1<double>(N1, X, N);
 }
 

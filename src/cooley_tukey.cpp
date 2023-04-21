@@ -129,6 +129,70 @@ void fft_cooley_tukey1(int N1, complex<T>* X, int N) {
 		return fft_cooley_tukey<T, 31>(X, N);
 	case 32:
 		return fft_cooley_tukey<T, 32>(X, N);
+	case 33:
+		return fft_cooley_tukey<T, 33>(X, N);
+	case 34:
+		return fft_cooley_tukey<T, 34>(X, N);
+	case 35:
+		return fft_cooley_tukey<T, 35>(X, N);
+	case 36:
+		return fft_cooley_tukey<T, 36>(X, N);
+	case 37:
+		return fft_cooley_tukey<T, 37>(X, N);
+	case 38:
+		return fft_cooley_tukey<T, 38>(X, N);
+	case 39:
+		return fft_cooley_tukey<T, 39>(X, N);
+	case 40:
+		return fft_cooley_tukey<T, 40>(X, N);
+	case 41:
+		return fft_cooley_tukey<T, 41>(X, N);
+	case 42:
+		return fft_cooley_tukey<T, 42>(X, N);
+	case 43:
+		return fft_cooley_tukey<T, 43>(X, N);
+	case 44:
+		return fft_cooley_tukey<T, 44>(X, N);
+	case 45:
+		return fft_cooley_tukey<T, 45>(X, N);
+	case 46:
+		return fft_cooley_tukey<T, 46>(X, N);
+	case 47:
+		return fft_cooley_tukey<T, 47>(X, N);
+	case 48:
+		return fft_cooley_tukey<T, 48>(X, N);
+	case 49:
+		return fft_cooley_tukey<T, 49>(X, N);
+	case 50:
+		return fft_cooley_tukey<T, 50>(X, N);
+	case 51:
+		return fft_cooley_tukey<T, 51>(X, N);
+	case 52:
+		return fft_cooley_tukey<T, 52>(X, N);
+	case 53:
+		return fft_cooley_tukey<T, 53>(X, N);
+	case 54:
+		return fft_cooley_tukey<T, 54>(X, N);
+	case 55:
+		return fft_cooley_tukey<T, 55>(X, N);
+	case 56:
+		return fft_cooley_tukey<T, 56>(X, N);
+	case 57:
+		return fft_cooley_tukey<T, 57>(X, N);
+	case 58:
+		return fft_cooley_tukey<T, 58>(X, N);
+	case 59:
+		return fft_cooley_tukey<T, 59>(X, N);
+	case 60:
+		return fft_cooley_tukey<T, 60>(X, N);
+	case 61:
+		return fft_cooley_tukey<T, 61>(X, N);
+	case 62:
+		return fft_cooley_tukey<T, 62>(X, N);
+	case 63:
+		return fft_cooley_tukey<T, 63>(X, N);
+	case 64:
+		return fft_cooley_tukey<T, 64>(X, N);
 	default:
 		return fft_cooley_tukey_big<T>(N1, X, N);
 	}
