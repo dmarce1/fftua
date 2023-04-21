@@ -23,7 +23,7 @@ void fft_real(double* X, int N) {
 		static std::unordered_map<int, int> cache;
 		auto iter = cache.find(N);
 		if (iter == cache.end()) {
-			for (int R = 4; R <= 4; R++) {
+			for (int R = 4; R <= std::min(N, SFFT_NMAX); R++) {
 				if (N % R == 0) {
 					std::vector<double> X(N);
 					for (int n = 0; n < N; n++) {
@@ -34,7 +34,7 @@ void fft_real(double* X, int N) {
 			}
 			double best_time = 1e99;
 			int best_R = -1;
-			for (int R = 4; R <= 4; R++) {
+			for (int R = 4; R <= std::min(N, SFFT_NMAX); R++) {
 				if (N % R == 0) {
 					std::vector<double> times;
 					std::vector<double> X(N);
@@ -64,22 +64,12 @@ void fft_real(double* X, int N) {
 }
 
 std::vector<fft_method> possible_ffts_real(int N) {
-	constexpr int FFT_NMAX = 32;
 	std::vector<fft_method> ffts;
 	fft_method m;
-	if (N % 4 == 0) {
-		for (m.R = 4; m.R <= 4; m.R += 4) {
-			if (N % m.R == 0) {
-				m.type = FFT_SPLIT;
-				ffts.push_back(m);
-			}
-		}
-	} else {
-		for (m.R = 2; m.R <= std::min(SFFT_NMAX, N); m.R++) {
-			if (N % m.R == 0) {
-				m.type = FFT_CT;
-				ffts.push_back(m);
-			}
+	for (m.R = 2; m.R <= std::min(SFFT_NMAX, N); m.R++) {
+		if (N % m.R == 0) {
+			m.type = FFT_CT;
+			ffts.push_back(m);
 		}
 	}
 	return ffts;
@@ -91,9 +81,6 @@ void fft_real(const fft_method& method, T* X, int N) {
 	case FFT_CT:
 		fft_cooley_tukey_real(method.R, X, N);
 		break;
-	case FFT_SPLIT:
-		fft_split_real(method.R, X, N);
-		break;
 	}
 }
 
@@ -101,8 +88,6 @@ void fft_indices_real(const fft_method& method, int* I, int N) {
 	switch (method.type) {
 	case FFT_CT:
 		return fft_cooley_tukey_indices_real(method.R, I, N);
-	case FFT_SPLIT:
-		return fft_split_real_indices(method.R, I, N);
 	}
 }
 

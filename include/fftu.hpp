@@ -14,6 +14,8 @@
 
 #include "sfft.hpp"
 
+void fft_twoforone_real(fft_simd4* X, int N);
+void fft_twoforone_real(double* X, int N);
 void fft_cooley_tukey(int N1, complex<fft_simd4>* X, int N);
 void fft_cooley_tukey(int N1, complex<double>* X, int N);
 void fft_cooley_tukey_indices(int N1, int* I, int N);
@@ -47,6 +49,9 @@ void fft_permute(const std::vector<int>&, complex<fft_simd4>* X);
 void fft_raders_padded(complex<fft_simd4>* X, int N);
 void fft_bluestein(complex<double>* X, int N);
 void fft_real(double* X, int N);
+void fft_split_real_indices(int R, int* I, int N);
+void fft_split_real(int R, double* X, int N);
+void fft_split_real(int R, fft_simd4* X, int N);
 
 #define FFT_SPLIT 0
 #define FFT_SPLIT_CONJ 4
