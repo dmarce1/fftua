@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 2; N <= 1024 * 1024; N *= 2) {
+	for (int N = 1024; N <= 1024; N *= 2) {
 		auto pfac = prime_factorization(N);
 		do {
 			if (pfac.rbegin()->first > SFFT_NMAX) {
@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
-		for (int i = 0; i < 21; i++) {
+		for (int i = 0; i < 2; i++) {
 			std::vector<double> x(N);
 			std::vector<double> y(N);
 			std::vector<complex<double>> X(N / 2 + 1);
@@ -101,6 +101,7 @@ int main(int argc, char **argv) {
 				 }
 				 y[n] = x[n];*/
 			}
+			x[0] = y[0] = 1.0;
 			if (i == 0) {
 				fftw_real(Y, y);
 				fft_real(x.data(), N);
@@ -129,7 +130,7 @@ int main(int argc, char **argv) {
 					double y = X[n].imag() - Y[n].imag();
 					double err = sqrt(x * x + y * y);
 					avg_err += err;
-					//	printf("%e %e | %e %e | %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), err);
+						printf("%e %e | %e %e | %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), err);
 				}
 			}
 		}
@@ -145,6 +146,7 @@ int main(int argc, char **argv) {
 		printf("%i: %32s ", N, f.c_str());
 		fflush(stdout);
 		printf("| %e %e %e %e %e | %e\n", avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
+		abort();
 	}
 	return 0;
 }

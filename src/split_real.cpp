@@ -9,18 +9,6 @@
 #include <stack>
 
 void fft_split_real_indices(int N1, int* I, int N) {
-	std::vector<int> J(N);
-	const int N2 = N / N1;
-	for (int n2 = 0; n2 < N2; n2++) {
-		J[n2] = I[N1 * n2 + 0];
-		J[n2 + N2] = I[N1 * n2 + 2];
-		J[n2 + N / 2] = I[N1 * n2 + 1];
-		J[n2 + N / 2 + N2] = I[N1 * n2 + 3];
-	}
-	std::memcpy(I, J.data(), sizeof(int) * N);
-	for (int n1 = 0; n1 < N1; n1++) {
-		fft_indices_real(&I[n1 * N2], N2);
-	}
 }
 
 template<class T, int N1>
@@ -29,76 +17,111 @@ void fft_split_real(T* X, int N) {
 		sfft_real(X, N);
 		return;
 	}
-
-	constexpr int N1o2 = N1 / 2;
-	const int N2 = N / N1;
-	const int No2 = N / 2;
-	const int N2p1o2 = (N2 + 1) / 2;
-
-	const auto& W = twiddles(N);
-
-	fft_real(&X[0], N2);
-	fft_real(&X[N2], N2);
-	fft_real(&X[N / 2], N2);
-	fft_real(&X[N / 2 + N2], N2);
-
-	for (int n2 = 0; n2 < N2; n2++) {
-		std::swap(X[N2 + n2], X[N / 2 + n2]);
-	}
-
-	for (int k2 = 1; k2 < N2p1o2; k2++) {
-		for (int n1 = 1; n1 < N1; n1++) {
-			complex<T> z;
-			const int ir = N2 * n1 + k2;
-			const int ii = N2 * n1 - k2 + N2;
-			z.real() = X[ir];
-			z.imag() = X[ii];
-			z *= W[n1 * k2];
-			X[ir] = z.real();
-			X[ii] = z.imag();
+	X--;
+	int j = 1;
+	for (int i = 1; i < N; i++) {
+		if (i < j) {
+			std::swap(X[i], X[j]);
 		}
-	}
-
-	std::array<T, N1> q;
-	for (int n1 = 0; n1 < N1; n1++) {
-		q[n1] = X[N2 * n1];
-	}
-	sfft_real<N1>(q.data());
-	X[0] = q[0];
-	for (int k1 = 1; k1 < N1o2; k1++) {
-		X[0 + N2 * k1] = q[k1];
-		X[N - N2 * k1] = q[N1 - k1];
-	}
-	X[No2] = q[N1o2];
-
-	std::array<complex<T>, N1> p;
-	for (int k2 = 1; k2 < N2p1o2; k2++) {
-		for (int n1 = 0; n1 < N1; n1++) {
-			p[n1].real() = X[N2 * n1 + k2];
-			p[n1].imag() = X[N2 * n1 - k2 + N2];
+		int k = N / 2;
+		while (k < j) {
+			j -= k;
+			k /= 2;
 		}
-		sfft_complex<N1>((T*) p.data());
-		for (int k1 = 0; k1 < N1o2; k1++) {
-			const int k = N2 * k1 + k2;
-			X[k] = p[k1].real();
-			X[N - k] = p[k1].imag();
-		}
-		for (int k1 = N1o2; k1 < N1; k1++) {
-			const int k = N2 * k1 + k2;
-			X[N - k] = p[k1].real();
-			X[k] = -p[k1].imag();
-		}
+		j += k;
 	}
-
-	if (N2 % 2 == 0) {
-		std::array<T, N1> q;
-		for (int n1 = 0; n1 < N1; n1++) {
-			q[n1] = X[N2 * n1 + N2 / 2];
+	int is = 1;
+	int id = 4;
+	do {
+		for (int i0 = is; i0 <= N; i0 += id) {
+			int i1 = i0 + 1;
+			T R1 = X[i0];
+			X[i0] = R1 + X[i1];
+			X[i1] = R1 - X[i1];
 		}
-		sfft_skew<N1>(q.data());
-		for (int k1 = 0; k1 < N1o2; k1++) {
-			X[0 + (N2 * k1 + N2 / 2)] = q[k1];
-			X[N - (N2 * k1 + N2 / 2)] = q[N1 - k1 - 1];
+		is = 2 * id - 1;
+		id = 4 * id;
+	} while (is < N);
+	int N2 = 2;
+	int M = ilogb(N);
+	for (int k = 2; k <= M; k++) {
+		N2 *= 2;
+		int N4 = N2 / 4;
+		int N8 = N2 / 8;
+		const double E = 2.0 * M_PI / N2;
+		is = 0;
+		id = N2 * 2;
+		while (is < N) {
+			for (int i = is; i < N; i += id) {
+				int i1 = i + 1;
+				int i2 = i1 + N4;
+				int i3 = i2 + N4;
+				int i4 = i3 + N4;
+				T T1 = X[i4] + X[i3];
+				T T2;
+				X[i4] = X[i4] - X[i3];
+				X[i3] = X[i1] - T1;
+				X[i1] = X[i1] + T1;
+				if (N4 != 1) {
+					i1 += N8;
+					i2 += N8;
+					i3 += N8;
+					i4 += N8;
+					T1 = (X[i3] + X[i4]) * (1.0 / sqrt(2.0));
+					T2 = (X[i3] - X[i4]) * (1.0 / sqrt(2.0));
+					X[i4] = X[i2] - T1;
+					X[i3] = -X[i2] - T1;
+					X[i2] = X[i1] - T2;
+					X[i1] = X[i1] + T2;
+				}
+			}
+			is = 2 * id - N2;
+			id = 4 * id;
+		}
+		double A = E;
+		for (int j = 2; j <= N8; j++) {
+			double A3 = 3.0 * A;
+			double CC1 = cos(A);
+			double SS1 = sin(A);
+			double CC3 = cos(A3);
+			double SS3 = sin(A3);
+			A = j * E;
+			is = 0;
+			id = 2 * N2;
+			while (is < N) {
+				for (int i = is; i < N; i += id) {
+					int i1 = i + j;
+					int i2 = i1 + N4;
+					int i3 = i2 + N4;
+					int i4 = i3 + N4;
+					int i5 = i + N4 - j + 2;
+					int i6 = i5 + N4;
+					int i7 = i6 + N4;
+					int i8 = i7 + N4;
+					T T1 = X[i3] * CC1 + X[i7] * SS1;
+					T T2 = X[i7] * CC1 - X[i3] * SS1;
+					T T3 = X[i4] * CC3 + X[i8] * SS3;
+					T T4 = X[i8] * CC3 - X[i4] * SS3;
+					T T5 = T1 + T3;
+					T T6 = T2 + T4;
+					T3 = T1 - T3;
+					T4 = T2 - T4;
+					T2 = X[i6] + T6;
+					X[i3] = T6 - X[i6];
+					X[i8] = T2;
+					T2 = X[i2] - T3;
+					X[i7] = -X[i2] - T3;
+					X[i4] = T2;
+					T1 = X[i1] + T5;
+					X[i6] = X[i1] - T5;
+					X[i1] = T1;
+					T1 = X[i5] + T4;
+					X[i5] = X[i5] - T4;
+					X[i2] = T1;
+				}
+				is = 2 * id - N2;
+				id = 4 * id;
+			}
 		}
 	}
 }
