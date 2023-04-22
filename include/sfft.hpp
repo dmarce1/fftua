@@ -20,7 +20,6 @@ void fft_complex_2(T* x) {
 	x[3] = rr1 - rr0;
 }
 
-
 template<class T>
 void fft_complex_3(T* x) {
 	T rr0;
@@ -52,7 +51,6 @@ void fft_complex_3(T* x) {
 	x[5] = rr0 + rr1;
 }
 
-
 template<class T>
 void fft_complex_4(T* x) {
 	T rr0;
@@ -83,7 +81,6 @@ void fft_complex_4(T* x) {
 	rr1 = x[7];
 	x[7] = rr0 + rr1;
 }
-
 
 template<class T>
 void fft_complex_5(T* x) {
@@ -146,7 +143,6 @@ void fft_complex_5(T* x) {
 	x[7] = rr0 - rr1;
 }
 
-
 template<class T>
 void fft_complex_6(T* x) {
 	T rr0;
@@ -206,7 +202,6 @@ void fft_complex_6(T* x) {
 	x[10] = x[11] - rr2;
 	x[11] = rr0 - rr1;
 }
-
 
 template<class T>
 void fft_complex_7(T* x) {
@@ -328,7 +323,6 @@ void fft_complex_7(T* x) {
 	x[9] = rr2 - rr4;
 }
 
-
 template<class T>
 void fft_complex_8(T* x) {
 	T rr0;
@@ -405,7 +399,6 @@ void fft_complex_8(T* x) {
 	x[14] = rr1 - x[15];
 	x[15] = rr0 + rr2;
 }
-
 
 template<class T>
 void fft_complex_9(T* x) {
@@ -548,7 +541,6 @@ void fft_complex_9(T* x) {
 	x[17] = rr2 - rr3;
 }
 
-
 template<class T>
 void fft_complex_10(T* x) {
 	T rr0;
@@ -684,7 +676,6 @@ void fft_complex_10(T* x) {
 	rr0 = x[19];
 	x[19] = rr0 - rr1;
 }
-
 
 template<class T>
 void fft_complex_11(T* x) {
@@ -960,7 +951,6 @@ void fft_complex_11(T* x) {
 	x[13] = rr12 - rr0;
 }
 
-
 template<class T>
 void fft_complex_12(T* x) {
 	T rr0;
@@ -1099,7 +1089,6 @@ void fft_complex_12(T* x) {
 	rr0 = x[23];
 	x[23] = rr0 + rr2;
 }
-
 
 template<class T>
 void fft_complex_13(T* x) {
@@ -1444,7 +1433,6 @@ void fft_complex_13(T* x) {
 	x[5] = rr2 + rr20;
 }
 
-
 template<class T>
 void fft_complex_14(T* x) {
 	T rr0;
@@ -1692,7 +1680,6 @@ void fft_complex_14(T* x) {
 	x[26] = rr4 - rr0;
 	x[27] = rr1 - rr5;
 }
-
 
 template<class T>
 void fft_complex_15(T* x) {
@@ -1943,7 +1930,6 @@ void fft_complex_15(T* x) {
 	x[29] = rr0 + rr2;
 }
 
-
 template<class T>
 void fft_complex_16(T* x) {
 	T rr0;
@@ -2148,7 +2134,6 @@ void fft_complex_16(T* x) {
 	x[30] = x[31] - rr1;
 	x[31] = rr0 + rr2;
 }
-
 
 template<class T>
 void fft_complex_17(T* x) {
@@ -2661,7 +2646,6 @@ void fft_complex_17(T* x) {
 	x[7] = rr0 - rr1;
 }
 
-
 template<class T>
 void fft_complex_18(T* x) {
 	T rr0;
@@ -2968,7 +2952,6 @@ void fft_complex_18(T* x) {
 	x[34] = rr0 - rr2;
 	x[35] = rr1 - rr3;
 }
-
 
 template<class T>
 void fft_complex_19(T* x) {
@@ -3580,7 +3563,6 @@ void fft_complex_19(T* x) {
 	x[5] = rr2 + rr17;
 }
 
-
 template<class T>
 void fft_complex_20(T* x) {
 	T rr0;
@@ -3881,7 +3863,6 @@ void fft_complex_20(T* x) {
 	rr0 = x[39];
 	x[39] = rr1 + rr0;
 }
-
 
 template<class T>
 void fft_complex_21(T* x) {
@@ -4327,7 +4308,6 @@ void fft_complex_21(T* x) {
 	x[40] = rr4 - rr0;
 	x[41] = rr5 + rr1;
 }
-
 
 template<class T>
 void fft_complex_22(T* x) {
@@ -4902,7 +4882,6 @@ void fft_complex_22(T* x) {
 	x[42] = rr6 - rr10;
 	x[43] = rr12 - rr2;
 }
-
 
 template<class T>
 void fft_complex_23(T* x) {
@@ -6029,7 +6008,6 @@ void fft_complex_23(T* x) {
 	x[25] = rr12 - rr10;
 }
 
-
 template<class T>
 void fft_complex_24(T* x) {
 	T rr0;
@@ -6380,7 +6358,6 @@ void fft_complex_24(T* x) {
 	x[46] = rr0 - x[47];
 	x[47] = rr2 + rr1;
 }
-
 
 template<class T>
 void fft_complex_25(T* x) {
@@ -6988,7 +6965,6 @@ void fft_complex_25(T* x) {
 	x[38] = rr2 + x[39];
 	x[39] = rr1 - rr0;
 }
-
 
 template<class T>
 void fft_complex_26(T* x) {
@@ -7688,7 +7664,6 @@ void fft_complex_26(T* x) {
 	x[51] = rr0 - rr13;
 }
 
-
 template<class T>
 void fft_complex_27(T* x) {
 	T rr0;
@@ -8315,7 +8290,6 @@ void fft_complex_27(T* x) {
 	x[53] = rr1 - rr2;
 }
 
-
 template<class T>
 void fft_complex_28(T* x) {
 	T rr0;
@@ -8873,7 +8847,6 @@ void fft_complex_28(T* x) {
 	x[54] = rr4 - rr1;
 	x[55] = rr0 + rr6;
 }
-
 
 template<class T>
 void fft_complex_29(T* x) {
@@ -10178,7 +10151,6 @@ void fft_complex_29(T* x) {
 	x[5] = rr4 + rr0;
 }
 
-
 template<class T>
 void fft_complex_30(T* x) {
 	T rr0;
@@ -10732,7 +10704,6 @@ void fft_complex_30(T* x) {
 	rr0 = x[59];
 	x[59] = rr2 - rr0;
 }
-
 
 template<class T>
 void fft_complex_31(T* x) {
@@ -12013,7 +11984,6 @@ void fft_complex_31(T* x) {
 	x[7] = rr2 + rr17;
 }
 
-
 template<class T>
 void fft_complex_32(T* x) {
 	T rr0;
@@ -12541,7 +12511,6 @@ void fft_complex_32(T* x) {
 	x[62] = x[63] - rr1;
 	x[63] = rr0 + rr2;
 }
-
 
 template<class T>
 void fft_complex_33(T* x) {
@@ -13505,7 +13474,6 @@ void fft_complex_33(T* x) {
 	x[64] = rr6 - rr10;
 	x[65] = rr11 + rr0;
 }
-
 
 template<class T>
 void fft_complex_34(T* x) {
@@ -14579,7 +14547,6 @@ void fft_complex_34(T* x) {
 	x[67] = rr0 - rr2;
 }
 
-
 template<class T>
 void fft_complex_35(T* x) {
 	T rr0;
@@ -15444,7 +15411,6 @@ void fft_complex_35(T* x) {
 	x[27] = rr0 - rr1;
 }
 
-
 template<class T>
 void fft_complex_36(T* x) {
 	T rr0;
@@ -16117,7 +16083,6 @@ void fft_complex_36(T* x) {
 	x[70] = rr2 - rr3;
 	x[71] = rr0 + rr1;
 }
-
 
 template<class T>
 void fft_complex_37(T* x) {
@@ -17660,7 +17625,6 @@ void fft_complex_37(T* x) {
 	x[5] = rr2 + rr17;
 }
 
-
 template<class T>
 void fft_complex_38(T* x) {
 	T rr0;
@@ -18875,7 +18839,6 @@ void fft_complex_38(T* x) {
 	x[75] = rr25 - rr0;
 }
 
-
 template<class T>
 void fft_complex_39(T* x) {
 	T rr0;
@@ -20034,7 +19997,6 @@ void fft_complex_39(T* x) {
 	x[77] = rr19 + rr0;
 }
 
-
 template<class T>
 void fft_complex_40(T* x) {
 	T rr0;
@@ -20754,7 +20716,6 @@ void fft_complex_40(T* x) {
 	rr0 = x[47];
 	x[47] = rr1 - rr0;
 }
-
 
 template<class T>
 void fft_complex_41(T* x) {
@@ -22459,7 +22420,6 @@ void fft_complex_41(T* x) {
 	x[13] = rr3 + rr4;
 }
 
-
 template<class T>
 void fft_complex_42(T* x) {
 	T rr0;
@@ -23435,7 +23395,6 @@ void fft_complex_42(T* x) {
 	x[82] = rr4 - rr0;
 	x[83] = rr1 - rr3;
 }
-
 
 template<class T>
 void fft_complex_43(T* x) {
@@ -25771,7 +25730,6 @@ void fft_complex_43(T* x) {
 	x[7] = rr2 + rr7;
 }
 
-
 template<class T>
 void fft_complex_44(T* x) {
 	T rr0;
@@ -26987,7 +26945,6 @@ void fft_complex_44(T* x) {
 	x[87] = rr1 + rr12;
 }
 
-
 template<class T>
 void fft_complex_45(T* x) {
 	T rr0;
@@ -28040,7 +27997,6 @@ void fft_complex_45(T* x) {
 	x[16] = x[17] + rr0;
 	x[17] = rr1 - rr2;
 }
-
 
 template<class T>
 void fft_complex_46(T* x) {
@@ -30338,7 +30294,6 @@ void fft_complex_46(T* x) {
 	x[90] = rr12 - rr25;
 	x[91] = rr3 - rr30;
 }
-
 
 template<class T>
 void fft_complex_47(T* x) {
@@ -34699,7 +34654,6 @@ void fft_complex_47(T* x) {
 	x[11] = rr42 + rr21;
 }
 
-
 template<class T>
 void fft_complex_48(T* x) {
 	T rr0;
@@ -35561,7 +35515,6 @@ void fft_complex_48(T* x) {
 	rr0 = x[95];
 	x[95] = rr0 + rr1;
 }
-
 
 template<class T>
 void fft_complex_49(T* x) {
@@ -37260,7 +37213,6 @@ void fft_complex_49(T* x) {
 	x[69] = rr5 - rr4;
 }
 
-
 template<class T>
 void fft_complex_50(T* x) {
 	T rr0;
@@ -38553,7 +38505,6 @@ void fft_complex_50(T* x) {
 	rr0 = x[99];
 	x[99] = rr0 - rr1;
 }
-
 
 template<class T>
 void fft_complex_51(T* x) {
@@ -40326,7 +40277,6 @@ void fft_complex_51(T* x) {
 	x[101] = rr1 + rr0;
 }
 
-
 template<class T>
 void fft_complex_52(T* x) {
 	T rr0;
@@ -41795,7 +41745,6 @@ void fft_complex_52(T* x) {
 	x[102] = rr11 - rr10;
 	x[103] = rr19 + rr0;
 }
-
 
 template<class T>
 void fft_complex_53(T* x) {
@@ -45082,7 +45031,6 @@ void fft_complex_53(T* x) {
 	x[5] = rr17 + rr13;
 }
 
-
 template<class T>
 void fft_complex_54(T* x) {
 	T rr0;
@@ -46410,7 +46358,6 @@ void fft_complex_54(T* x) {
 	x[106] = rr0 - x[107];
 	x[107] = rr3 - rr2;
 }
-
 
 template<class T>
 void fft_complex_55(T* x) {
@@ -48197,7 +48144,6 @@ void fft_complex_55(T* x) {
 	x[87] = rr12 - rr0;
 }
 
-
 template<class T>
 void fft_complex_56(T* x) {
 	T rr0;
@@ -49467,7 +49413,6 @@ void fft_complex_56(T* x) {
 	x[78] = rr3 + rr6;
 	x[79] = rr4 - rr5;
 }
-
 
 template<class T>
 void fft_complex_57(T* x) {
@@ -51446,7 +51391,6 @@ void fft_complex_57(T* x) {
 	x[112] = rr12 - rr11;
 	x[113] = rr3 + rr25;
 }
-
 
 template<class T>
 void fft_complex_58(T* x) {
@@ -54124,7 +54068,6 @@ void fft_complex_58(T* x) {
 	x[114] = x[115] - rr5;
 	x[115] = rr0 - rr4;
 }
-
 
 template<class T>
 void fft_complex_59(T* x) {
@@ -59898,7 +59841,6 @@ void fft_complex_59(T* x) {
 	x[5] = rr102 + rr45;
 }
 
-
 template<class T>
 void fft_complex_60(T* x) {
 	T rr0;
@@ -61108,7 +61050,6 @@ void fft_complex_60(T* x) {
 	x[118] = rr1 - x[119];
 	x[119] = rr0 + rr2;
 }
-
 
 template<class T>
 void fft_complex_61(T* x) {
@@ -63948,7 +63889,6 @@ void fft_complex_61(T* x) {
 	x[5] = rr4 + rr1;
 }
 
-
 template<class T>
 void fft_complex_62(T* x) {
 	T rr0;
@@ -66485,7 +66425,6 @@ void fft_complex_62(T* x) {
 	x[123] = rr15 - rr20;
 }
 
-
 template<class T>
 void fft_complex_63(T* x) {
 	T rr0;
@@ -68265,7 +68204,6 @@ void fft_complex_63(T* x) {
 	x[107] = rr3 - rr4;
 }
 
-
 template<class T>
 void fft_complex_64(T* x) {
 	T rr0;
@@ -69566,7 +69504,6 @@ void fft_complex_64(T* x) {
 	x[127] = rr0 + rr1;
 }
 
-
 template<class T>
 void fft_complex_odd_4(T* x) {
 	T rr0;
@@ -69579,7 +69516,6 @@ void fft_complex_odd_4(T* x) {
 	x[2] = rr1 - x[3];
 	x[3] = -rr0;
 }
-
 
 template<class T>
 void fft_complex_odd_8(T* x) {
@@ -69618,7 +69554,6 @@ void fft_complex_odd_8(T* x) {
 	x[5] = -rr0;
 	x[7] = -rr1;
 }
-
 
 template<class T>
 void fft_complex_odd_12(T* x) {
@@ -69682,7 +69617,6 @@ void fft_complex_odd_12(T* x) {
 	x[5] = -rr2;
 	x[6] = -rr1;
 }
-
 
 template<class T>
 void fft_complex_odd_16(T* x) {
@@ -69788,7 +69722,6 @@ void fft_complex_odd_16(T* x) {
 	rr0 = x[15];
 	x[15] = -rr0;
 }
-
 
 template<class T>
 void fft_complex_odd_20(T* x) {
@@ -69935,7 +69868,6 @@ void fft_complex_odd_20(T* x) {
 	x[18] = rr2 - rr1;
 	x[19] = -rr0;
 }
-
 
 template<class T>
 void fft_complex_odd_24(T* x) {
@@ -70111,7 +70043,6 @@ void fft_complex_odd_24(T* x) {
 	rr0 = x[15];
 	x[15] = -rr0;
 }
-
 
 template<class T>
 void fft_complex_odd_28(T* x) {
@@ -70376,7 +70307,6 @@ void fft_complex_odd_28(T* x) {
 	x[13] = -rr2;
 	x[27] = -rr4;
 }
-
 
 template<class T>
 void fft_complex_odd_32(T* x) {
@@ -70650,7 +70580,6 @@ void fft_complex_odd_32(T* x) {
 	x[30] = x[31] - rr0;
 	x[31] = -rr1;
 }
-
 
 template<class T>
 void fft_complex_odd_36(T* x) {
@@ -70975,7 +70904,6 @@ void fft_complex_odd_36(T* x) {
 	x[34] = rr2 - rr1;
 	x[35] = -rr0;
 }
-
 
 template<class T>
 void fft_complex_odd_40(T* x) {
@@ -71331,7 +71259,6 @@ void fft_complex_odd_40(T* x) {
 	x[14] = -rr2;
 	x[15] = -rr1;
 }
-
 
 template<class T>
 void fft_complex_odd_44(T* x) {
@@ -71927,7 +71854,6 @@ void fft_complex_odd_44(T* x) {
 	x[43] = -rr6;
 }
 
-
 template<class T>
 void fft_complex_odd_48(T* x) {
 	T rr0;
@@ -72360,7 +72286,6 @@ void fft_complex_odd_48(T* x) {
 	x[29] = -rr0;
 	x[30] = -rr1;
 }
-
 
 template<class T>
 void fft_complex_odd_52(T* x) {
@@ -73075,7 +73000,6 @@ void fft_complex_odd_52(T* x) {
 	x[51] = -rr11;
 }
 
-
 template<class T>
 void fft_complex_odd_56(T* x) {
 	T rr0;
@@ -73700,7 +73624,6 @@ void fft_complex_odd_56(T* x) {
 	x[47] = -rr0;
 }
 
-
 template<class T>
 void fft_complex_odd_60(T* x) {
 	T rr0;
@@ -74273,7 +74196,6 @@ void fft_complex_odd_60(T* x) {
 	x[38] = -rr1;
 	x[39] = -rr0;
 }
-
 
 template<class T>
 void fft_complex_odd_64(T* x) {
@@ -74932,7 +74854,6 @@ void fft_complex_odd_64(T* x) {
 	x[63] = -rr4;
 }
 
-
 template<class T>
 void fft_skew_2(T* x) {
 	T rr0;
@@ -74940,7 +74861,6 @@ void fft_skew_2(T* x) {
 	rr0 = x[1];
 	x[1] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_3(T* x) {
@@ -74959,7 +74879,6 @@ void fft_skew_3(T* x) {
 	rr0 = x[2];
 	x[2] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_4(T* x) {
@@ -74981,7 +74900,6 @@ void fft_skew_4(T* x) {
 	rr1 -= x[2];
 	x[2] = -rr1;
 }
-
 
 template<class T>
 void fft_skew_5(T* x) {
@@ -75016,7 +74934,6 @@ void fft_skew_5(T* x) {
 	x[3] = -rr2;
 }
 
-
 template<class T>
 void fft_skew_6(T* x) {
 	T rr0;
@@ -75048,7 +74965,6 @@ void fft_skew_6(T* x) {
 	x[3] = rr0 - rr1;
 	x[4] = -rr2;
 }
-
 
 template<class T>
 void fft_skew_7(T* x) {
@@ -75112,7 +75028,6 @@ void fft_skew_7(T* x) {
 	x[4] = -rr2;
 }
 
-
 template<class T>
 void fft_skew_8(T* x) {
 	T rr0;
@@ -75163,7 +75078,6 @@ void fft_skew_8(T* x) {
 	rr0 = x[4];
 	x[4] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_9(T* x) {
@@ -75235,7 +75149,6 @@ void fft_skew_9(T* x) {
 	x[5] = rr2 - rr3;
 }
 
-
 template<class T>
 void fft_skew_10(T* x) {
 	T rr0;
@@ -75300,7 +75213,6 @@ void fft_skew_10(T* x) {
 	x[6] = -rr0;
 	x[8] = -rr1;
 }
-
 
 template<class T>
 void fft_skew_11(T* x) {
@@ -75450,7 +75362,6 @@ void fft_skew_11(T* x) {
 	x[4] = rr0 + rr11;
 }
 
-
 template<class T>
 void fft_skew_12(T* x) {
 	T rr0;
@@ -75528,7 +75439,6 @@ void fft_skew_12(T* x) {
 	x[9] = -rr2;
 	x[8] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_13(T* x) {
@@ -75691,7 +75601,6 @@ void fft_skew_13(T* x) {
 	x[11] = -rr0;
 }
 
-
 template<class T>
 void fft_skew_14(T* x) {
 	T rr0;
@@ -75817,7 +75726,6 @@ void fft_skew_14(T* x) {
 	x[8] = -rr2;
 }
 
-
 template<class T>
 void fft_skew_15(T* x) {
 	T rr0;
@@ -75938,7 +75846,6 @@ void fft_skew_15(T* x) {
 	x[11] = -rr2;
 	x[10] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_16(T* x) {
@@ -76068,7 +75975,6 @@ void fft_skew_16(T* x) {
 	x[9] = -rr1;
 	x[12] = -rr4;
 }
-
 
 template<class T>
 void fft_skew_17(T* x) {
@@ -76304,7 +76210,6 @@ void fft_skew_17(T* x) {
 	x[15] = -rr3;
 }
 
-
 template<class T>
 void fft_skew_18(T* x) {
 	T rr0;
@@ -76477,7 +76382,6 @@ void fft_skew_18(T* x) {
 	x[10] = -rr3;
 	x[9] = -rr4;
 }
-
 
 template<class T>
 void fft_skew_19(T* x) {
@@ -76782,7 +76686,6 @@ void fft_skew_19(T* x) {
 	x[12] = -rr12;
 }
 
-
 template<class T>
 void fft_skew_20(T* x) {
 	T rr0;
@@ -76941,7 +76844,6 @@ void fft_skew_20(T* x) {
 	x[13] = -rr1;
 	x[12] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_21(T* x) {
@@ -77153,7 +77055,6 @@ void fft_skew_21(T* x) {
 	x[15] = -rr2;
 	x[14] = -rr4;
 }
-
 
 template<class T>
 void fft_skew_22(T* x) {
@@ -77435,7 +77336,6 @@ void fft_skew_22(T* x) {
 	x[14] = -rr13;
 	x[18] = -rr10;
 }
-
 
 template<class T>
 void fft_skew_23(T* x) {
@@ -78010,7 +77910,6 @@ void fft_skew_23(T* x) {
 	x[16] = -rr2;
 }
 
-
 template<class T>
 void fft_skew_24(T* x) {
 	T rr0;
@@ -78204,7 +78103,6 @@ void fft_skew_24(T* x) {
 	x[17] = -x[16];
 	x[16] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_25(T* x) {
@@ -78582,7 +78480,6 @@ void fft_skew_25(T* x) {
 	x[21] = -rr0;
 }
 
-
 template<class T>
 void fft_skew_26(T* x) {
 	T rr0;
@@ -78933,7 +78830,6 @@ void fft_skew_26(T* x) {
 	x[18] = -rr21;
 }
 
-
 template<class T>
 void fft_skew_27(T* x) {
 	T rr0;
@@ -79277,7 +79173,6 @@ void fft_skew_27(T* x) {
 	x[24] = -rr13;
 }
 
-
 template<class T>
 void fft_skew_28(T* x) {
 	T rr0;
@@ -79567,7 +79462,6 @@ void fft_skew_28(T* x) {
 	x[20] = -rr0;
 	x[16] = -rr3;
 }
-
 
 template<class T>
 void fft_skew_29(T* x) {
@@ -80176,7 +80070,6 @@ void fft_skew_29(T* x) {
 	x[27] = -rr7;
 }
 
-
 template<class T>
 void fft_skew_30(T* x) {
 	T rr0;
@@ -80433,7 +80326,6 @@ void fft_skew_30(T* x) {
 	x[21] = -rr2;
 	x[20] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_31(T* x) {
@@ -81020,7 +80912,6 @@ void fft_skew_31(T* x) {
 	x[29] = -rr3;
 }
 
-
 template<class T>
 void fft_skew_32(T* x) {
 	T rr0;
@@ -81333,7 +81224,6 @@ void fft_skew_32(T* x) {
 	x[24] = -rr2;
 	x[16] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_33(T* x) {
@@ -81798,7 +81688,6 @@ void fft_skew_33(T* x) {
 	x[23] = -rr3;
 	x[22] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_34(T* x) {
@@ -82335,7 +82224,6 @@ void fft_skew_34(T* x) {
 	x[17] = -rr4;
 }
 
-
 template<class T>
 void fft_skew_35(T* x) {
 	T rr0;
@@ -82748,7 +82636,6 @@ void fft_skew_35(T* x) {
 	x[28] = -rr0;
 }
 
-
 template<class T>
 void fft_skew_36(T* x) {
 	T rr0;
@@ -83144,7 +83031,6 @@ void fft_skew_36(T* x) {
 	x[27] = -rr1;
 	x[18] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_37(T* x) {
@@ -83920,7 +83806,6 @@ void fft_skew_37(T* x) {
 	x[23] = -rr0;
 }
 
-
 template<class T>
 void fft_skew_38(T* x) {
 	T rr0;
@@ -84541,7 +84426,6 @@ void fft_skew_38(T* x) {
 	x[26] = -rr39;
 }
 
-
 template<class T>
 void fft_skew_39(T* x) {
 	T rr0;
@@ -85074,7 +84958,6 @@ void fft_skew_39(T* x) {
 	x[26] = -rr2;
 }
 
-
 template<class T>
 void fft_skew_40(T* x) {
 	T rr0;
@@ -85466,7 +85349,6 @@ void fft_skew_40(T* x) {
 	rr0 = x[24];
 	x[24] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_41(T* x) {
@@ -86243,7 +86125,6 @@ void fft_skew_41(T* x) {
 	x[35] = -rr3;
 }
 
-
 template<class T>
 void fft_skew_42(T* x) {
 	T rr0;
@@ -86698,7 +86579,6 @@ void fft_skew_42(T* x) {
 	x[29] = -rr2;
 	x[28] = -rr1;
 }
-
 
 template<class T>
 void fft_skew_43(T* x) {
@@ -87719,7 +87599,6 @@ void fft_skew_43(T* x) {
 	x[41] = -rr3;
 }
 
-
 template<class T>
 void fft_skew_44(T* x) {
 	T rr0;
@@ -88346,7 +88225,6 @@ void fft_skew_44(T* x) {
 	x[24] = -rr2;
 }
 
-
 template<class T>
 void fft_skew_45(T* x) {
 	T rr0;
@@ -88839,7 +88717,6 @@ void fft_skew_45(T* x) {
 	x[27] = -rr3;
 	x[36] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_46(T* x) {
@@ -89976,7 +89853,6 @@ void fft_skew_46(T* x) {
 	x[40] = -rr1;
 	x[28] = -rr18;
 }
-
 
 template<class T>
 void fft_skew_47(T* x) {
@@ -92276,7 +92152,6 @@ void fft_skew_47(T* x) {
 	x[34] = -rr32;
 }
 
-
 template<class T>
 void fft_skew_48(T* x) {
 	T rr0;
@@ -92755,7 +92630,6 @@ void fft_skew_48(T* x) {
 	x[35] = -rr2;
 	x[32] = -rr1;
 }
-
 
 template<class T>
 void fft_skew_49(T* x) {
@@ -93828,7 +93702,6 @@ void fft_skew_49(T* x) {
 	x[47] = -rr10;
 }
 
-
 template<class T>
 void fft_skew_50(T* x) {
 	T rr0;
@@ -94650,7 +94523,6 @@ void fft_skew_50(T* x) {
 	x[25] = -rr0;
 }
 
-
 template<class T>
 void fft_skew_51(T* x) {
 	T rr0;
@@ -95420,7 +95292,6 @@ void fft_skew_51(T* x) {
 	x[35] = -x[34];
 	x[34] = -rr7;
 }
-
 
 template<class T>
 void fft_skew_52(T* x) {
@@ -96217,7 +96088,6 @@ void fft_skew_52(T* x) {
 	x[39] = -rr0;
 	x[26] = -rr23;
 }
-
 
 template<class T>
 void fft_skew_53(T* x) {
@@ -97763,7 +97633,6 @@ void fft_skew_53(T* x) {
 	x[47] = -rr21;
 }
 
-
 template<class T>
 void fft_skew_54(T* x) {
 	T rr0;
@@ -98541,7 +98410,6 @@ void fft_skew_54(T* x) {
 	x[28] = -rr0;
 	x[27] = -rr19;
 }
-
 
 template<class T>
 void fft_skew_55(T* x) {
@@ -99398,7 +99266,6 @@ void fft_skew_55(T* x) {
 	x[33] = -rr1;
 }
 
-
 template<class T>
 void fft_skew_56(T* x) {
 	T rr0;
@@ -100078,7 +99945,6 @@ void fft_skew_56(T* x) {
 	x[32] = -rr5;
 	x[40] = -rr4;
 }
-
 
 template<class T>
 void fft_skew_57(T* x) {
@@ -101022,7 +100888,6 @@ void fft_skew_57(T* x) {
 	x[39] = -rr2;
 	x[38] = -rr4;
 }
-
 
 template<class T>
 void fft_skew_58(T* x) {
@@ -102378,7 +102243,6 @@ void fft_skew_58(T* x) {
 	x[30] = -rr2;
 	x[29] = -rr4;
 }
-
 
 template<class T>
 void fft_skew_59(T* x) {
@@ -104996,7 +104860,6 @@ void fft_skew_59(T* x) {
 	x[47] = -rr2;
 }
 
-
 template<class T>
 void fft_skew_60(T* x) {
 	T rr0;
@@ -105616,7 +105479,6 @@ void fft_skew_60(T* x) {
 	x[41] = -rr1;
 	x[40] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_61(T* x) {
@@ -106918,7 +106780,6 @@ void fft_skew_61(T* x) {
 	x[59] = -rr0;
 }
 
-
 template<class T>
 void fft_skew_62(T* x) {
 	T rr0;
@@ -108213,7 +108074,6 @@ void fft_skew_62(T* x) {
 	x[60] = -rr21;
 }
 
-
 template<class T>
 void fft_skew_63(T* x) {
 	T rr0;
@@ -109052,7 +108912,6 @@ void fft_skew_63(T* x) {
 	x[36] = -rr6;
 }
 
-
 template<class T>
 void fft_skew_64(T* x) {
 	T rr0;
@@ -109799,7 +109658,6 @@ void fft_skew_64(T* x) {
 	x[32] = -rr0;
 }
 
-
 template<class T>
 void fft_skew_odd_4(T* x) {
 	T rr0;
@@ -109811,7 +109669,6 @@ void fft_skew_odd_4(T* x) {
 	rr0 += x[1];
 	x[1] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_odd_8(T* x) {
@@ -109842,7 +109699,6 @@ void fft_skew_odd_8(T* x) {
 	x[1] = -rr0;
 	x[2] = -rr1;
 }
-
 
 template<class T>
 void fft_skew_odd_12(T* x) {
@@ -109886,7 +109742,6 @@ void fft_skew_odd_12(T* x) {
 	x[2] = -rr0;
 	x[3] = -rr2;
 }
-
 
 template<class T>
 void fft_skew_odd_16(T* x) {
@@ -109954,7 +109809,6 @@ void fft_skew_odd_16(T* x) {
 	x[3] = -x[4];
 	x[4] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_odd_20(T* x) {
@@ -110040,7 +109894,6 @@ void fft_skew_odd_20(T* x) {
 	x[2] = -x[7];
 	x[7] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_odd_24(T* x) {
@@ -110150,7 +110003,6 @@ void fft_skew_odd_24(T* x) {
 	x[5] = -rr0;
 	x[6] = -rr1;
 }
-
 
 template<class T>
 void fft_skew_odd_28(T* x) {
@@ -110306,7 +110158,6 @@ void fft_skew_odd_28(T* x) {
 	x[11] = -rr3;
 	x[10] = -rr1;
 }
-
 
 template<class T>
 void fft_skew_odd_32(T* x) {
@@ -110466,7 +110317,6 @@ void fft_skew_odd_32(T* x) {
 	x[9] = -rr3;
 	x[8] = -rr1;
 }
-
 
 template<class T>
 void fft_skew_odd_36(T* x) {
@@ -110656,7 +110506,6 @@ void fft_skew_odd_36(T* x) {
 	x[10] = rr1 + rr0;
 	x[9] = rr0 - rr2;
 }
-
 
 template<class T>
 void fft_skew_odd_40(T* x) {
@@ -110862,7 +110711,6 @@ void fft_skew_odd_40(T* x) {
 	rr0 = x[12];
 	x[12] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_odd_44(T* x) {
@@ -111197,7 +111045,6 @@ void fft_skew_odd_44(T* x) {
 	x[10] = -rr1;
 }
 
-
 template<class T>
 void fft_skew_odd_48(T* x) {
 	T rr0;
@@ -111448,7 +111295,6 @@ void fft_skew_odd_48(T* x) {
 	rr0 = x[12];
 	x[12] = -rr0;
 }
-
 
 template<class T>
 void fft_skew_odd_52(T* x) {
@@ -111839,7 +111685,6 @@ void fft_skew_odd_52(T* x) {
 	x[13] = -rr2;
 }
 
-
 template<class T>
 void fft_skew_odd_56(T* x) {
 	T rr0;
@@ -112192,7 +112037,6 @@ void fft_skew_odd_56(T* x) {
 	x[20] = -rr2;
 }
 
-
 template<class T>
 void fft_skew_odd_60(T* x) {
 	T rr0;
@@ -112512,7 +112356,6 @@ void fft_skew_odd_60(T* x) {
 	x[14] = -rr2;
 	x[15] = -rr1;
 }
-
 
 template<class T>
 void fft_skew_odd_64(T* x) {
@@ -112898,7 +112741,6 @@ void fft_skew_odd_64(T* x) {
 	x[16] = -rr2;
 }
 
-
 template<class T>
 void fft_real_2(T* x) {
 	T rr0;
@@ -112908,7 +112750,6 @@ void fft_real_2(T* x) {
 	rr1 = x[1];
 	x[1] = rr0 - rr1;
 }
-
 
 template<class T>
 void fft_real_3(T* x) {
@@ -112927,7 +112768,6 @@ void fft_real_3(T* x) {
 	x[2] = -rr1;
 }
 
-
 template<class T>
 void fft_real_4(T* x) {
 	T rr0;
@@ -112943,7 +112783,6 @@ void fft_real_4(T* x) {
 	x[2] = rr0 - x[3];
 	x[3] = -rr1;
 }
-
 
 template<class T>
 void fft_real_5(T* x) {
@@ -112979,7 +112818,6 @@ void fft_real_5(T* x) {
 	x[4] = -rr0;
 }
 
-
 template<class T>
 void fft_real_6(T* x) {
 	T rr0;
@@ -113011,7 +112849,6 @@ void fft_real_6(T* x) {
 	rr0 = x[5];
 	x[5] = rr0 - rr2;
 }
-
 
 template<class T>
 void fft_real_7(T* x) {
@@ -113077,7 +112914,6 @@ void fft_real_7(T* x) {
 	x[6] = -rr0;
 }
 
-
 template<class T>
 void fft_real_8(T* x) {
 	T rr0;
@@ -113116,7 +112952,6 @@ void fft_real_8(T* x) {
 	rr0 = x[5];
 	x[5] = rr0 + rr1;
 }
-
 
 template<class T>
 void fft_real_9(T* x) {
@@ -113192,7 +113027,6 @@ void fft_real_9(T* x) {
 	x[7] = -rr3;
 }
 
-
 template<class T>
 void fft_real_10(T* x) {
 	T rr0;
@@ -113259,7 +113093,6 @@ void fft_real_10(T* x) {
 	rr0 -= rr1;
 	x[7] = -rr0;
 }
-
 
 template<class T>
 void fft_real_11(T* x) {
@@ -113408,7 +113241,6 @@ void fft_real_11(T* x) {
 	x[9] = -rr9;
 }
 
-
 template<class T>
 void fft_real_12(T* x) {
 	T rr0;
@@ -113473,7 +113305,6 @@ void fft_real_12(T* x) {
 	x[2] = rr0 - rr1;
 	x[10] = rr2 * c1;
 }
-
 
 template<class T>
 void fft_real_13(T* x) {
@@ -113637,7 +113468,6 @@ void fft_real_13(T* x) {
 	x[11] = -rr1;
 }
 
-
 template<class T>
 void fft_real_14(T* x) {
 	T rr0;
@@ -113763,7 +113593,6 @@ void fft_real_14(T* x) {
 	x[9] = -rr0;
 }
 
-
 template<class T>
 void fft_real_15(T* x) {
 	T rr0;
@@ -113883,7 +113712,6 @@ void fft_real_15(T* x) {
 	x[11] = -rr0;
 }
 
-
 template<class T>
 void fft_real_16(T* x) {
 	T rr0;
@@ -113981,7 +113809,6 @@ void fft_real_16(T* x) {
 	x[13] = -rr2;
 	x[9] = -rr4;
 }
-
 
 template<class T>
 void fft_real_17(T* x) {
@@ -114214,7 +114041,6 @@ void fft_real_17(T* x) {
 	x[14] = -rr0;
 }
 
-
 template<class T>
 void fft_real_18(T* x) {
 	T rr0;
@@ -114357,7 +114183,6 @@ void fft_real_18(T* x) {
 	x[13] = -rr4;
 	x[11] = -rr0;
 }
-
 
 template<class T>
 void fft_real_19(T* x) {
@@ -114660,7 +114485,6 @@ void fft_real_19(T* x) {
 	x[11] = -rr12;
 }
 
-
 template<class T>
 void fft_real_20(T* x) {
 	T rr0;
@@ -114800,7 +114624,6 @@ void fft_real_20(T* x) {
 	x[17] = -rr1;
 	x[11] = -rr0;
 }
-
 
 template<class T>
 void fft_real_21(T* x) {
@@ -115013,7 +114836,6 @@ void fft_real_21(T* x) {
 	rr0 = x[16];
 	x[16] = -rr0;
 }
-
 
 template<class T>
 void fft_real_22(T* x) {
@@ -115305,7 +115127,6 @@ void fft_real_22(T* x) {
 	rr0 = x[9];
 	x[9] = rr1 + rr0;
 }
-
 
 template<class T>
 void fft_real_23(T* x) {
@@ -115874,7 +115695,6 @@ void fft_real_23(T* x) {
 	x[22] = -rr1;
 }
 
-
 template<class T>
 void fft_real_24(T* x) {
 	T rr0;
@@ -116033,7 +115853,6 @@ void fft_real_24(T* x) {
 	x[19] = -rr1;
 	x[17] = -rr0;
 }
-
 
 template<class T>
 void fft_real_25(T* x) {
@@ -116414,7 +116233,6 @@ void fft_real_25(T* x) {
 	x[23] = -rr13;
 }
 
-
 template<class T>
 void fft_real_26(T* x) {
 	T rr0;
@@ -116741,7 +116559,6 @@ void fft_real_26(T* x) {
 	x[9] = rr1 + rr2;
 	x[11] = rr1 + rr0;
 }
-
 
 template<class T>
 void fft_real_27(T* x) {
@@ -117080,7 +116897,6 @@ void fft_real_27(T* x) {
 	x[19] = rr9 - rr13;
 }
 
-
 template<class T>
 void fft_real_28(T* x) {
 	T rr0;
@@ -117341,7 +117157,6 @@ void fft_real_28(T* x) {
 	x[25] = -rr0;
 	x[17] = -rr1;
 }
-
 
 template<class T>
 void fft_real_29(T* x) {
@@ -117956,7 +117771,6 @@ void fft_real_29(T* x) {
 	x[27] = -rr0;
 }
 
-
 template<class T>
 void fft_real_30(T* x) {
 	T rr0;
@@ -118213,7 +118027,6 @@ void fft_real_30(T* x) {
 	x[22] = -x[21];
 	x[21] = -rr0;
 }
-
 
 template<class T>
 void fft_real_31(T* x) {
@@ -118798,7 +118611,6 @@ void fft_real_31(T* x) {
 	x[28] = -rr0;
 }
 
-
 template<class T>
 void fft_real_32(T* x) {
 	T rr0;
@@ -119045,7 +118857,6 @@ void fft_real_32(T* x) {
 	x[25] = -rr0;
 	x[17] = -rr1;
 }
-
 
 template<class T>
 void fft_real_33(T* x) {
@@ -119511,7 +119322,6 @@ void fft_real_33(T* x) {
 	x[23] = -rr0;
 }
 
-
 template<class T>
 void fft_real_34(T* x) {
 	T rr0;
@@ -119976,7 +119786,6 @@ void fft_real_34(T* x) {
 	x[18] = -rr2;
 }
 
-
 template<class T>
 void fft_real_35(T* x) {
 	T rr0;
@@ -120384,7 +120193,6 @@ void fft_real_35(T* x) {
 	x[22] = -rr1;
 }
 
-
 template<class T>
 void fft_real_36(T* x) {
 	T rr0;
@@ -120695,7 +120503,6 @@ void fft_real_36(T* x) {
 	x[29] = -rr0;
 	x[19] = -rr1;
 }
-
 
 template<class T>
 void fft_real_37(T* x) {
@@ -121471,7 +121278,6 @@ void fft_real_37(T* x) {
 	x[35] = -rr25;
 }
 
-
 template<class T>
 void fft_real_38(T* x) {
 	T rr0;
@@ -122071,7 +121877,6 @@ void fft_real_38(T* x) {
 	x[25] = -rr12;
 }
 
-
 template<class T>
 void fft_real_39(T* x) {
 	T rr0;
@@ -122613,7 +122418,6 @@ void fft_real_39(T* x) {
 	x[27] = -rr0;
 }
 
-
 template<class T>
 void fft_real_40(T* x) {
 	T rr0;
@@ -122945,7 +122749,6 @@ void fft_real_40(T* x) {
 	x[25] = -rr0;
 	x[33] = -rr2;
 }
-
 
 template<class T>
 void fft_real_41(T* x) {
@@ -123720,7 +123523,6 @@ void fft_real_41(T* x) {
 	x[35] = -rr2;
 }
 
-
 template<class T>
 void fft_real_42(T* x) {
 	T rr0;
@@ -124179,7 +123981,6 @@ void fft_real_42(T* x) {
 	x[25] = -rr4;
 	x[31] = -rr6;
 }
-
 
 template<class T>
 void fft_real_43(T* x) {
@@ -125203,7 +125004,6 @@ void fft_real_43(T* x) {
 	x[40] = -rr0;
 }
 
-
 template<class T>
 void fft_real_44(T* x) {
 	T rr0;
@@ -125785,7 +125585,6 @@ void fft_real_44(T* x) {
 	x[23] = -rr2;
 }
 
-
 template<class T>
 void fft_real_45(T* x) {
 	T rr0;
@@ -126278,7 +126077,6 @@ void fft_real_45(T* x) {
 	x[28] = -rr4;
 	x[37] = -rr0;
 }
-
 
 template<class T>
 void fft_real_46(T* x) {
@@ -127420,7 +127218,6 @@ void fft_real_46(T* x) {
 	x[31] = -rr20;
 	x[33] = -rr4;
 }
-
 
 template<class T>
 void fft_real_47(T* x) {
@@ -129705,7 +129502,6 @@ void fft_real_47(T* x) {
 	x[46] = -rr1;
 }
 
-
 template<class T>
 void fft_real_48(T* x) {
 	T rr0;
@@ -130101,7 +129897,6 @@ void fft_real_48(T* x) {
 	rr0 = x[33];
 	x[33] = -rr0;
 }
-
 
 template<class T>
 void fft_real_49(T* x) {
@@ -131187,7 +130982,6 @@ void fft_real_49(T* x) {
 	x[46] = -rr11;
 }
 
-
 template<class T>
 void fft_real_50(T* x) {
 	T rr0;
@@ -131927,7 +131721,6 @@ void fft_real_50(T* x) {
 	x[47] = -rr17;
 	x[43] = -rr15;
 }
-
 
 template<class T>
 void fft_real_51(T* x) {
@@ -132697,7 +132490,6 @@ void fft_real_51(T* x) {
 	x[35] = -rr6;
 }
 
-
 template<class T>
 void fft_real_52(T* x) {
 	T rr0;
@@ -133373,7 +133165,6 @@ void fft_real_52(T* x) {
 	x[40] = -rr0;
 	x[27] = -rr1;
 }
-
 
 template<class T>
 void fft_real_53(T* x) {
@@ -134922,7 +134713,6 @@ void fft_real_53(T* x) {
 	x[51] = -rr17;
 }
 
-
 template<class T>
 void fft_real_54(T* x) {
 	T rr0;
@@ -135558,7 +135348,6 @@ void fft_real_54(T* x) {
 	x[29] = rr4 + rr10;
 	x[37] = -rr1;
 }
-
 
 template<class T>
 void fft_real_55(T* x) {
@@ -136414,7 +136203,6 @@ void fft_real_55(T* x) {
 	x[34] = -rr9;
 }
 
-
 template<class T>
 void fft_real_56(T* x) {
 	T rr0;
@@ -137013,7 +136801,6 @@ void fft_real_56(T* x) {
 	x[41] = -rr0;
 	x[33] = -rr5;
 }
-
 
 template<class T>
 void fft_real_57(T* x) {
@@ -137960,7 +137747,6 @@ void fft_real_57(T* x) {
 	x[40] = -rr4;
 	x[39] = -rr9;
 }
-
 
 template<class T>
 void fft_real_58(T* x) {
@@ -139185,7 +138971,6 @@ void fft_real_58(T* x) {
 	x[31] = -rr1;
 	x[30] = -rr6;
 }
-
 
 template<class T>
 void fft_real_59(T* x) {
@@ -141804,7 +141589,6 @@ void fft_real_59(T* x) {
 	x[57] = -rr2;
 }
 
-
 template<class T>
 void fft_real_60(T* x) {
 	T rr0;
@@ -142366,7 +142150,6 @@ void fft_real_60(T* x) {
 	rr0 = x[41];
 	x[41] = -rr0;
 }
-
 
 template<class T>
 void fft_real_61(T* x) {
@@ -143668,7 +143451,6 @@ void fft_real_61(T* x) {
 	x[59] = -rr1;
 }
 
-
 template<class T>
 void fft_real_62(T* x) {
 	T rr0;
@@ -144853,7 +144635,6 @@ void fft_real_62(T* x) {
 	x[32] = -rr0;
 }
 
-
 template<class T>
 void fft_real_63(T* x) {
 	T rr0;
@@ -145694,7 +145475,6 @@ void fft_real_63(T* x) {
 	x[46] = -rr0;
 }
 
-
 template<class T>
 void fft_real_64(T* x) {
 	T rr0;
@@ -146306,7 +146086,6 @@ void fft_real_64(T* x) {
 	x[33] = -rr2;
 }
 
-
 template<class T>
 void fft_real_odd_4(T* x) {
 	T rr0;
@@ -146315,7 +146094,6 @@ void fft_real_odd_4(T* x) {
 	rr0 -= x[1];
 	x[1] = -rr0;
 }
-
 
 template<class T>
 void fft_real_odd_8(T* x) {
@@ -146337,7 +146115,6 @@ void fft_real_odd_8(T* x) {
 	rr1 = x[3];
 	x[3] = rr1 - rr0;
 }
-
 
 template<class T>
 void fft_real_odd_12(T* x) {
@@ -146368,7 +146145,6 @@ void fft_real_odd_12(T* x) {
 	rr0 = x[4];
 	x[4] = -rr0;
 }
-
 
 template<class T>
 void fft_real_odd_16(T* x) {
@@ -146420,7 +146196,6 @@ void fft_real_odd_16(T* x) {
 	x[6] = x[5] - rr0;
 	x[5] = -rr2;
 }
-
 
 template<class T>
 void fft_real_odd_20(T* x) {
@@ -146490,7 +146265,6 @@ void fft_real_odd_20(T* x) {
 	rr0 = x[8];
 	x[8] = -rr0;
 }
-
 
 template<class T>
 void fft_real_odd_24(T* x) {
@@ -146571,7 +146345,6 @@ void fft_real_odd_24(T* x) {
 	x[5] = -x[7];
 	x[7] = -rr1;
 }
-
 
 template<class T>
 void fft_real_odd_28(T* x) {
@@ -146697,7 +146470,6 @@ void fft_real_odd_28(T* x) {
 	x[12] = -rr0;
 	x[11] = -rr1;
 }
-
 
 template<class T>
 void fft_real_odd_32(T* x) {
@@ -146826,7 +146598,6 @@ void fft_real_odd_32(T* x) {
 	x[7] = -rr0;
 	x[9] = -rr2;
 }
-
 
 template<class T>
 void fft_real_odd_36(T* x) {
@@ -146975,7 +146746,6 @@ void fft_real_odd_36(T* x) {
 	x[6] = -rr2;
 	x[12] = -rr4;
 }
-
 
 template<class T>
 void fft_real_odd_40(T* x) {
@@ -147141,7 +146911,6 @@ void fft_real_odd_40(T* x) {
 	x[13] = rr3 + rr1;
 	x[11] = rr1 - rr4;
 }
-
 
 template<class T>
 void fft_real_odd_44(T* x) {
@@ -147427,7 +147196,6 @@ void fft_real_odd_44(T* x) {
 	x[15] = -rr6;
 }
 
-
 template<class T>
 void fft_real_odd_48(T* x) {
 	T rr0;
@@ -147631,7 +147399,6 @@ void fft_real_odd_48(T* x) {
 	x[13] = rr3 - rr8;
 	x[11] = -rr4;
 }
-
 
 template<class T>
 void fft_real_odd_52(T* x) {
@@ -147966,7 +147733,6 @@ void fft_real_odd_52(T* x) {
 	x[14] = -rr1;
 }
 
-
 template<class T>
 void fft_real_odd_56(T* x) {
 	T rr0;
@@ -148265,7 +148031,6 @@ void fft_real_odd_56(T* x) {
 	x[21] = -rr5;
 }
 
-
 template<class T>
 void fft_real_odd_60(T* x) {
 	T rr0;
@@ -148529,7 +148294,6 @@ void fft_real_odd_60(T* x) {
 	x[14] = -rr2;
 	x[16] = -rr1;
 }
-
 
 template<class T>
 void fft_real_odd_64(T* x) {
@@ -148848,10 +148612,13 @@ void fft_real_odd_64(T* x) {
 	x[17] = -rr0;
 }
 
-
 template<class T>
 inline void sfft_complex(T* x, int N) {
-	switch(N) {
+	switch (N) {
+	case 0:
+		break;
+	case 1:
+		break;
 	case 2:
 		fft_complex_2(x);
 		break;
@@ -149045,11 +148812,13 @@ inline void sfft_complex(T* x, int N) {
 		assert(false);
 	}
 }
-
 
 template<int N, class T>
 inline void sfft_complex(T* x) {
-	switch(N) {
+	switch (N) {
+	case 0:
+	case 1:
+		break;
 	case 2:
 		fft_complex_2(x);
 		break;
@@ -149244,10 +149013,12 @@ inline void sfft_complex(T* x) {
 	}
 }
 
-
 template<class T>
 inline void sfft_real(T* x, int N) {
-	switch(N) {
+	switch (N) {
+	case 0:
+	case 1:
+		break;
 	case 2:
 		fft_real_2(x);
 		break;
@@ -149441,11 +149212,13 @@ inline void sfft_real(T* x, int N) {
 		assert(false);
 	}
 }
-
 
 template<int N, class T>
 inline void sfft_real(T* x) {
-	switch(N) {
+	switch (N) {
+	case 0:
+	case 1:
+		break;
 	case 2:
 		fft_real_2(x);
 		break;
@@ -149640,10 +149413,12 @@ inline void sfft_real(T* x) {
 	}
 }
 
-
 template<class T>
 inline void sfft_skew(T* x, int N) {
-	switch(N) {
+	switch (N) {
+	case 0:
+	case 1:
+		break;
 	case 2:
 		fft_skew_2(x);
 		break;
@@ -149837,11 +149612,13 @@ inline void sfft_skew(T* x, int N) {
 		assert(false);
 	}
 }
-
 
 template<int N, class T>
 inline void sfft_skew(T* x) {
-	switch(N) {
+	switch (N) {
+	case 0:
+	case 1:
+		break;
 	case 2:
 		fft_skew_2(x);
 		break;
@@ -150036,10 +149813,11 @@ inline void sfft_skew(T* x) {
 	}
 }
 
-
 template<class T>
 inline void sfft_complex_odd(T* x, int N) {
-	switch(N) {
+	switch (N) {
+	case 0:
+		break;
 	case 4:
 		fft_complex_odd_4(x);
 		break;
@@ -150092,11 +149870,12 @@ inline void sfft_complex_odd(T* x, int N) {
 		assert(false);
 	}
 }
-
 
 template<int N, class T>
 inline void sfft_complex_odd(T* x) {
-	switch(N) {
+	switch (N) {
+	case 0:
+		break;
 	case 4:
 		fft_complex_odd_4(x);
 		break;
@@ -150150,10 +149929,11 @@ inline void sfft_complex_odd(T* x) {
 	}
 }
 
-
 template<class T>
 inline void sfft_real_odd(T* x, int N) {
-	switch(N) {
+	switch (N) {
+	case 0:
+		break;
 	case 4:
 		fft_real_odd_4(x);
 		break;
@@ -150206,11 +149986,12 @@ inline void sfft_real_odd(T* x, int N) {
 		assert(false);
 	}
 }
-
 
 template<int N, class T>
 inline void sfft_real_odd(T* x) {
-	switch(N) {
+	switch (N) {
+	case 0:
+		break;
 	case 4:
 		fft_real_odd_4(x);
 		break;
@@ -150264,10 +150045,11 @@ inline void sfft_real_odd(T* x) {
 	}
 }
 
-
 template<class T>
 inline void sfft_skew_odd(T* x, int N) {
-	switch(N) {
+	switch (N) {
+	case 0:
+		break;
 	case 4:
 		fft_skew_odd_4(x);
 		break;
@@ -150320,11 +150102,12 @@ inline void sfft_skew_odd(T* x, int N) {
 		assert(false);
 	}
 }
-
 
 template<int N, class T>
 inline void sfft_skew_odd(T* x) {
-	switch(N) {
+	switch (N) {
+	case 0:
+		break;
 	case 4:
 		fft_skew_odd_4(x);
 		break;
@@ -150377,5 +150160,4 @@ inline void sfft_skew_odd(T* x) {
 		assert(false);
 	}
 }
-
 

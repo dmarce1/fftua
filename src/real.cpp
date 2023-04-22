@@ -20,6 +20,8 @@ void fft_real(double* X, int N) {
 		sfft_real(X, N);
 		return;
 	} else {
+		fft_twoforone_real(X, N);
+		return;
 		static std::unordered_map<int, int> cache;
 		auto iter = cache.find(N);
 		if (iter == cache.end()) {
@@ -66,10 +68,17 @@ void fft_real(double* X, int N) {
 std::vector<fft_method> possible_ffts_real(int N) {
 	std::vector<fft_method> ffts;
 	fft_method m;
-	for (m.R = 2; m.R <= std::min(SFFT_NMAX, N); m.R++) {
-		if (N % m.R == 0) {
-			m.type = FFT_CT;
-			ffts.push_back(m);
+	if (N % 2 == 0) {
+		m.type = FFT_241;
+		ffts.push_back(m);
+	}
+	auto pfac = prime_factorization(N);
+	if (pfac.rbegin()->first <= SFFT_NMAX) {
+		for (m.R = 2; m.R <= std::min(SFFT_NMAX, N); m.R++) {
+			if (N % m.R == 0) {
+				m.type = FFT_CT;
+				ffts.push_back(m);
+			}
 		}
 	}
 	return ffts;
@@ -80,6 +89,9 @@ void fft_real(const fft_method& method, T* X, int N) {
 	switch (method.type) {
 	case FFT_CT:
 		fft_cooley_tukey_real(method.R, X, N);
+		break;
+	case FFT_241:
+		fft_twoforone_real(X, N);
 		break;
 	}
 }
@@ -126,7 +138,7 @@ fft_method select_fft_real(int N) {
 				best_method = tests[m];
 			}
 		}
-		//	printf("%i - %s\n", N, fft_method_string(best_method).c_str());
+//		printf("%i - %s\n", N, fft_method_string(best_method).c_str());
 		cache[N] = best_method;
 		iter = cache.find(N);
 	}

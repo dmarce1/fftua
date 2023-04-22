@@ -150,7 +150,7 @@ const std::vector<complex<double>>& twiddles(int N) {
 	if (iter != cache.end()) {
 		return *(iter->second);
 	} else {
-		std::vector<complex<double>> W(N);
+		std::vector<complex<double>> W(round_up(N, SIMD_SIZE));
 		for (int n = 0; n < N; n++) {
 			W[n].real() = cos(-2.0 * M_PI * n / N);
 			W[n].imag() = sin(-2.0 * M_PI * n / N);

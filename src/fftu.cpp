@@ -38,6 +38,9 @@ std::string fft_method_string(const fft_method method) {
 	case FFT_RADERS_PADDED:
 		str = "raders-padded";
 		break;
+	case FFT_241:
+		str = "twoforone-real";
+		break;
 	default:
 		assert(false);
 	}
@@ -432,7 +435,7 @@ std::vector<fft_method> possible_ffts(int N) {
 		ffts.push_back(m);
 	}
 	if (N % 2 == 0) {
-		for (m.R = 4; m.R <= std::min(N, FFT_NMAX); m.R += 2) {
+		for (m.R = 4; m.R <= std::min(N, FFT_NMAX); m.R += 4) {
 			if (N % m.R == 0) {
 				m.type = FFT_SPLIT;
 				ffts.push_back(m);

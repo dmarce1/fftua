@@ -52,6 +52,7 @@ void fft_real(double* X, int N);
 void fft_split_real_indices(int R, int* I, int N);
 void fft_split_real(int R, double* X, int N);
 void fft_split_real(int R, fft_simd4* X, int N);
+void fft_twoforone_real1(fft_simd4* X, int N);
 
 #define FFT_SPLIT 0
 #define FFT_SPLIT_CONJ 4
@@ -60,6 +61,7 @@ void fft_split_real(int R, fft_simd4* X, int N);
 #define FFT_6 3
 #define FFT_RADERS 5
 #define FFT_RADERS_PADDED 6
+#define FFT_241 7
 
 struct fft_method {
 	int type;
