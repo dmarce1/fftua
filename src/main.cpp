@@ -65,6 +65,7 @@ int permute_index(int index, int width) {
 }
 
 #include <fenv.h>
+void fft_scramble_real(double* X, int N);
 
 int main(int argc, char **argv) {
 	//printf( "PRIMITIVE ROOT OF 93871 = %i\n", generator(93871));
@@ -75,7 +76,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 2; N <= 1024 * 1024; N *= 2) {
+	for (int N = 1024; N <= 1024; N *= 2) {
 		auto pfac = prime_factorization(N);
 		do {
 			if (pfac.rbegin()->first > SFFT_NMAX) {
@@ -86,7 +87,7 @@ int main(int argc, char **argv) {
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
-		for (int i = 0; i < 21; i++) {
+		for (int i = 0; i < 2; i++) {
 			std::vector<double> x(N);
 			std::vector<double> y(N);
 			std::vector<complex<double>> X(N / 2 + 1);
@@ -102,13 +103,14 @@ int main(int argc, char **argv) {
 				 y[n] = x[n];*/
 			}
 			if (i == 0) {
-				fftw_real(Y, y);
-				fft_real(x.data(), N);
+				//	fftw_real(Y, y);
+				//	fft_real(x.data(), N);
 			} else {
 				auto b = fftw_real(Y, y);
 				timer tm;
 				tm.start();
-				fft_real(x.data(), N);
+				fft_scramble_real(x.data(), N);
+				fft_split_real(4, x.data(), N);
 				X[0].real() = x[0];
 				X[0].imag() = 0.0;
 				for (int n = 1; n < N - n; n++) {
@@ -129,7 +131,7 @@ int main(int argc, char **argv) {
 					double y = X[n].imag() - Y[n].imag();
 					double err = sqrt(x * x + y * y);
 					avg_err += err;
-					//	printf("%e %e | %e %e | %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), err);
+					printf("%e %e | %e %e | %e %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 				}
 			}
 		}
@@ -145,6 +147,7 @@ int main(int argc, char **argv) {
 		printf("%i: %32s ", N, f.c_str());
 		fflush(stdout);
 		printf("| %e %e %e %e %e | %e\n", avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
+		abort();
 	}
 	return 0;
 }

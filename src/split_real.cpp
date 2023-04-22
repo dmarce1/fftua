@@ -9,18 +9,19 @@
 #include <stack>
 
 void fft_split_real_indices(int N1, int* I, int N) {
+	return;
 	std::vector<int> J(N);
 	const int N2 = N / N1;
 	for (int n2 = 0; n2 < N2; n2++) {
-		J[n2] = I[N1 * n2 + 0];
-		J[n2 + N2] = I[N1 * n2 + 2];
+		J[2 * n2] = I[N1 * n2 + 0];
+		J[2 * n2 + 1] = I[N1 * n2 + 2];
 		J[n2 + N / 2] = I[N1 * n2 + 1];
 		J[n2 + N / 2 + N2] = I[N1 * n2 + 3];
 	}
 	std::memcpy(I, J.data(), sizeof(int) * N);
-	for (int n1 = 0; n1 < N1; n1++) {
-		fft_indices_real(&I[n1 * N2], N2);
-	}
+	fft_indices_real(&I[0], N / 2);
+	fft_indices_real(&I[2 * N2], N2);
+	fft_indices_real(&I[3 * N2], N2);
 }
 
 template<class T, int N1>
@@ -29,44 +30,52 @@ void fft_split_real(T* X, int N) {
 		sfft_real(X, N);
 		return;
 	}
-
 	constexpr int N1o2 = N1 / 2;
 	const int N2 = N / N1;
 	const int No2 = N / 2;
 	const int N2p1o2 = (N2 + 1) / 2;
 
 	const auto& W = twiddles(N);
-
-	fft_real(&X[0], N2);
-	fft_real(&X[N2], N2);
-	fft_real(&X[N / 2], N2);
-	fft_real(&X[N / 2 + N2], N2);
-
+	std::vector<T> U(No2);
+	std::vector<T> Z1(N2);
+	std::vector<T> Z3(N2);
 	for (int n2 = 0; n2 < N2; n2++) {
-		std::swap(X[N2 + n2], X[N / 2 + n2]);
+		U[2 * n2] = X[N1 * n2 + 0];
+		U[2 * n2 + 1] = X[N1 * n2 + 2];
+		Z1[n2] = X[N1 * n2 + 1];
+		Z3[n2] = X[N1 * n2 + 3];
 	}
 
+	fft_real(U.data(), N / 2);
+	fft_real(Z1.data(), N2);
+	fft_real(Z3.data(), N2);
+
 	for (int k2 = 1; k2 < N2p1o2; k2++) {
-		for (int n1 = 1; n1 < N1; n1++) {
-			complex<T> z;
-			const int ir = N2 * n1 + k2;
-			const int ii = N2 * n1 - k2 + N2;
-			z.real() = X[ir];
-			z.imag() = X[ii];
-			z *= W[n1 * k2];
-			X[ir] = z.real();
-			X[ii] = z.imag();
-		}
+		complex<T> z;
+		z.real() = Z1[k2];
+		z.imag() = Z1[N2 - k2];
+		z *= W[k2];
+		Z1[k2] = z.real();
+		Z1[N2 - k2] = z.imag();
+		z.real() = Z3[k2];
+		z.imag() = Z3[N2 - k2];
+		z *= W[3 * k2];
+		Z3[k2] = z.real();
+		Z3[N2 - k2] = z.imag();
 	}
 
 	std::array<T, N1> q;
-	for (int n1 = 0; n1 < N1; n1++) {
-		q[n1] = X[N2 * n1];
-	}
-	const auto z0 = q[0] + q[1] + q[2] + q[3];
-	const auto z1r = q[0] - q[2];
+
+	//	q[0] = X[0] + X[No2];
+	//	q[2] = X[0] - X[No2];
+	q[0] = U[0];
+	q[2] = U[N2];
+	q[1] = Z1[0];
+	q[3] = Z3[0];
+	const auto z0 = q[0] + q[1] + q[3];
+	const auto z1r = q[2];
 	const auto z1i = -q[1] + q[3];
-	const auto z2 = q[0] - q[1] + q[2] - q[3];
+	const auto z2 = q[0] - q[1] - q[3];
 	X[0] = z0;
 	X[N2] = z1r;
 	X[N / 2] = z2;
@@ -74,14 +83,22 @@ void fft_split_real(T* X, int N) {
 
 	std::array<complex<T>, N1> p;
 	for (int k2 = 1; k2 < N2p1o2; k2++) {
-		for (int n1 = 0; n1 < N1; n1++) {
-			p[n1].real() = X[N2 * n1 + k2];
-			p[n1].imag() = X[N2 * n1 - k2 + N2];
-		}
-		const auto z0 = p[0] + p[1] + p[2] + p[3];
-		const auto z1 = p[0] - Ix(p[1]) - p[2] + Ix(p[3]);
-		const auto z2 = p[0] - p[1] + p[2] - p[3];
-		const auto z3 = p[0] + Ix(p[1]) - p[2] - Ix(p[3]);
+		//	p[0].real() = X[k2] + X[No2 + k2];
+		//	p[2].real() = X[k2] - X[No2 + k2];
+		//	p[0].imag() = X[N2 - k2] + X[No2 + N2 - k2];
+		//	p[2].imag() = X[N2 - k2] - X[No2 + N2 - k2];
+		p[0].real() = U[k2];
+		p[0].imag() = U[No2 - k2];
+		p[2].real() = U[No2 - k2 - N2];
+		p[2].imag() = -U[k2 + N2];
+		p[1].real() = Z1[k2];
+		p[1].imag() = Z1[N2 - k2];
+		p[3].real() = Z3[k2];
+		p[3].imag() = Z3[N2 - k2];
+		const auto z0 = p[0] + p[1] + p[3];
+		const auto z1 = p[2] - Ix(p[1]) + Ix(p[3]);
+		const auto z2 = p[0] - p[1] - p[3];
+		const auto z3 = p[2] + Ix(p[1]) - Ix(p[3]);
 		X[N2 * 0 + k2] = z0.real();
 		X[N - N2 * 0 - k2] = z0.imag();
 		X[N2 * 1 + k2] = z1.real();
@@ -94,15 +111,16 @@ void fft_split_real(T* X, int N) {
 
 	if (N2 % 2 == 0) {
 		std::array<T, N1> q;
-		for (int n1 = 0; n1 < N1; n1++) {
-			q[n1] = X[N2 * n1 + N2 / 2];
-		}
+		q[0] = U[N2 / 2];
+		q[2] = U[N2 + N2 / 2];
+		q[1] = Z1[N2 / 2];
+		q[3] = Z3[N2 / 2];
 		const auto t1 = (q[1] - q[3]) * (1.0 / sqrt(2));
 		const auto t2 = (q[1] + q[3]) * (1.0 / sqrt(2));
 		X[0 + N2 * 0 + N2 / 2] = q[0] + t1;
-		X[N - N2 * 0 - N2 / 2] = -q[2] - t2;
+		X[N - N2 * 0 - N2 / 2] = q[2] - t2;
 		X[0 + N2 * 1 + N2 / 2] = q[0] - t1;
-		X[N - N2 * 1 - N2 / 2] = q[2] - t2;
+		X[N - N2 * 1 - N2 / 2] = -q[2] - t2;
 	}
 }
 
