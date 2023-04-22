@@ -75,14 +75,14 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 2; N <= 1000000; N += 2) {
+	for (int N = 10; N <= 1024 * 1024; N = (N * 11 / 10)) {
 		auto pfac = prime_factorization(N);
-		/*	do {
+		do {
 			if (pfac.rbegin()->first > SFFT_NMAX) {
 				N++;
 				pfac = prime_factorization(N);
 			}
-		} while(pfac.rbegin()->first > SFFT_NMAX);*/
+		} while (pfac.rbegin()->first > SFFT_NMAX);
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
@@ -93,13 +93,13 @@ int main(int argc, char **argv) {
 			std::vector<complex<double>> Y(N / 2 + 1);
 			for (int n = 0; n < N; n++) {
 				x[n] = (y[n] = rand1());
-/*				if( n % 2 == 0 ) {
-					x[n] = 0.0;
-				}
-				if( n >= N / 2 ) {
-					x[n] = -x[n - N/2];
-				}
-				y[n] = x[n];*/
+				/*				if( n % 2 == 0 ) {
+				 x[n] = 0.0;
+				 }
+				 if( n >= N / 2 ) {
+				 x[n] = -x[n - N/2];
+				 }
+				 y[n] = x[n];*/
 			}
 			if (i == 0) {
 				fftw_real(Y, y);
@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
 					double y = X[n].imag() - Y[n].imag();
 					double err = sqrt(x * x + y * y);
 					avg_err += err;
-				//	printf("%e %e | %e %e | %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), err);
+					//	printf("%e %e | %e %e | %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), err);
 				}
 			}
 		}
