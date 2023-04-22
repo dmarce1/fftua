@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 10; N <= 1024 * 1024; N = (N * 11 / 10)) {
+	for (int N = 2; N <= 1024 * 1024; N *= 2) {
 		auto pfac = prime_factorization(N);
 		do {
 			if (pfac.rbegin()->first > SFFT_NMAX) {
