@@ -63,13 +63,14 @@ void fft_split_real(T* X, int N) {
 	for (int n1 = 0; n1 < N1; n1++) {
 		q[n1] = X[N2 * n1];
 	}
-	sfft_real<N1>(q.data());
-	X[0] = q[0];
-	for (int k1 = 1; k1 < N1o2; k1++) {
-		X[0 + N2 * k1] = q[k1];
-		X[N - N2 * k1] = q[N1 - k1];
-	}
-	X[No2] = q[N1o2];
+	const auto z0 = q[0] + q[1] + q[2] + q[3];
+	const auto z1r = q[0] - q[2];
+	const auto z1i = -q[1] + q[3];
+	const auto z2 = q[0] - q[1] + q[2] - q[3];
+	X[0] = z0;
+	X[N2] = z1r;
+	X[N / 2] = z2;
+	X[N2 + N / 2] = z1i;
 
 	std::array<complex<T>, N1> p;
 	for (int k2 = 1; k2 < N2p1o2; k2++) {
@@ -77,17 +78,18 @@ void fft_split_real(T* X, int N) {
 			p[n1].real() = X[N2 * n1 + k2];
 			p[n1].imag() = X[N2 * n1 - k2 + N2];
 		}
-		sfft_complex<N1>((T*) p.data());
-		for (int k1 = 0; k1 < N1o2; k1++) {
-			const int k = N2 * k1 + k2;
-			X[k] = p[k1].real();
-			X[N - k] = p[k1].imag();
-		}
-		for (int k1 = N1o2; k1 < N1; k1++) {
-			const int k = N2 * k1 + k2;
-			X[N - k] = p[k1].real();
-			X[k] = -p[k1].imag();
-		}
+		const auto z0 = p[0] + p[1] + p[2] + p[3];
+		const auto z1 = p[0] - Ix(p[1]) - p[2] + Ix(p[3]);
+		const auto z2 = p[0] - p[1] + p[2] - p[3];
+		const auto z3 = p[0] + Ix(p[1]) - p[2] - Ix(p[3]);
+		X[N2 * 0 + k2] = z0.real();
+		X[N - N2 * 0 - k2] = z0.imag();
+		X[N2 * 1 + k2] = z1.real();
+		X[N - N2 * 1 - k2] = z1.imag();
+		X[N2 * 2 + k2] = -z2.imag();
+		X[N - N2 * 2 - k2] = z2.real();
+		X[N2 * 3 + k2] = -z3.imag();
+		X[N - N2 * 3 - k2] = z3.real();
 	}
 
 	if (N2 % 2 == 0) {
@@ -95,11 +97,12 @@ void fft_split_real(T* X, int N) {
 		for (int n1 = 0; n1 < N1; n1++) {
 			q[n1] = X[N2 * n1 + N2 / 2];
 		}
-		sfft_skew<N1>(q.data());
-		for (int k1 = 0; k1 < N1o2; k1++) {
-			X[0 + (N2 * k1 + N2 / 2)] = q[k1];
-			X[N - (N2 * k1 + N2 / 2)] = q[N1 - k1 - 1];
-		}
+		const auto t1 = (q[1] - q[3]) * (1.0 / sqrt(2));
+		const auto t2 = (q[1] + q[3]) * (1.0 / sqrt(2));
+		X[0 + N2 * 0 + N2 / 2] = q[0] + t1;
+		X[N - N2 * 0 - N2 / 2] = -q[2] - t2;
+		X[0 + N2 * 1 + N2 / 2] = q[0] - t1;
+		X[N - N2 * 1 - N2 / 2] = q[2] - t2;
 	}
 }
 
