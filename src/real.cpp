@@ -20,48 +20,61 @@ void fft_real(double* X, int N) {
 		sfft_real(X, N);
 		return;
 	} else {
-		static std::unordered_map<int, int> cache;
-		auto iter = cache.find(N);
-		if (iter == cache.end()) {
-			for (int R = 4; R <= std::min(N, SFFT_NMAX); R++) {
-				if (N % R == 0) {
-					std::vector<double> X(N);
-					for (int n = 0; n < N; n++) {
-						X[n] = rand1();
-					}
-					fft2simd_real(R, X.data(), N);
-				}
-			}
-			double best_time = 1e99;
-			int best_R = -1;
-			for (int R = 4; R <= std::min(N, SFFT_NMAX); R++) {
-				if (N % R == 0) {
-					std::vector<double> times;
-					std::vector<double> X(N);
-					for (int k = 0; k < NTRIAL; k++) {
+		if (is_prime(N) && N > SFFT_NMAX) {
+			fft_raders_real(X, N, false);
+		} else {
+			static std::unordered_map<int, int> cache;
+			auto iter = cache.find(N);
+			if (iter == cache.end()) {
+				for (int R = 4; R <= SFFT_NMAX; R++) {
+					if (N % R == 0) {
+						std::vector<double> X(N);
 						for (int n = 0; n < N; n++) {
 							X[n] = rand1();
 						}
-						timer tm;
-						tm.start();
 						fft2simd_real(R, X.data(), N);
-						tm.stop();
-						times.push_back(tm.read());
-					}
-					std::sort(times.begin(), times.end());
-					double tm = times[(times.size() + 1) / 2];
-					if (tm < best_time) {
-						best_time = tm;
-						best_R = R;
 					}
 				}
+				double best_time = 1e99;
+				int best_R = -1;
+				for (int R = 4; R <= SFFT_NMAX; R++) {
+					if (N % R == 0) {
+						std::vector<double> times;
+						std::vector<double> X(N);
+						for (int k = 0; k < NTRIAL; k++) {
+							for (int n = 0; n < N; n++) {
+								X[n] = rand1();
+							}
+							timer tm;
+							tm.start();
+							fft2simd_real(R, X.data(), N);
+							tm.stop();
+							times.push_back(tm.read());
+						}
+						std::sort(times.begin(), times.end());
+						double tm = times[(times.size() + 1) / 2];
+						if (tm < best_time) {
+							best_time = tm;
+							best_R = R;
+						}
+					}
+				}
+				if (best_R == -1) {
+					if (N % 2 == 0) {
+						best_R = 2;
+					} else if (N % 3 == 0) {
+						best_R = 3;
+					} else {
+						best_R = SFFT_NMAX + 1;
+						while (N % best_R != 0) {
+							best_R++;
+						}
+					}
+				}
+				cache[N] = best_R;
+				iter = cache.find(N);
 			}
-			cache[N] = best_R;
-			iter = cache.find(N);
-		}
-		if (iter->second < 0) {
-			fft_raders_real(X, N, false);
-		} else {
+			assert(iter->second != -1);
 			fft2simd_real(iter->second, X, N);
 		}
 	}
@@ -83,7 +96,7 @@ std::vector<fft_method> possible_ffts_real(int N) {
 		}
 	}
 	auto pfac = prime_factorization(N);
-	if (pfac.rbegin()->first <= SFFT_NMAX) {
+	if (pfac.begin()->first <= SFFT_NMAX) {
 		for (m.R = 2; m.R <= std::min(SFFT_NMAX, N); m.R++) {
 			if (N % m.R == 0) {
 				m.type = FFT_CT;
@@ -95,11 +108,13 @@ std::vector<fft_method> possible_ffts_real(int N) {
 		m.type = FFT_RADERS;
 		ffts.push_back(m);
 	}
+	assert(ffts.size());
 	return ffts;
 }
 
 template<class T>
 void fft_real(const fft_method& method, T* X, int N) {
+
 	switch (method.type) {
 	case FFT_CT:
 		fft_cooley_tukey_real(method.R, X, N);
@@ -113,6 +128,9 @@ void fft_real(const fft_method& method, T* X, int N) {
 	case FFT_241:
 		fft_twoforone_real(X, N);
 		break;
+	default:
+		assert(false);
+		abort();
 	}
 }
 

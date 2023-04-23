@@ -10,6 +10,7 @@
 #include <stack>
 #include <memory>
 #include <cstring>
+
 void fft2simd_real(int N1, double* X, int N) {
 	if (N <= SFFT_NMAX) {
 		sfft_real(X, N);
@@ -89,7 +90,7 @@ void fft2simd_real(int N1, double* X, int N) {
 			Ys[ii] = z.imag();
 		}
 	}
-	double q[N1];
+	std::vector<double> q(N1);
 	for (int n1r = 0; n1r < N1voS; n1r++) {
 		for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
 			const int n1 = n1r * SIMD_SIZE + n1c;
@@ -99,7 +100,12 @@ void fft2simd_real(int N1, double* X, int N) {
 	for (int n1 = N1v; n1 < N1; n1++) {
 		q[n1] = Ys[N2 * (n1 - N1v)];
 	}
-	sfft_real(q, N1);
+	if (N1 <= SFFT_NMAX) {
+		sfft_real(q.data(), N1);
+	} else {
+		fft_scramble_real(q.data(), N1);
+		fft_real(q.data(), N1);
+	}
 	X[0] = q[0];
 	for (int k1 = 1; k1 < N1p1o2; k1++) {
 		X[0 + N2 * k1] = q[k1];
@@ -108,8 +114,8 @@ void fft2simd_real(int N1, double* X, int N) {
 	if (N1 % 2 == 0) {
 		X[No2] = q[N1o2];
 	}
+	std::vector<complex<fft_simd4>> p(N1);
 	for (int k2 = 1; k2 < N2p1o2v; k2 += SIMD_SIZE) {
-		complex<fft_simd4> p[N1];
 		for (int n1r = 0; n1r < N1voS; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
 				const int n1 = n1r * SIMD_SIZE + n1c;
@@ -125,7 +131,12 @@ void fft2simd_real(int N1, double* X, int N) {
 				p[n1].imag()[i] = Ys[(n1 - N1v) * N2 - k2 - i + N2];
 			}
 		}
-		sfft_complex((fft_simd4*) p, N1);
+		if (N1 <= SFFT_NMAX) {
+			sfft_complex((fft_simd4*) p.data(), N1);
+		} else {
+			fft_scramble(p.data(), N1);
+			fft(p.data(), N1);
+		}
 		for (int k1 = 0; k1 < N1p1o2; k1++) {
 			for (int i = 0; i < SIMD_SIZE; i++) {
 				const int k = N2 * k1 + k2 + i;
@@ -142,7 +153,7 @@ void fft2simd_real(int N1, double* X, int N) {
 		}
 	}
 	for (int k2 = N2p1o2v; k2 < N2p1o2; k2++) {
-		complex<double> p[N1];
+		std::vector<complex<double>> p(N1);
 		for (int n1r = 0; n1r < N1voS; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
 				const int n1 = n1r * SIMD_SIZE + n1c;
@@ -154,7 +165,12 @@ void fft2simd_real(int N1, double* X, int N) {
 			p[n1].real() = Ys[(n1 - N1v) * N2 + k2];
 			p[n1].imag() = Ys[(n1 - N1v) * N2 - k2 + N2];
 		}
-		sfft_complex((double*) p, N1);
+		if (N1 <= SFFT_NMAX) {
+			sfft_complex((double*) p.data(), N1);
+		} else {
+			fft_scramble(p.data(), N1);
+			fft(p.data(), N1);
+		}
 		for (int k1 = 0; k1 < N1p1o2; k1++) {
 			const int k = N2 * k1 + k2;
 			X[k] = p[k1].real();
@@ -167,7 +183,6 @@ void fft2simd_real(int N1, double* X, int N) {
 		}
 	}
 	if (N2 % 2 == 0) {
-		double q[N1];
 		for (int n1r = 0; n1r < N1voS; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
 				q[n1r * SIMD_SIZE + n1c] = Yv[N2 * n1r + N2o2][n1c];
@@ -176,7 +191,12 @@ void fft2simd_real(int N1, double* X, int N) {
 		for (int n1 = N1v; n1 < N1; n1++) {
 			q[n1] = Ys[N2 * (n1 - N1v) + N2o2];
 		}
-		sfft_skew(q, N1);
+		if (N1 <= SFFT_NMAX) {
+			sfft_skew(q.data(), N1);
+		} else {
+			assert(false);
+			abort();
+		}
 		for (int k1 = 0; k1 < N1p1o2; k1++) {
 			X[N2 * k1 + N2o2] = q[k1];
 			X[N - N2 * k1 - N2o2] = q[N1 - k1 - 1];

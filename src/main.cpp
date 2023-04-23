@@ -78,7 +78,8 @@ int main(int argc, char **argv) {
 	int cnt = 0;
 	for (int N = 10; N <= 1024*1024; N = N * 11 / 10) {
 		auto pfac = prime_factorization(N);
-		bool done;
+		std::string f;
+				bool done;
 		do {
 /*			if (pfac.size() > 1 || pfac.begin()->second > 1) {
 				if (pfac.rbegin()->first > SFFT_NMAX) {
@@ -103,7 +104,12 @@ int main(int argc, char **argv) {
 				pfac = prime_factorization(N);
 			}
 		} while (!done);
-		double avg_err = 0.0;
+		for (auto i = pfac.begin(); i != pfac.end(); i++) {
+			f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
+		}
+		printf("%i: %32s ", N, f.c_str());
+		fflush(stdout);
+			double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
 
@@ -160,12 +166,6 @@ int main(int argc, char **argv) {
 		score += t1 / (t2 + 1e-20);
 		cnt++;
 		score /= cnt;
-		std::string f;
-		for (auto i = pfac.begin(); i != pfac.end(); i++) {
-			f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
-		}
-		printf("%i: %32s ", N, f.c_str());
-		fflush(stdout);
 		printf("%c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
 	}
 	return 0;

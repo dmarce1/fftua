@@ -148810,7 +148810,8 @@ inline void sfft_complex(T* x, int N) {
 		break;
 	default:
 		assert(false);
-	}
+		abort();
+}
 }
 
 template<int N, class T>
@@ -149010,6 +149011,7 @@ inline void sfft_complex(T* x) {
 		break;
 	default:
 		assert(false);
+		abort();
 	}
 }
 
@@ -149210,7 +149212,8 @@ inline void sfft_real(T* x, int N) {
 		break;
 	default:
 		assert(false);
-	}
+		abort();
+}
 }
 
 template<int N, class T>
@@ -149410,6 +149413,7 @@ inline void sfft_real(T* x) {
 		break;
 	default:
 		assert(false);
+		abort();
 	}
 }
 
@@ -149610,6 +149614,7 @@ inline void sfft_skew(T* x, int N) {
 		break;
 	default:
 		assert(false);
+		abort();
 	}
 }
 
@@ -149810,6 +149815,7 @@ inline void sfft_skew(T* x) {
 		break;
 	default:
 		assert(false);
+		abort();
 	}
 }
 
@@ -149868,6 +149874,7 @@ inline void sfft_complex_odd(T* x, int N) {
 		break;
 	default:
 		assert(false);
+		abort();
 	}
 }
 
@@ -149926,6 +149933,7 @@ inline void sfft_complex_odd(T* x) {
 		break;
 	default:
 		assert(false);
+		abort();
 	}
 }
 
@@ -149984,7 +149992,8 @@ inline void sfft_real_odd(T* x, int N) {
 		break;
 	default:
 		assert(false);
-	}
+		abort();
+}
 }
 
 template<int N, class T>
@@ -150042,6 +150051,7 @@ inline void sfft_real_odd(T* x) {
 		break;
 	default:
 		assert(false);
+		abort();
 	}
 }
 
@@ -150100,6 +150110,7 @@ inline void sfft_skew_odd(T* x, int N) {
 		break;
 	default:
 		assert(false);
+		abort();
 	}
 }
 
@@ -150158,6 +150169,7 @@ inline void sfft_skew_odd(T* x) {
 		break;
 	default:
 		assert(false);
+		abort();
 	}
 }
 
