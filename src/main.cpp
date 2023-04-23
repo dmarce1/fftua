@@ -76,23 +76,27 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 128; N <= 128; N *= 2) {
+	for (int N = 10; N <= 1024*1024; N = N * 11 / 10) {
 		auto pfac = prime_factorization(N);
 		bool done;
 		do {
-			if (pfac.size() > 1 || pfac.begin()->second > 1) {
+/*			if (pfac.size() > 1 || pfac.begin()->second > 1) {
 				if (pfac.rbegin()->first > SFFT_NMAX) {
 					done = false;
 				} else {
 					done = true;
-				}
-			} else {
+				}*/
+			if( N % 4 == 0 ) {
+				done = true;
+			} else if (!(pfac.size() > 1 || pfac.begin()->second > 1)){
 				auto pfacm1 = prime_factorization(N - 1);
 				if (pfacm1.rbegin()->first > SFFT_NMAX) {
 					done = false;
 				} else {
 					done = true;
 				}
+			} else {
+				done = false;
 			}
 			if (!done) {
 				N++;
@@ -102,7 +106,8 @@ int main(int argc, char **argv) {
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
-		for (int i = 0; i < 2; i++) {
+
+		for (int i = 0; i < 21; i++) {
 			std::vector<double> x(N);
 			std::vector<double> y(N);
 			std::vector<complex<double>> X(N / 2 + 1);
@@ -146,7 +151,7 @@ int main(int argc, char **argv) {
 					double y = X[n].imag() - Y[n].imag();
 					double err = sqrt(x * x + y * y);
 					avg_err += err;
-					printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+			//		printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 				}
 			}
 		}
@@ -162,7 +167,6 @@ int main(int argc, char **argv) {
 		printf("%i: %32s ", N, f.c_str());
 		fflush(stdout);
 		printf("%c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
-		abort();
 	}
 	return 0;
 }

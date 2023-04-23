@@ -33,12 +33,9 @@ void fft_raders(complex<fft_simd4>* X, int N) {
 	}
 	fft_scramble_inv(Y.data(), N - 1);
 	fft(Y.data(), N - 1);
-	for (int p = 0; p < N - 1; p++) {
-		Y[p] += xo;
-	}
 	X[0] = x0;
 	for (int p = 0; p < N - 1; p++) {
-		X[ginvq[p]] = Y[p];
+		X[ginvq[p]] = Y[p] + xo;
 	}
 }
 

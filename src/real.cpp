@@ -70,24 +70,30 @@ void fft_real(double* X, int N) {
 std::vector<fft_method> possible_ffts_real(int N) {
 	std::vector<fft_method> ffts;
 	fft_method m;
-	if (N % 4 == 0) {
-		m.R = 8;
-		m.type = FFT_SPLIT;
+	if (N % 2 == 0) {
+		m.type = FFT_241;
 		ffts.push_back(m);
-	/*	if (N % 2 == 0) {
-			m.type = FFT_241;
-			ffts.push_back(m);
-		}*/
-	} else {
-		auto pfac = prime_factorization(N);
-		if (pfac.rbegin()->first <= SFFT_NMAX) {
-			for (m.R = 2; m.R <= std::min(SFFT_NMAX, N); m.R++) {
-				if (N % m.R == 0) {
-					m.type = FFT_CT;
-					ffts.push_back(m);
-				}
+	}
+	if (N % 4 == 0) {
+		for (m.R = 4; m.R <= std::min(SFFT_NMAX, N); m.R += 4) {
+			if (N % m.R == 0) {
+				m.type = FFT_SPLIT;
+				ffts.push_back(m);
 			}
 		}
+	}
+	auto pfac = prime_factorization(N);
+	if (pfac.rbegin()->first <= SFFT_NMAX) {
+		for (m.R = 2; m.R <= std::min(SFFT_NMAX, N); m.R++) {
+			if (N % m.R == 0) {
+				m.type = FFT_CT;
+				ffts.push_back(m);
+			}
+		}
+	}
+	if (pfac.size() == 1 && pfac.begin()->second == 1 && pfac.begin()->first > SFFT_NMAX) {
+		m.type = FFT_RADERS;
+		ffts.push_back(m);
 	}
 	return ffts;
 }
@@ -98,6 +104,9 @@ void fft_real(const fft_method& method, T* X, int N) {
 	case FFT_CT:
 		fft_cooley_tukey_real(method.R, X, N);
 		break;
+	case FFT_RADERS:
+		fft_raders_real(X, N);
+		break;
 	case FFT_SPLIT:
 		fft_split_real(method.R, X, N);
 		break;
@@ -107,10 +116,14 @@ void fft_real(const fft_method& method, T* X, int N) {
 	}
 }
 
+void fft_raders_indices_real(int* I, int N);
+
 void fft_indices_real(const fft_method& method, int* I, int N) {
 	switch (method.type) {
 	case FFT_CT:
 		return fft_cooley_tukey_indices_real(method.R, I, N);
+	case FFT_RADERS:
+		return fft_raders_indices_real(I, N);
 	case FFT_SPLIT:
 		return fft_split_real_indices(method.R, I, N);
 	}

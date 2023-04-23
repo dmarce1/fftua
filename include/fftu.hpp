@@ -125,5 +125,8 @@ void fft_real(fft_simd4* X, int N);
 void fft_real(double* X, int N);
 void fft_raders_real(double* X, int N, bool padded);
 const std::vector<int>& fft_indices_real(int N);
+void fft_raders_real(fft_simd4* X, int N);
+void fft_scramble_real(fft_simd4* X, int N);
+void fft_scramble_real(double* X, int N);
 
 #endif /* FFTU_HPP_ */
