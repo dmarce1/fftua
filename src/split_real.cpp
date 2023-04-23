@@ -9,7 +9,6 @@
 #include <stack>
 
 void fft_split_real_indices(int N1, int* I, int N) {
-	return;
 	std::vector<int> J(N);
 	const int N2 = N / N1;
 	for (int n2 = 0; n2 < N2; n2++) {
@@ -36,20 +35,20 @@ void fft_split_real(T* X, int N) {
 	const int N2p1o2 = (N2 + 1) / 2;
 
 	const auto& W = twiddles(N);
-	std::vector<T> U(No2);
-	std::vector<T> Z1(N2);
-	std::vector<T> Z3(N2);
+	static std::vector<T> Y;
+	Y.resize(N);
+	T* U = Y.data();
+	T* Z1 = U + No2;
+	T* Z3 = Z1 + N2;
+	fft_real(X, N / 2);
+	fft_real(X + No2, N2);
+	fft_real(X + No2 + N2, N2);
 	for (int n2 = 0; n2 < N2; n2++) {
-		U[2 * n2] = X[N1 * n2 + 0];
-		U[2 * n2 + 1] = X[N1 * n2 + 2];
-		Z1[n2] = X[N1 * n2 + 1];
-		Z3[n2] = X[N1 * n2 + 3];
+		U[2 * n2] = X[2 * n2];
+		U[2 * n2 + 1] = X[2 * n2 + 1];
+		Z1[n2] = X[2 * N2 + n2];
+		Z3[n2] = X[3 * N2 + n2];
 	}
-
-	fft_real(U.data(), N / 2);
-	fft_real(Z1.data(), N2);
-	fft_real(Z3.data(), N2);
-
 	for (int k2 = 1; k2 < N2p1o2; k2++) {
 		complex<T> z;
 		z.real() = Z1[k2];
@@ -63,11 +62,7 @@ void fft_split_real(T* X, int N) {
 		Z3[k2] = z.real();
 		Z3[N2 - k2] = z.imag();
 	}
-
 	std::array<T, N1> q;
-
-	//	q[0] = X[0] + X[No2];
-	//	q[2] = X[0] - X[No2];
 	q[0] = U[0];
 	q[2] = U[N2];
 	q[1] = Z1[0];
@@ -80,13 +75,8 @@ void fft_split_real(T* X, int N) {
 	X[N2] = z1r;
 	X[N / 2] = z2;
 	X[N2 + N / 2] = z1i;
-
 	std::array<complex<T>, N1> p;
 	for (int k2 = 1; k2 < N2p1o2; k2++) {
-		//	p[0].real() = X[k2] + X[No2 + k2];
-		//	p[2].real() = X[k2] - X[No2 + k2];
-		//	p[0].imag() = X[N2 - k2] + X[No2 + N2 - k2];
-		//	p[2].imag() = X[N2 - k2] - X[No2 + N2 - k2];
 		p[0].real() = U[k2];
 		p[0].imag() = U[No2 - k2];
 		p[2].real() = U[No2 - k2 - N2];
@@ -108,7 +98,6 @@ void fft_split_real(T* X, int N) {
 		X[N2 * 3 + k2] = -z3.imag();
 		X[N - N2 * 3 - k2] = z3.real();
 	}
-
 	if (N2 % 2 == 0) {
 		std::array<T, N1> q;
 		q[0] = U[N2 / 2];
