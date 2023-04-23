@@ -108,6 +108,14 @@ std::vector<fft_method> possible_ffts_real(int N) {
 		m.type = FFT_RADERS;
 		ffts.push_back(m);
 	}
+	if( ffts.size() == 0 ) {
+		m.R = SFFT_NMAX + 1;
+		while( N % m.R != 0 ) {
+			m.R++;
+		}
+		m.type = FFT_CT;
+		ffts.push_back(m);
+	}
 	assert(ffts.size());
 	return ffts;
 }

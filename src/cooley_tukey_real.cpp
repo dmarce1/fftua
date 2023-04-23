@@ -97,6 +97,76 @@ void fft_cooley_tukey_real(T* X, int N) {
 }
 
 template<class T>
+void fft_cooley_tukey_real_big(int N1, T* X, int N) {
+	if (N <= SFFT_NMAX) {
+		sfft_real(X, N);
+		return;
+	}
+	int N2 = N / N1;
+	if( N2 % 2 == 0 ) {
+		std::swap(N1, N2);
+	}
+	const int N1p1o2 = (N1 + 1) / 2;
+	const int N1o2 = N1 / 2;
+	const bool N1e = (N1 % 2 == 0);
+	const int No2 = N / 2;
+	const int N2p1o2 = (N2 + 1) / 2;
+
+	const auto& W = twiddles(N);
+
+	for (int n1 = 0; n1 < N1; n1++) {
+		fft_real(&X[n1 * N2], N2);
+	}
+
+	for (int k2 = 1; k2 < N2p1o2; k2++) {
+		for (int n1 = 1; n1 < N1; n1++) {
+			complex<T> z;
+			const int ir = N2 * n1 + k2;
+			const int ii = N2 * n1 - k2 + N2;
+			z.real() = X[ir];
+			z.imag() = X[ii];
+			z *= W[n1 * k2];
+			X[ir] = z.real();
+			X[ii] = z.imag();
+		}
+	}
+
+	std::vector<T> q(N1);
+	for (int n1 = 0; n1 < N1; n1++) {
+		q[n1] = X[N2 * n1];
+	}
+	fft_scramble_real(q.data(), N1);
+	fft_real(q.data(), N1);
+	X[0] = q[0];
+	for (int k1 = 1; k1 < N1p1o2; k1++) {
+		X[0 + N2 * k1] = q[k1];
+		X[N - N2 * k1] = q[N1 - k1];
+	}
+	if (N1e) {
+		X[No2] = q[N1o2];
+	}
+	std::vector<complex<T>> p(N1);
+	for (int k2 = 1; k2 < N2p1o2; k2++) {
+		for (int n1 = 0; n1 < N1; n1++) {
+			p[n1].real() = X[N2 * n1 + k2];
+			p[n1].imag() = X[N2 * n1 - k2 + N2];
+		}
+		fft_scramble(p.data(), N1);
+		fft(p.data(), N1);
+		for (int k1 = 0; k1 < N1p1o2; k1++) {
+			const int k = N2 * k1 + k2;
+			X[k] = p[k1].real();
+			X[N - k] = p[k1].imag();
+		}
+		for (int k1 = N1p1o2; k1 < N1; k1++) {
+			const int k = N2 * k1 + k2;
+			X[N - k] = p[k1].real();
+			X[k] = -p[k1].imag();
+		}
+	}
+}
+
+template<class T>
 void fft_cooley_tukey1_real(int N1, T* X, int N) {
 	switch (N1) {
 	case 2:
@@ -226,8 +296,7 @@ void fft_cooley_tukey1_real(int N1, T* X, int N) {
 	case 64:
 		return fft_cooley_tukey_real<T, 64>(X, N);
 	default:
-		assert(false);
-		abort();
+		return fft_cooley_tukey_real_big<T>(N1, X, N);
 	}
 }
 

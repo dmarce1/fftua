@@ -79,37 +79,12 @@ int main(int argc, char **argv) {
 	for (int N = 10; N <= 1024*1024; N = N * 11 / 10) {
 		auto pfac = prime_factorization(N);
 		std::string f;
-				bool done;
-		do {
-/*			if (pfac.size() > 1 || pfac.begin()->second > 1) {
-				if (pfac.rbegin()->first > SFFT_NMAX) {
-					done = false;
-				} else {
-					done = true;
-				}*/
-			if( N % 4 == 0 ) {
-				done = true;
-			} else if (!(pfac.size() > 1 || pfac.begin()->second > 1)){
-				auto pfacm1 = prime_factorization(N - 1);
-				if (pfacm1.rbegin()->first > SFFT_NMAX) {
-					done = false;
-				} else {
-					done = true;
-				}
-			} else {
-				done = false;
-			}
-			if (!done) {
-				N++;
-				pfac = prime_factorization(N);
-			}
-		} while (!done);
 		for (auto i = pfac.begin(); i != pfac.end(); i++) {
 			f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
 		}
 		printf("%i: %32s ", N, f.c_str());
 		fflush(stdout);
-			double avg_err = 0.0;
+		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
 

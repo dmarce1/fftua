@@ -16,7 +16,6 @@ void fft2simd_real(int N1, double* X, int N) {
 		sfft_real(X, N);
 		return;
 	}
-
 	const int N2 = N / N1;
 	const int No2 = N / 2;
 	const int N2o2 = N2 / 2;
@@ -103,7 +102,6 @@ void fft2simd_real(int N1, double* X, int N) {
 	if (N1 <= SFFT_NMAX) {
 		sfft_real(q.data(), N1);
 	} else {
-		fft_scramble_real(q.data(), N1);
 		fft_real(q.data(), N1);
 	}
 	X[0] = q[0];
@@ -168,7 +166,6 @@ void fft2simd_real(int N1, double* X, int N) {
 		if (N1 <= SFFT_NMAX) {
 			sfft_complex((double*) p.data(), N1);
 		} else {
-			fft_scramble(p.data(), N1);
 			fft(p.data(), N1);
 		}
 		for (int k1 = 0; k1 < N1p1o2; k1++) {
