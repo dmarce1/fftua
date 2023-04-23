@@ -62,15 +62,15 @@ void fft_split_real(T* X, int N) {
 	}
 	sfft_real_odd<N1>(qo.data());
 	X[0] = qe[0] + qo[0];
-	for (int k1 = 1; k1 < N1o4; k1++) {
+	for (int k1 = 1; k1 < N1o2; k1++) {
 		X[N2 * k1] = qe[k1] + qo[k1];
 		X[N - N2 * k1] = qe[N1o2 - k1] + qo[N1o2 - k1];
 	}
 	X[No4] = qe[N1o4];
 	X[N - No4] = qo[N1o4];
-	for (int k1 = 1; k1 < N1o4; k1++) {
-		X[N2 * (k1 + N1o4)] = qe[k1] - qo[k1];
-		X[N - N2 * (k1 + N1o4)] = qe[N1o2 - k1] - qo[N1o2 - k1];
+	for (int k1 = N1o4 + 1; k1 < N1o2; k1++) {
+		X[N2 * k1] = qe[N1o2 - k1] - qo[N1o2 - k1];
+		X[N - N2 * k1] = -qe[k1] + qo[k1];
 	}
 	X[No2] = qe[0] - qo[0];
 	std::array<complex<T>, N1o2> po;
@@ -85,20 +85,22 @@ void fft_split_real(T* X, int N) {
 			po[n1].imag() = X[No2 + N2 * n1 - k2 + N2];
 			po[n1] *= W[(2 * n1 + 1) * k2];
 		}
-		std::swap(pe[1].real(), pe[1].imag());
-		pe[1] = pe[1].conj();
+		for (int n1 = (N1o2 + 1) / 2; n1 < N1o2; n1++) {
+			std::swap(pe[n1].real(), pe[n1].imag());
+			pe[n1] = pe[n1].conj();
+		}
 		sfft_complex_odd<N1>((T*) po.data());
 		for (int k1 = 0; k1 < N1o2; k1++) {
 			const int k = N2 * k1 + k2;
 			X[k] = pe[k1].real() + po[k1].real();
 			X[N - k] = pe[k1].imag() + po[k1].imag();
-			assert(N-k > k);
+			assert(N - k > k);
 		}
 		for (int k1 = N1o2; k1 < N1; k1++) {
 			const int k = N2 * k1 + k2;
 			X[N - k] = pe[k1 - N1o2].real() - po[k1 - N1o2].real();
 			X[k] = -pe[k1 - N1o2].imag() + po[k1 - N1o2].imag();
-			assert(N-k < k);
+			assert(N - k < k);
 		}
 	}
 	if (N2 % 2 == 0) {
@@ -113,9 +115,9 @@ void fft_split_real(T* X, int N) {
 			X[N2 * k1 + N2o2] = qe[k1] + qo[k1];
 			X[N - (N2 * k1 + N2o2)] = qe[N1o2 - k1 - 1] + qo[N1o2 - k1 - 1];
 		}
-		for (int k1 = 0; k1 < N1o4; k1++) {
-			X[N2 * (k1 + N1o4) + N2o2] = qe[k1] - qo[k1];
-			X[N - (N2 * (k1 + N1o4) + N2o2)] = -qe[N1o2 - k1 - 1] + qo[N1o2 - k1 - 1];
+		for (int k1 = N1o4; k1 < N1o2; k1++) {
+			X[N2 * k1 + N2o2] = qe[N1o2 - k1 - 1] - qo[N1o2 - k1 - 1];
+			X[N - (N2 * k1 + N2o2)] = -qe[k1] + qo[k1];
 		}
 	}
 }

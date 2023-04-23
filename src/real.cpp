@@ -59,7 +59,7 @@ void fft_real(double* X, int N) {
 			cache[N] = best_R;
 			iter = cache.find(N);
 		}
-		if( iter->second < 0 ) {
+		if (iter->second < 0) {
 			fft_raders_real(X, N, false);
 		} else {
 			fft2simd_real(iter->second, X, N);
@@ -71,20 +71,21 @@ std::vector<fft_method> possible_ffts_real(int N) {
 	std::vector<fft_method> ffts;
 	fft_method m;
 	if (N % 4 == 0) {
-		m.R = 4;
+		m.R = 8;
 		m.type = FFT_SPLIT;
 		ffts.push_back(m);
-		if (N % 2 == 0) {
+	/*	if (N % 2 == 0) {
 			m.type = FFT_241;
 			ffts.push_back(m);
-		}
-	}
-	auto pfac = prime_factorization(N);
-	if (pfac.rbegin()->first <= SFFT_NMAX) {
-		for (m.R = 2; m.R <= std::min(SFFT_NMAX, N); m.R++) {
-			if (N % m.R == 0) {
-				m.type = FFT_CT;
-				ffts.push_back(m);
+		}*/
+	} else {
+		auto pfac = prime_factorization(N);
+		if (pfac.rbegin()->first <= SFFT_NMAX) {
+			for (m.R = 2; m.R <= std::min(SFFT_NMAX, N); m.R++) {
+				if (N % m.R == 0) {
+					m.type = FFT_CT;
+					ffts.push_back(m);
+				}
 			}
 		}
 	}
