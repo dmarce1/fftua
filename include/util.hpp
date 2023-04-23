@@ -72,12 +72,33 @@ constexpr inline int round_up(int i, int m) {
 	return m * (((i - 1) / m) + 1);
 }
 const std::vector<complex<double>>& bluestein_multiplier(int N);
-const std::vector<complex<double>>&  bluestein_filter(int N, int M);
+const std::vector<complex<double>>& bluestein_filter(int N, int M);
 const std::vector<std::vector<complex<fft_simd4>>>& vector_twiddles(int N1, int N2);
 void destroy_scratch(std::vector<complex<fft_simd4>>&& space);
 std::vector<complex<fft_simd4>> create_scratch(int N);
 int totient(int N);
-
+const std::vector<double>& raders_twiddle_real(int N, int M);
 
 double fftw_real(std::vector<complex<double>>& xout, const std::vector<double>& xin);
+
+template<class T>
+void fft2dht(T* x, int N) {
+	for (int n = 1; n < N - n; n++) {
+		const auto r = x[n];
+		const auto i = x[N - n];
+		x[n] = r - i;
+		x[N - n] = r + i;
+	}
+}
+
+template<class T>
+void dht2fft(T* x, int N) {
+	for (int j = 1; j < N - j; j++) {
+		const auto p = x[j];
+		const auto n = x[N - j];
+		x[j] = T(0.5) * (p + n);
+		x[N - j] = T(0.5) * (n - p);
+	}
+}
+
 #endif

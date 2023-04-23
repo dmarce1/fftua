@@ -244,6 +244,39 @@ const std::vector<complex<double>>& raders_twiddle(int N, int M) {
 	}
 }
 
+void fftw_dht(std::vector<double>& xin);
+
+
+const std::vector<double>& raders_twiddle_real(int N, int M) {
+	using entry_type = std::shared_ptr<std::vector<double>>;
+	static std::unordered_map<int, std::unordered_map<int, entry_type>> cache;
+	auto iter = cache[N].find(M);
+	if (iter != cache[N].end()) {
+		return *(iter->second);
+	} else {
+		auto factors = prime_factorization(N);
+		assert(factors.size() == 1);
+		int P = factors.begin()->first;
+		int c = factors.begin()->second;
+		int L = std::pow(P, c - 1) * (P - 1);
+		std::vector<double> b(M, 0.0);
+		const auto tws = twiddles(N);
+		const auto ginvq = raders_ginvq(N);
+		for (int q = 0; q < L; q++) {
+			b[q] = (1.0 / M) * (tws[ginvq[q]].real() - tws[ginvq[q]].imag());
+		}
+		if (M != N - 1) {
+			for (int q = 1; q < L; q++) {
+				b[M - q] = b[L - q];
+			}
+		}
+		fftw_dht(b);
+		b.resize(round_up(b.size(), SIMD_SIZE));
+		cache[N][M] = std::make_shared<std::vector<double>>(std::move(b));
+		return *(cache[N][M]);
+	}
+}
+
 const std::vector<complex<double>>& bluestein_multiplier(int N) {
 	static thread_local std::unordered_map<int, std::shared_ptr<std::vector<complex<double>>> >values;
 	auto i = values.find(N);
@@ -445,5 +478,19 @@ double fftw_real(std::vector<complex<double>>& xout, const std::vector<double>& 
 		xout[n].imag() = (o[n][1]);
 	}
 	return tm.read();
+}
+
+void fftw_dht(std::vector<double>& h) {
+	int N = h.size();
+	std::vector<complex<double>> Y(N / 2 + 1);
+	fftw_real(Y, h);
+	for (int n = 1; n < N - n; n++) {
+		h[n] = Y[n].real() - Y[n].imag();
+		h[N - n] = Y[n].real() + Y[n].imag();
+	}
+	h[0] = Y[0].real();
+	if (N % 2 == 0) {
+		h[N / 2] = Y[N / 2].real();
+	}
 }
 

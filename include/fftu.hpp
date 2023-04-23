@@ -123,6 +123,7 @@ void fft_cooley_tukey_real(int N1, double* X, int N);
 void fft_indices_real(int* I, int N);
 void fft_real(fft_simd4* X, int N);
 void fft_real(double* X, int N);
+void fft_raders_real(double* X, int N, bool padded);
 const std::vector<int>& fft_indices_real(int N);
 
 #endif /* FFTU_HPP_ */

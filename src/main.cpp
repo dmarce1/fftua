@@ -76,14 +76,14 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 4; N <= 1024*1024*16; N *= 2) {
+	for (int N = 101; N <= 101; N = N * 11 / 10) {
 		auto pfac = prime_factorization(N);
-		do {
-			if (pfac.rbegin()->first > SFFT_NMAX) {
-				N++;
-				pfac = prime_factorization(N);
-			}
-		} while (pfac.rbegin()->first > SFFT_NMAX);
+		/*do {
+		 if (pfac.rbegin()->first > SFFT_NMAX) {
+		 N++;
+		 pfac = prime_factorization(N);
+		 }
+		 } while (pfac.rbegin()->first > SFFT_NMAX);*/
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
@@ -109,6 +109,7 @@ int main(int argc, char **argv) {
 				auto b = fftw_real(Y, y);
 				timer tm;
 				tm.start();
+				//		fft_scramble_real(x.data(), N);
 				fft_real(x.data(), N);
 				X[0].real() = x[0];
 				X[0].imag() = 0.0;
@@ -130,10 +131,9 @@ int main(int argc, char **argv) {
 					double y = X[n].imag() - Y[n].imag();
 					double err = sqrt(x * x + y * y);
 					avg_err += err;
-			//		printf("%e %e | %e %e | %e %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+					printf("%e %e | %e %e | %e %e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 				}
 			}
-
 		}
 		avg_err /= (20 * N);
 		score *= cnt;
@@ -147,6 +147,7 @@ int main(int argc, char **argv) {
 		printf("%i: %32s ", N, f.c_str());
 		fflush(stdout);
 		printf("| %e %e %e %e %e | %e\n", avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
+		abort();
 	}
 	return 0;
 }

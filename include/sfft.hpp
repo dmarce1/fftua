@@ -3,7 +3,7 @@
 #include "types.hpp"
 #include <cassert>
 
-#define SFFT_NMAX 4
+#define SFFT_NMAX 64
 
 template<class T>
 void fft_complex_2(T* x) {
