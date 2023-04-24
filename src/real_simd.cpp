@@ -27,20 +27,12 @@ void fft2simd_real(int N1, double* X, int N) {
 	const int N1s = N1 - N1v;
 	const int N2p1o2v = round_down((N2p1o2 - 1), SIMD_SIZE) + 1;
 
-	static std::stack<std::vector<fft_simd4>> vstack;
-	static std::stack<std::vector<double>> sstack;
-	std::vector<fft_simd4> Yv;
-	std::vector<double> Ys;
-	if (vstack.size()) {
-		Yv = std::move(vstack.top());
-		vstack.pop();
-	}
-	if (sstack.size()) {
-		Ys = std::move(sstack.top());
-		sstack.pop();
-	}
-	Yv.resize(N2 * N1voS);
-	Ys.resize(N2 * N1s);
+	workspace<fft_simd4> vws;
+	workspace<double> sws;
+	workspace<complex<fft_simd4>> cvws;
+	workspace<complex<double>> csws;
+	auto Yv = vws.create(N2 * N1voS);
+	auto Ys = sws.create(N2 * N1s);
 
 	const auto& Ws = twiddles(N);
 	const auto& Wv = vector_twiddles(N1, N2);
@@ -89,7 +81,7 @@ void fft2simd_real(int N1, double* X, int N) {
 			Ys[ii] = z.imag();
 		}
 	}
-	std::vector<double> q(N1);
+	auto q = sws.create(N1);
 	for (int n1r = 0; n1r < N1voS; n1r++) {
 		for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
 			const int n1 = n1r * SIMD_SIZE + n1c;
@@ -112,7 +104,7 @@ void fft2simd_real(int N1, double* X, int N) {
 	if (N1 % 2 == 0) {
 		X[No2] = q[N1o2];
 	}
-	std::vector<complex<fft_simd4>> p(N1);
+	auto p = cvws.create(N1);
 	for (int k2 = 1; k2 < N2p1o2v; k2 += SIMD_SIZE) {
 		for (int n1r = 0; n1r < N1voS; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
@@ -150,36 +142,40 @@ void fft2simd_real(int N1, double* X, int N) {
 			}
 		}
 	}
-	for (int k2 = N2p1o2v; k2 < N2p1o2; k2++) {
-		std::vector<complex<double>> p(N1);
-		for (int n1r = 0; n1r < N1voS; n1r++) {
-			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
-				const int n1 = n1r * SIMD_SIZE + n1c;
-				p[n1].real() = Yv[n1r * N2 + k2][n1c];
-				p[n1].imag() = Yv[n1r * N2 - k2 + N2][n1c];
+	{
+		auto p = csws.create(N1);
+		for (int k2 = N2p1o2v; k2 < N2p1o2; k2++) {
+			for (int n1r = 0; n1r < N1voS; n1r++) {
+				for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
+					const int n1 = n1r * SIMD_SIZE + n1c;
+					p[n1].real() = Yv[n1r * N2 + k2][n1c];
+					p[n1].imag() = Yv[n1r * N2 - k2 + N2][n1c];
+				}
+			}
+			for (int n1 = N1v; n1 < N1; n1++) {
+				p[n1].real() = Ys[(n1 - N1v) * N2 + k2];
+				p[n1].imag() = Ys[(n1 - N1v) * N2 - k2 + N2];
+			}
+			if (N1 <= SFFT_NMAX) {
+				sfft_complex((double*) p.data(), N1);
+			} else {
+				fft(p.data(), N1);
+			}
+			for (int k1 = 0; k1 < N1p1o2; k1++) {
+				const int k = N2 * k1 + k2;
+				X[k] = p[k1].real();
+				X[N - k] = p[k1].imag();
+			}
+			for (int k1 = N1p1o2; k1 < N1; k1++) {
+				const int k = N2 * k1 + k2;
+				X[N - k] = p[k1].real();
+				X[k] = -p[k1].imag();
 			}
 		}
-		for (int n1 = N1v; n1 < N1; n1++) {
-			p[n1].real() = Ys[(n1 - N1v) * N2 + k2];
-			p[n1].imag() = Ys[(n1 - N1v) * N2 - k2 + N2];
-		}
-		if (N1 <= SFFT_NMAX) {
-			sfft_complex((double*) p.data(), N1);
-		} else {
-			fft(p.data(), N1);
-		}
-		for (int k1 = 0; k1 < N1p1o2; k1++) {
-			const int k = N2 * k1 + k2;
-			X[k] = p[k1].real();
-			X[N - k] = p[k1].imag();
-		}
-		for (int k1 = N1p1o2; k1 < N1; k1++) {
-			const int k = N2 * k1 + k2;
-			X[N - k] = p[k1].real();
-			X[k] = -p[k1].imag();
-		}
+		csws.destroy(std::move(p));
 	}
 	if (N2 % 2 == 0) {
+		auto q = sws.create(N1);
 		for (int n1r = 0; n1r < N1voS; n1r++) {
 			for (int n1c = 0; n1c < SIMD_SIZE; n1c++) {
 				q[n1r * SIMD_SIZE + n1c] = Yv[N2 * n1r + N2o2][n1c];
@@ -201,8 +197,11 @@ void fft2simd_real(int N1, double* X, int N) {
 		if (N1 % 2 == 1) {
 			X[No2] = q[N1o2];
 		}
+		sws.destroy(std::move(q));
 	}
-	vstack.push(std::move(Yv));
-	sstack.push(std::move(Ys));
+	vws.destroy(std::move(Yv));
+	sws.destroy(std::move(Ys));
+	cvws.destroy(std::move(p));
+	sws.destroy(std::move(q));
 }
 

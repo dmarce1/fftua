@@ -18,9 +18,8 @@ void fft_raders_padded_indices(int* I, int N) {
 }
 
 void fft_raders(complex<fft_simd4>* X, int N) {
-	static thread_local std::unordered_map<int, std::vector<complex<fft_simd4>>>cache;
-	std::vector<complex<fft_simd4>>& Y = cache[N];
-	Y.resize(N - 1);
+	workspace<complex<fft_simd4>> ws;
+	auto Y = ws.create(N - 1);
 	const auto& gq = raders_gq(N);
 	const auto& ginvq = raders_ginvq(N);
 	const auto& tw = raders_twiddle(N, N - 1);
@@ -37,13 +36,13 @@ void fft_raders(complex<fft_simd4>* X, int N) {
 	for (int p = 0; p < N - 1; p++) {
 		X[ginvq[p]] = Y[p] + xo;
 	}
+	ws.destroy(std::move(Y));
 }
 
 void fft_raders_padded(complex<fft_simd4>* X, int N) {
-	static thread_local std::unordered_map<int, std::vector<complex<fft_simd4>>>cache;
-	std::vector<complex<fft_simd4>>& Y = cache[N];
 	const int M = compute_padding(N);
-	Y.resize(M);
+	workspace<complex<fft_simd4>> ws;
+	auto Y = ws.create(M);
 	const auto& gq = raders_gq(N);
 	const auto& ginvq = raders_ginvq(N);
 	const auto& tw = raders_twiddle(N, M);
@@ -70,14 +69,14 @@ void fft_raders_padded(complex<fft_simd4>* X, int N) {
 	for (int p = 0; p < N - 1; p++) {
 		X[ginvq[p]] = Y[p];
 	}
+	ws.destroy(std::move(Y));
 }
 
 void fft_raders(complex<double>* X, int N, bool padded) {
-	static thread_local std::unordered_map<int, std::vector<complex<double>>>cache;
-	std::vector<complex<double>>& Y = cache[N];
 	const int M = padded ? compute_padding(N - 1) : N - 1;
 	const int ysize = round_up(M, SIMD_SIZE);
-	Y.resize(ysize);
+	workspace<complex<double>> ws;
+	auto Y = ws.create(ysize);
 	const auto& gq = raders_gq(N);
 	const auto& ginvq = raders_ginvq(N);
 	const auto& tw = raders_twiddle(N, M);
@@ -115,5 +114,6 @@ void fft_raders(complex<double>* X, int N, bool padded) {
 		X[pp].imag() = Y[p].real();
 		X[pp].real() = Y[p].imag();
 	}
+	ws.destroy(std::move(Y));
 }
 

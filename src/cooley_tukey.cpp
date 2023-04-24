@@ -46,8 +46,8 @@ void fft_cooley_tukey_big(int N1, complex<T>* X, int N) {
 	const int N2 = N / N1;
 	//printf( "%i %i\n", N1, N2);
 	const auto& W = twiddles(N);
-	static std::vector<complex<T>> z;
-	z.resize(N1);
+	workspace<complex<T>> ws;
+	auto z = ws.create(N1);
 	for (int n1 = 0; n1 < N1; n1++) {
 		fft(X + N2 * n1, N2);
 	}
@@ -62,6 +62,7 @@ void fft_cooley_tukey_big(int N1, complex<T>* X, int N) {
 			X[N2 * k1 + k2] = z[k1];
 		}
 	}
+	ws.destroy(std::move(z));
 }
 
 template<class T>

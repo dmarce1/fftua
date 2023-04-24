@@ -21,10 +21,9 @@ void fft_raders_indices_real(int* I, int N) {
 }
 
 void fft_raders_dht(fft_simd4* X, int N) {
-	static thread_local std::unordered_map<int, std::vector<fft_simd4>> cache;
-	std::vector<fft_simd4>& Y = cache[N];
 	const int M = N - 1;
-	Y.resize(M);
+	workspace<fft_simd4> ws;
+	auto Y = ws.create(M);
 	const auto& gq = raders_gq(N);
 	const auto& ginvq = raders_ginvq(N);
 	const auto& W = raders_twiddle_real(N, M);
@@ -50,14 +49,14 @@ void fft_raders_dht(fft_simd4* X, int N) {
 	for (int p = 0; p < N - 1; p++) {
 		X[ginvq[p]] = Y[p] + xo;
 	}
+	ws.destroy(std::move(Y));
 }
 
 void fft_raders_dht(double* X, int N, bool padded) {
-	static thread_local std::unordered_map<int, std::vector<double>> cache;
-	std::vector<double>& Y = cache[N];
 	const int M = padded ? compute_padding(N - 1) : N - 1;
 	const int ysize = round_up(M, SIMD_SIZE);
-	Y.resize(ysize);
+	workspace<double> ws;
+	auto Y = ws.create(ysize);
 	const auto& gq = raders_gq(N);
 	const auto& ginvq = raders_ginvq(N);
 	const auto& W = raders_twiddle_real(N, M);
@@ -88,6 +87,7 @@ void fft_raders_dht(double* X, int N, bool padded) {
 	for (int p = 0; p < N - 1; p++) {
 		X[ginvq[p]] = Y[p] + xo;
 	}
+	ws.destroy(std::move(Y));
 }
 
 void fft_raders_real(double* X, int N, bool padded) {

@@ -3,12 +3,12 @@
 
 void fft_twoforone_real(fft_simd4* X, int N) {
 	complex<fft_simd4>* Z = (complex<fft_simd4>*) X;
-	static std::vector<complex<fft_simd4>> Xe, Xo;
 	const int No2 = N / 2;
 	const int No4 = N / 4;
 	const auto& W = twiddles(N);
-	Xe.resize(No4 + 1);
-	Xo.resize(No4 + 1);
+	workspace<complex<fft_simd4>> ws;
+	auto Xe = ws.create(No4 + 1);
+	auto Xo = ws.create(No4 + 1);
 
 	fft_scramble(Z, No2);
 	fft(Z, No2);
@@ -49,15 +49,17 @@ void fft_twoforone_real(fft_simd4* X, int N) {
 		X[N - k] = xk.imag();
 	}
 	X[No2] = Xe[0].real() - Xo[0].real();
+	ws.destroy(std::move(Xo));
+	ws.destroy(std::move(Xe));
 }
 
 void fft_twoforone_real(double* X, int N) {
 	complex<double>* Z = (complex<double>*) X;
-	std::vector<complex<double>> Xe, Xo;
 	const int No2 = N / 2;
 	const auto& W = twiddles(N);
-	Xe.resize(No2 / 2 + SIMD_SIZE);
-	Xo.resize(No2 / 2 + SIMD_SIZE);
+	workspace<complex<double>> ws;
+	auto Xe = ws.create(No2 / 2 + SIMD_SIZE);
+	auto Xo = ws.create(No2 / 2 + SIMD_SIZE);
 
 	fft(Z, No2);
 
@@ -113,4 +115,6 @@ void fft_twoforone_real(double* X, int N) {
 		X[N - k] = xk.imag();
 	}
 	X[N / 2] = Xe[0].real() - Xo[0].real();
+	ws.destroy(std::move(Xo));
+	ws.destroy(std::move(Xe));
 }

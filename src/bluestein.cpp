@@ -4,16 +4,11 @@
 #include <cstring>
 
 void fft_bluestein(complex<double>* X, int N) {
-	static std::stack<std::vector<complex<double>>>astack;
-	std::vector<complex<double>> a;
-	if( astack.size()) {
-		a = std::move(astack.top());
-		astack.pop();
-	}
+	workspace<complex<double>> ws;
 	const int M = compute_padding(N);
 	const auto m = bluestein_multiplier(N);
 	const auto h = bluestein_filter(N, M);
-	a.resize(M);
+	auto a = ws.create(M);
 	const int end = (N % 2 == 1) ? N - 1 : N;
 	for (int n = 0; n < end; n += 2) {
 		a[n] = X[n];
@@ -42,5 +37,5 @@ void fft_bluestein(complex<double>* X, int N) {
 	if (N % 2 == 1) {
 		X[N - 1] = a[N - 1] * m[N - 1];
 	}
-	astack.push(std::move(a));
+	ws.destroy(std::move(a));
 }

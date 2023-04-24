@@ -17,6 +17,7 @@
 #include <complex>
 #include "types.hpp"
 #include <chrono>
+#include <stack>
 
 #define SIMD_SIZE 4
 
@@ -100,5 +101,28 @@ void dht2fft(T* x, int N) {
 		x[N - j] = T(0.5) * (n - p);
 	}
 }
+
+template<class T>
+class workspace {
+	static std::stack<std::vector<T>> stack;
+public:
+	std::vector<T> create(int N) {
+		std::vector<T> x;
+		if( stack.size()) {
+			x = std::move(stack.top());
+			stack.pop();
+		}
+		x.resize(N);
+		return x;
+	}
+	void destroy(std::vector<T>&& v) {
+		stack.push(std::move(v));
+	}
+};
+
+template<class T>
+std::stack<std::vector<T>> workspace<T>::stack;
+
+
 
 #endif

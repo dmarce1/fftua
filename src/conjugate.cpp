@@ -27,40 +27,7 @@ void fft_conjugate_indices(int N1, int* I, int N) {
 	}
 	std::memcpy(I, J.data(), sizeof(int) * N);
 }
-/*
- template<class T, int N1>
- void fft_conjugate(complex<T>* X, int N) {
- const int N2 = N / N1;
- const auto& W = twiddles(N);
- constexpr int N1o2 = (N1 + 1) / 2;
- std::array<complex<T>, N1> z;
- for (int n1 = 0; n1 < N1; n1++) {
- fft(X + N2 * n1, N2);
- }
- for (int k2 = 0; k2 < N2; k2++) {
- for (int n1 = 0; n1 < N1; n1++) {
- z[n1] = X[k2];
- }
- for (int k1 = 0; k1 < N1 - 1; k1++) {
- complex<T> x(0.0);
- for (int n1 = 1; n1 < N1o2; n1++) {
- const auto w = W[mod(n1 * (N2 * k1 + k2), N)];
- const auto t_0 = X[N2 * n1 + k2];
- const auto t_1 = X[N2 * (N1 - n1) + k2];
- x.real() = x.real() + T(w.real()) * (t_0.real() + t_1.real()) + T(w.imag()) * (t_1.imag() - t_0.imag());
- x.imag() = x.imag() + T(w.real()) * (t_0.imag() + t_1.imag()) + T(w.imag()) * (t_0.real() - t_1.real());
- }
- z[k1].real() += x.real();
- z[k1].imag() += x.imag();
- z[N1 - 1].real() -= x.real();
- z[N1 - 1].imag() -= x.imag();
- }
- for (int k1 = 0; k1 < N1; k1++) {
- X[k2 + k1 * N2] = z[k1];
- }
- }
- }
- */
+
 template<class T, int N1>
 void fft_conjugate(complex<T>* X, int N) {
 	const int N2 = N / N1;
@@ -98,8 +65,8 @@ void fft_conjugate_big(int N1, complex<T>* X, int N) {
 	const auto& W = twiddles(N);
 	const int N1o2 = (N1 + 1) / 2;
 	const bool even = N1 % 2 == 0;
-	static std::vector<complex<T>> z;
-	z.resize(N1);
+	workspace<complex<T>> ws;
+	auto z = ws.create(N1);
 	for (int n1 = 0; n1 < N1; n1++) {
 		fft(X + N2 * n1, N2);
 	}
@@ -121,6 +88,7 @@ void fft_conjugate_big(int N1, complex<T>* X, int N) {
 			X[N2 * k1 + k2] = z[k1];
 		}
 	}
+	ws.destroy(std::move(z));
 }
 
 template<class T>

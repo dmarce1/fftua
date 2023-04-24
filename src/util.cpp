@@ -18,6 +18,9 @@ std::map<int, int> prime_factorization(int N);
 
 bool are_coprime(int a, int b);
 
+
+
+
 int mod(int a, int b) {
 	while (a < 0) {
 		a += b;
