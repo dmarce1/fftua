@@ -71,24 +71,52 @@ int main(int argc, char **argv) {
 	//printf( "PRIMITIVE ROOT OF 93871 = %i\n", generator(93871));
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	timer tm3, tm4;
+/*	constexpr int N = 11;
+	auto b = raders_twiddle(N, N - 1);
+	auto gq = raders_gq(N);
+	auto ginvq = raders_ginvq(N);
+	std::vector<complex<double>> x(N - 1);
+	std::vector<complex<double>> y(N - 1);
+	for (int n = 0; n < N - 1; n++) {
+		x[n].real() = 1.0 + n;
+		x[n].imag() = 0.0;
+	}
+	fftw(x);
+	for (int n = 0; n < N - 1; n++) {
+		y[n] = x[n] * b[n];
+	}
+	for (int n = 1; n < N - 1 - n; n++) {
+		std::swap(y[n], y[N - n - 1]);
+	}
+	for (int n = 0; n < N - 1; n++) {
+		printf("%i %e %e\n", n, y[n].real(), y[n].imag());
+	}
+	fftw(y);
+	printf("\n");
+	for (int n = 0; n < N - 1; n++) {
+		printf("%i %e %e\n", n, y[n].real(), y[n].imag());
+	}
+	printf("\n");
+	for (int n = 0; n < N - 1; n++) {
+		x[ginvq[n]-1] = y[n];
+	}
+	for (int n = 0; n < N - 1; n++) {
+		printf("%i %e %e\n", n, x[n].real(), x[n].imag());
+	}
+	return -1;*/
 	double t3 = 0.0;
 	double t4 = 0.0;
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 10; N <= 1024*1024; N = N * 11 / 10) {
+	for (int N = 3 * 5; N <= 67 * 71; N *= 2) {
+		int N1 = 3;
 		auto pfac = prime_factorization(N);
-		std::string f;
-		for (auto i = pfac.begin(); i != pfac.end(); i++) {
-			f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
-		}
-		printf("%i: %32s ", N, f.c_str());
-		fflush(stdout);
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
 
-		for (int i = 0; i < 21; i++) {
+		for (int i = 0; i < 2; i++) {
 			std::vector<double> x(N);
 			std::vector<double> y(N);
 			std::vector<complex<double>> X(N / 2 + 1);
@@ -105,13 +133,13 @@ int main(int argc, char **argv) {
 			}
 			if (i == 0) {
 				fftw_real(Y, y);
-				fft_real(x.data(), N);
+				fft_raders_prime_factor_real(N1, x.data(), N);
 			} else {
 				auto b = fftw_real(Y, y);
 				timer tm;
 				tm.start();
 				//		fft_scramble_real(x.data(), N);
-				fft_real(x.data(), N);
+				fft_raders_prime_factor_real(N1, x.data(), N);
 				X[0].real() = x[0];
 				X[0].imag() = 0.0;
 				for (int n = 1; n < N - n; n++) {
@@ -132,10 +160,16 @@ int main(int argc, char **argv) {
 					double y = X[n].imag() - Y[n].imag();
 					double err = sqrt(x * x + y * y);
 					avg_err += err;
-			//		printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+					printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 				}
 			}
 		}
+		std::string f;
+		for (auto i = pfac.begin(); i != pfac.end(); i++) {
+			f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
+		}
+		printf("%i: %32s ", N, f.c_str());
+		fflush(stdout);
 		avg_err /= (20 * N);
 		score *= cnt;
 		score += t1 / (t2 + 1e-20);

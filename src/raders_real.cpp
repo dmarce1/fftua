@@ -3,11 +3,6 @@
 #include <unordered_map>
 #include <cstring>
 
-template<class T>
-void fht(T* X, int N) {
-	fft_real(X, N);
-	fft2dht(X, N);
-}
 
 void fft_raders_indices_real(int* I, int N) {
 	std::vector<int> J(N);
@@ -92,10 +87,10 @@ void fft_raders_dht(double* X, int N, bool padded) {
 
 void fft_raders_real(double* X, int N, bool padded) {
 	fft_raders_dht(X, N, padded);
-	dht2fft(X, N);
+	fht2fft(X, N);
 }
 
 void fft_raders_real(fft_simd4* X, int N) {
 	fft_raders_dht(X, N);
-	dht2fft(X, N);
+	fht2fft(X, N);
 }

@@ -82,25 +82,7 @@ const std::vector<double>& raders_twiddle_real(int N, int M);
 
 double fftw_real(std::vector<complex<double>>& xout, const std::vector<double>& xin);
 
-template<class T>
-void fft2dht(T* x, int N) {
-	for (int n = 1; n < N - n; n++) {
-		const auto r = x[n];
-		const auto i = x[N - n];
-		x[n] = r - i;
-		x[N - n] = r + i;
-	}
-}
 
-template<class T>
-void dht2fft(T* x, int N) {
-	for (int j = 1; j < N - j; j++) {
-		const auto p = x[j];
-		const auto n = x[N - j];
-		x[j] = T(0.5) * (p + n);
-		x[N - j] = T(0.5) * (n - p);
-	}
-}
 
 template<class T>
 class workspace {

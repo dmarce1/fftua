@@ -19,6 +19,26 @@ std::map<int, int> prime_factorization(int N);
 bool are_coprime(int a, int b);
 
 
+class indexer {
+	std::vector<int> N;
+	std::vector<int> Nprod;
+public:
+	indexer(std::vector<int>&& n) {
+		N = std::move(n);
+		Nprod.resize(N.size());
+		Nprod[0] = 1;
+		for (unsigned n = 0; n < N.size() - 1; n++) {
+			Nprod[n + 1] = Nprod[n] * N[n];
+		}
+	}
+	int index(int index, int dim) const {
+		return (index / Nprod[dim]) % N[dim];
+	}
+	int max() const {
+		return Nprod.back() * N.back();
+	}
+};
+
 
 
 int mod(int a, int b) {
@@ -241,7 +261,7 @@ const std::vector<complex<double>>& raders_twiddle(int N, int M) {
 			}
 		}
 		fftw(b);
-		b.resize(round_up(b.size(), SIMD_SIZE));
+			b.resize(round_up(b.size(), SIMD_SIZE));
 		cache[N][M] = std::make_shared<std::vector<complex<double>>>(std::move(b));
 		return *(cache[N][M]);
 	}
