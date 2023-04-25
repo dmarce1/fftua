@@ -129,7 +129,7 @@ void fft_raders_real(fft_simd4* X, int N);
 void fft_scramble_real(fft_simd4* X, int N);
 void fft_scramble_real(double* X, int N);
 void fft_raders_prime_factor_real(int N1, double* X, int N);
-
+void fft_real_inv(double* x, int N);
 template<class T>
 void fft2fht(T* x, int N) {
 	for (int n = 1; n < N - n; n++) {

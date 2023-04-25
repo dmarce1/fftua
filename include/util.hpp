@@ -79,9 +79,11 @@ void destroy_scratch(std::vector<complex<fft_simd4>>&& space);
 std::vector<complex<fft_simd4>> create_scratch(int N);
 int totient(int N);
 const std::vector<double>& raders_twiddle_real(int N, int M);
-
+double fftw_real_inv(const std::vector<complex<double>>& xin, std::vector<double>& xout);
 double fftw_real(std::vector<complex<double>>& xout, const std::vector<double>& xin);
 
+const std::vector<complex<double>>& raders_sin(int N, int M);
+const std::vector<complex<double>>& raders_cos(int N, int M);
 
 
 template<class T>

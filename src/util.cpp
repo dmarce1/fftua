@@ -18,7 +18,6 @@ std::map<int, int> prime_factorization(int N);
 
 bool are_coprime(int a, int b);
 
-
 class indexer {
 	std::vector<int> N;
 	std::vector<int> Nprod;
@@ -38,8 +37,6 @@ public:
 		return Nprod.back() * N.back();
 	}
 };
-
-
 
 int mod(int a, int b) {
 	while (a < 0) {
@@ -261,14 +258,15 @@ const std::vector<complex<double>>& raders_twiddle(int N, int M) {
 			}
 		}
 		fftw(b);
-			b.resize(round_up(b.size(), SIMD_SIZE));
+		b.resize(round_up(b.size(), SIMD_SIZE));
 		cache[N][M] = std::make_shared<std::vector<complex<double>>>(std::move(b));
 		return *(cache[N][M]);
 	}
 }
 
-void fftw_dht(std::vector<double>& xin);
 
+
+void fftw_dht(std::vector<double>& xin);
 
 const std::vector<double>& raders_twiddle_real(int N, int M) {
 	using entry_type = std::shared_ptr<std::vector<double>>;
@@ -499,6 +497,32 @@ double fftw_real(std::vector<complex<double>>& xout, const std::vector<double>& 
 	for (int n = 0; n < N / 2 + 1; n++) {
 		xout[n].real() = (o[n][0]);
 		xout[n].imag() = (o[n][1]);
+	}
+	return tm.read();
+}
+
+double fftw_real_inv(const std::vector<complex<double>>& xin, std::vector<double>& xout) {
+	const int N = xout.size();
+	static std::unordered_map<int, fftw_plan> plans;
+	static std::unordered_map<int, fftw_complex*> in;
+	static std::unordered_map<int, double*> out;
+	if (plans.find(N) == plans.end()) {
+		in[N] = (fftw_complex*) malloc(sizeof(fftw_complex) * (N / 2 + 1));
+		out[N] = (double*) malloc(sizeof(double) * N);
+		plans[N] = fftw_plan_dft_c2r_1d(N, in[N], out[N], FFTW_MEASURE);
+	}
+	auto* i = in[N];
+	auto* o = out[N];
+	for (int n = 0; n < N / 2 + 1; n++) {
+		i[n][0] = xin[n].real();
+		i[n][1] = xin[n].imag();
+	}
+	timer tm;
+	tm.start();
+	fftw_execute(plans[N]);
+	tm.stop();
+	for (int n = 0; n < N / 2 + 1; n++) {
+		xout[n] = o[n];
 	}
 	return tm.read();
 }

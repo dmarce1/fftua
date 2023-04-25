@@ -71,47 +71,54 @@ int main(int argc, char **argv) {
 	//printf( "PRIMITIVE ROOT OF 93871 = %i\n", generator(93871));
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	timer tm3, tm4;
-/*	constexpr int N = 11;
-	auto b = raders_twiddle(N, N - 1);
-	auto gq = raders_gq(N);
-	auto ginvq = raders_ginvq(N);
-	std::vector<complex<double>> x(N - 1);
-	std::vector<complex<double>> y(N - 1);
-	for (int n = 0; n < N - 1; n++) {
-		x[n].real() = 1.0 + n;
-		x[n].imag() = 0.0;
+	constexpr int N = 16;
+	std::vector<complex<double>> x(N);
+	std::vector<complex<double>> Y(N / 2 + 1);
+	std::vector<double> y(N);
+	for (int n = 0; n < N; n++) {
+		x[n].real() = rand1();
+		x[n].imag() = rand1();
 	}
+	x[0].imag() = x[N / 2].imag() = 0.0;
+	for (int n = 1; n < N - n; n++) {
+		if (n % 2 == 0) {
+			x[N - n] = x[n].conj();
+		} else {
+			x[N - n] = -x[n].conj();
+		}
+	}
+	y[0] = x[0].real();
+	if (N % 2 == 0) {
+		y[N / 2] = x[N / 2].real();
+	}
+	for (int n = 1; n < N / 2; n++) {
+		auto e = y[2 * n];
+		auto o = y[2 * n + 1];
+		y[n] = e;
+		if( n != 0 ) {
+			y[N - n] = e;
+		}
+	}
+	fftw_real(Y, y);
 	fftw(x);
-	for (int n = 0; n < N - 1; n++) {
-		y[n] = x[n] * b[n];
+	auto Z = Y;
+	for (int n = 0; n < N - n; n++) {
+		Y[n].real() = (Z[n].real() + Z[n].imag());
+		Y[n].imag() = (Z[n].real() - Z[n].imag());
 	}
-	for (int n = 1; n < N - 1 - n; n++) {
-		std::swap(y[n], y[N - n - 1]);
+	for (int n = 0; n < N - n; n++) {
+		printf("%i %e %e | %e %e\n", n, Y[n].real(), Y[n].imag(), x[n].real(), x[n].imag());
 	}
-	for (int n = 0; n < N - 1; n++) {
-		printf("%i %e %e\n", n, y[n].real(), y[n].imag());
-	}
-	fftw(y);
-	printf("\n");
-	for (int n = 0; n < N - 1; n++) {
-		printf("%i %e %e\n", n, y[n].real(), y[n].imag());
-	}
-	printf("\n");
-	for (int n = 0; n < N - 1; n++) {
-		x[ginvq[n]-1] = y[n];
-	}
-	for (int n = 0; n < N - 1; n++) {
-		printf("%i %e %e\n", n, x[n].real(), x[n].imag());
-	}
-	return -1;*/
-	double t3 = 0.0;
+		double t3 = 0.0;
 	double t4 = 0.0;
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 3 * 5; N <= 67 * 71; N *= 2) {
-		int N1 = 3;
+	for (int N = 13; N <= 1024 * 1024; N = 11 * N / 10) {
 		auto pfac = prime_factorization(N);
+		if (pfac.size() != 1) {
+			continue;
+		}
 		double avg_err = 0.0;
 		double t1 = 0.0;
 		double t2 = 0.0;
@@ -123,23 +130,18 @@ int main(int argc, char **argv) {
 			std::vector<complex<double>> Y(N / 2 + 1);
 			for (int n = 0; n < N; n++) {
 				x[n] = (y[n] = rand1());
-				/*				if( n % 2 == 0 ) {
-				 x[n] = 0.0;
-				 }
-				 if( n >= N / 2 ) {
-				 x[n] = -x[n - N/2];
-				 }
-				 y[n] = x[n];*/
 			}
+			x[1] = y[1] = 1.0;
+			int N1 = std::pow(pfac.rbegin()->first, pfac.rbegin()->second);
 			if (i == 0) {
 				fftw_real(Y, y);
-				fft_raders_prime_factor_real(N1, x.data(), N);
+				fft_raders_real(x.data(), N, false);
 			} else {
 				auto b = fftw_real(Y, y);
 				timer tm;
 				tm.start();
 				//		fft_scramble_real(x.data(), N);
-				fft_raders_prime_factor_real(N1, x.data(), N);
+				fft_raders_real(x.data(), N, false);
 				X[0].real() = x[0];
 				X[0].imag() = 0.0;
 				for (int n = 1; n < N - n; n++) {
@@ -164,6 +166,7 @@ int main(int argc, char **argv) {
 				}
 			}
 		}
+		abort();
 		std::string f;
 		for (auto i = pfac.begin(); i != pfac.end(); i++) {
 			f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";

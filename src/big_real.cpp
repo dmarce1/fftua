@@ -36,7 +36,6 @@ void fft_raders_prime_factor_real(int N1, double* X, int N) {
 	for (int n1 = 0; n1 < N1; n1++) {
 		fft_real(Y.data() + n1 * N2, N2);
 	}
-
 	for (int n1 = 0; n1 < N1; n1++) {
 		X[n1] = Y[N2 * n1];
 	}
@@ -44,7 +43,6 @@ void fft_raders_prime_factor_real(int N1, double* X, int N) {
 	for (int n1 = 0; n1 < N1; n1++) {
 		Y[N2 * n1] = X[n1];
 	}
-
 	for (int k2 = 1; k2 <= N2 / 2; k2++) {
 		for (int n1 = 0; n1 < N1; n1++) {
 			z[n1].real() = Y[N2 * n1 + k2];
@@ -61,18 +59,15 @@ void fft_raders_prime_factor_real(int N1, double* X, int N) {
 		X[n] = Y[N2 * n1];
 		for (int n2 = 1; n2 <= N2 / 2; n2++) {
 			const int n = (N1 * n2 + N2 * n1) % N;
-			if (n) {
-				if (n < N - n) {
-					X[n] = Y[N2 * n1 + n2];
-					X[N - n] = Y[N2 * n1 - n2 + N2];
-				} else {
-					X[N - n] = Y[N2 * n1 + n2];
-					X[n] = -Y[N2 * n1 - n2 + N2];
-				}
+			if (n < N - n) {
+				X[n] = Y[N2 * n1 + n2];
+				X[N - n] = Y[N2 * n1 - n2 + N2];
+			} else {
+				X[N - n] = Y[N2 * n1 + n2];
+				X[n] = -Y[N2 * n1 - n2 + N2];
 			}
 		}
 	}
-
 	ws.destroy(std::move(Y));
 	cws.destroy(std::move(z));
 }

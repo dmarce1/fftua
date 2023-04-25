@@ -15,6 +15,22 @@
 
 void fft2simd_real(int N1, double* X, int N);
 
+void fft_real_inv(double* x, int N) {
+	for (int n = 1; n < N - n; n++) {
+		const auto a = x[n];
+		const auto b = x[N - n];
+		x[n] = a + b;
+		x[N - n] = a - b;
+	}
+	fft_real(x, N);
+	for (int n = 1; n < N - n; n++) {
+		const auto a = x[n];
+		const auto b = x[N - n];
+		x[n] = a + b;
+		x[N - n] = a - b;
+	}
+}
+
 void fft_real(double* X, int N) {
 	if (N <= SFFT_NMAX) {
 		sfft_real(X, N);
@@ -108,9 +124,9 @@ std::vector<fft_method> possible_ffts_real(int N) {
 		m.type = FFT_RADERS;
 		ffts.push_back(m);
 	}
-	if( ffts.size() == 0 ) {
+	if (ffts.size() == 0) {
 		m.R = SFFT_NMAX + 1;
-		while( N % m.R != 0 ) {
+		while (N % m.R != 0) {
 			m.R++;
 		}
 		m.type = FFT_CT;
