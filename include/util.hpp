@@ -75,6 +75,7 @@ constexpr inline int round_up(int i, int m) {
 const std::vector<complex<double>>& bluestein_multiplier(int N);
 const std::vector<complex<double>>& bluestein_filter(int N, int M);
 const std::vector<std::vector<complex<fft_simd4>>>& vector_twiddles(int N1, int N2);
+const std::vector<std::vector<complex<fft_simd4>>>& shifted_vector_twiddles(int N1, int N2);
 void destroy_scratch(std::vector<complex<fft_simd4>>&& space);
 std::vector<complex<fft_simd4>> create_scratch(int N);
 int totient(int N);

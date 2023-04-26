@@ -36,18 +36,6 @@ void fft_cooley_tukey_real(T* X, int N) {
 		fft_real(&X[n1 * N2], N2);
 	}
 
-	for (int k2 = 1; k2 < N2p1o2; k2++) {
-		for (int n1 = 1; n1 < N1; n1++) {
-			complex<T> z;
-			const int ir = N2 * n1 + k2;
-			const int ii = N2 * n1 - k2 + N2;
-			z.real() = X[ir];
-			z.imag() = X[ii];
-			z *= W[n1 * k2];
-			X[ir] = z.real();
-			X[ii] = z.imag();
-		}
-	}
 
 	std::array<T, N1> q;
 	for (int n1 = 0; n1 < N1; n1++) {
@@ -67,6 +55,7 @@ void fft_cooley_tukey_real(T* X, int N) {
 		for (int n1 = 0; n1 < N1; n1++) {
 			p[n1].real() = X[N2 * n1 + k2];
 			p[n1].imag() = X[N2 * n1 - k2 + N2];
+			p[n1] *= W[n1 * k2];
 		}
 		sfft_complex<N1>((T*) p.data());
 		for (int k1 = 0; k1 < N1p1o2; k1++) {

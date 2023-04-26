@@ -62,6 +62,8 @@ void fft_twoforone_real1(fft_simd4* X, int N);
 #define FFT_RADERS 5
 #define FFT_RADERS_PADDED 6
 #define FFT_241 7
+#define FFT_PFAC 8
+#define FFT_BLUE 9
 
 struct fft_method {
 	int type;
@@ -115,9 +117,13 @@ inline void fft_permute(const std::vector<int>& I, fft_simd4* X) {
 }
 
 
-void fft_cooley_tukey_real(int N1, double* X, int N);
 void fft_cooley_tukey_real(int N1, complex<double>* X, int N);
+void fft_cooley_tukey_real(int N1, double* X, int N);
 void fft_cooley_tukey_indices_real(int N1, int* I, int N);
+void fft_conjugate_real(int N1, fft_simd4* X, int N);
+void fft_split_conjugate_real(int N1, fft_simd4* X, int N);
+void fft_conjugate_indices_real(int N1, int* I, int N);
+void fft_split_conjugate_indices_real(int N1, int* I, int N);
 void fft_cooley_tukey_real(int N1, fft_simd4* X, int N);
 void fft_cooley_tukey_real(int N1, double* X, int N);
 void fft_indices_real(int* I, int N);

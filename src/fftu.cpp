@@ -38,6 +38,10 @@ std::string fft_method_string(const fft_method method) {
 	case FFT_RADERS_PADDED:
 		str = "raders-padded";
 		break;
+	case FFT_PFAC:
+		str = "prime-factor-" + std::to_string(method.R);
+		;
+		break;
 	case FFT_241:
 		str = "twoforone-real";
 		break;
@@ -272,129 +276,42 @@ void fft2simd_raders(int N1, complex<double>* X, int N) {
 	vws.destroy(std::move(zv));
 }
 
-void fft(complex<double>* X, int N) {
-	if (N <= SFFT_NMAX) {
-		sfft_complex((double*) X, N);
-		return;
-	} else {
-#define RNOPAD 0
-#define RPAD 1
-#define BLUE 2
-		const auto prime_fft = [](int type, complex<double>* X, int N) {
-			switch(type) {
-				case RNOPAD:
-				return fft_raders(X, N, false);
-				case RPAD:
-				return fft_raders(X, N, true);
-				case BLUE:
-				return fft_bluestein(X, N);
-			}
-		};
-		if (is_prime(N)) {
-			static std::unordered_map<int, int> cache;
-			auto iter = cache.find(N);
-			if (iter == cache.end()) {
-				int best;
-				double best_time = 1e99;
-				std::vector<complex<double>> X(N);
-				for (int type = 0; type < 3; type++) {
-					for (int n = 0; n < N; n++) {
-						X[n].real() = rand1();
-						X[n].imag() = rand1();
-					}
-					prime_fft(type, X.data(), N);
-				}
-				for (int type = 0; type < 3; type++) {
-					timer tm;
-					for (int trial = 0; trial < NTRIAL; trial++) {
-						for (int n = 0; n < N; n++) {
-							X[n].real() = rand1();
-							X[n].imag() = rand1();
-						}
-						tm.start();
-						prime_fft(type, X.data(), N);
-						tm.stop();
-					}
-					if (tm.read() < best_time) {
-						best_time = tm.read();
-						best = type;
-					}
-				}
-				cache[N] = best;
-				iter = cache.find(N);
-				/*	switch(best) {
-				 case RNOPAD:
-				 printf( "%i raders\n", N);
-				 break;
-				 case RPAD:
-				 printf( "%i raders padded\n", N);
-				 break;
-				 case BLUE:
-				 printf( "%i bluestein\n", N);
-				 break;
-				 }*/
-			}
-			prime_fft(iter->second, X, N);
-		} else {
-			static std::unordered_map<int, int> cache;
-			auto iter = cache.find(N);
-			if (iter == cache.end()) {
-				for (int R = SIMD_SIZE; R <= SFFT_NMAX; R++) {
-					if (N % R == 0) {
-						std::vector<complex<double>> X(N);
-						for (int n = 0; n < N; n++) {
-							X[n].real() = rand1();
-							X[n].imag() = rand1();
-						}
-						fft2simd(R, X.data(), N);
-					}
-				}
-				double best_time = 1e99;
-				int best_R = -1;
-				for (int R = 3; R <= SFFT_NMAX; R++) {
-					if (N % R == 0 || R == 3) {
-						if (R == 3) {
-							if (padded_length(N)) {
-								continue;
-							}
-						}
-						std::vector<double> times;
-						std::vector<complex<double>> X(N);
-						for (int k = 0; k < NTRIAL; k++) {
-							for (int n = 0; n < N; n++) {
-								X[n].real() = rand1();
-								X[n].imag() = rand1();
-							}
-							timer tm;
-							tm.start();
-							R == 3 ? fft_bluestein(X.data(), N) : fft2simd(R, X.data(), N);
-							tm.stop();
-							times.push_back(tm.read());
-						}
-						std::sort(times.begin(), times.end());
-						double tm = times[(times.size() + 1) / 2];
-						if (tm < best_time) {
-							best_time = tm;
-							best_R = R;
-						}
-					}
-				}
-				if (best_R == -1) {
-					best_R = SFFT_NMAX + 1;
-					while (N % best_R != 0) {
-						best_R++;
-					}
-				}
-				cache[N] = best_R;
-				iter = cache.find(N);
-			}
-			iter->second == 3 ? fft_bluestein(X, N) : fft2simd(iter->second, X, N);
+std::vector<fft_method> possible_start_ffts(int N) {
+	std::vector<fft_method> ffts;
+	fft_method m;
+	if (is_prime(N) && N > SFFT_NMAX) {
+		m.type = FFT_RADERS_PADDED;
+		ffts.push_back(m);
+		m.type = FFT_RADERS;
+		ffts.push_back(m);
+	}
+	bool found = false;
+	for (int R = SIMD_SIZE; R <= SFFT_NMAX; R++) {
+		if (N % R == 0) {
+			m.type = FFT_CT;
+			m.R = R;
+			ffts.push_back(m);
+			found = true;
 		}
 	}
+	if (!found) {
+		m.R = SFFT_NMAX + 1;
+		while (N % m.R != 0 && m.R < N) {
+			m.R++;
+		}
+		if (m.R < N) {
+			m.type = FFT_CT;
+			ffts.push_back(m);
+		}
+	}
+	if (!padded_length(N) && (is_prime(N) || (N % 2 == 0 && is_prime(N / 2)) || (N % 3 == 0 && is_prime(N / 3)))) {
+		m.type = FFT_BLUE;
+		ffts.push_back(m);
+	}
+	return ffts;
 }
 
 std::vector<fft_method> possible_ffts(int N) {
-	constexpr int FFT_NMAX = 32;
 	std::vector<fft_method> ffts;
 	fft_method m;
 	if (lround(sqrt(N)) * lround(sqrt(N)) == N) {
@@ -402,20 +319,20 @@ std::vector<fft_method> possible_ffts(int N) {
 		ffts.push_back(m);
 	}
 	if (N % 2 == 0) {
-		for (m.R = 4; m.R <= std::min(N, FFT_NMAX); m.R += 4) {
+		for (m.R = 4; m.R <= std::min(N, SFFT_NMAX); m.R += 4) {
 			if (N % m.R == 0) {
 				m.type = FFT_SPLIT;
 				ffts.push_back(m);
 			}
 		}
-		for (m.R = 4; m.R <= std::min(N, FFT_NMAX); m.R += 4) {
+		for (m.R = 4; m.R <= std::min(N, SFFT_NMAX); m.R += 4) {
 			if (N % m.R == 0) {
 				m.type = FFT_SPLIT_CONJ;
 				ffts.push_back(m);
 			}
 		}
 	}
-	for (m.R = 2; m.R <= std::min(N, FFT_NMAX); m.R++) {
+	for (m.R = 2; m.R <= std::min(N, SFFT_NMAX); m.R++) {
 		if (N % m.R == 0) {
 			m.type = FFT_CT;
 			ffts.push_back(m);
@@ -423,13 +340,6 @@ std::vector<fft_method> possible_ffts(int N) {
 			ffts.push_back(m);
 		}
 	}
-	/*	for (auto i = factors.begin(); i != factors.end(); i++) {
-	 m.R = std::pow(i->first, i->second);
-	 m.type = FFT_PRIME_FACTOR;
-	 if (m.R != N) {
-	 ffts.push_back(m);
-	 }
-	 }*/
 	if (ffts.size() == 0) {
 		auto factors = prime_factorization(N);
 		if (factors.size() == 1) {
@@ -448,15 +358,10 @@ std::vector<fft_method> possible_ffts(int N) {
 			}
 		}
 	}
-//	if (!padded_length(N)) {
-//		m.type = FFT_BLUESTEIN;
-	//	ffts.push_back(m);
-//	}
 	return ffts;
 }
 
-template<class T>
-void fft(const fft_method& method, complex<T>* X, int N) {
+void fft(const fft_method& method, complex<fft_simd4>* X, int N) {
 	switch (method.type) {
 	case FFT_SPLIT:
 		return fft_split(method.R, X, N);
@@ -472,6 +377,19 @@ void fft(const fft_method& method, complex<T>* X, int N) {
 		return fft_raders(X, N);
 	case FFT_RADERS_PADDED:
 		return fft_raders_padded(X, N);
+	}
+}
+
+void fft(const fft_method& method, complex<double>* X, int N) {
+	switch (method.type) {
+	case FFT_CT:
+		return fft2simd(method.R, X, N);
+	case FFT_BLUE:
+		return fft_bluestein(X, N);
+	case FFT_RADERS:
+		return fft_raders(X, N, false);
+	case FFT_RADERS_PADDED:
+		return fft_raders(X, N, true);
 	}
 }
 
@@ -545,6 +463,58 @@ void fft(complex<fft_simd4>* X, int N) {
 		return;
 	}
 	fft(select_fft(N), X, N);
+}
+
+fft_method select_start_fft(int N) {
+	static std::unordered_map<int, fft_method> cache;
+	auto iter = cache.find(N);
+	if (iter == cache.end()) {
+		std::vector<complex<double>> X(N);
+		const auto tests = possible_start_ffts(N);
+		const int M = tests.size();
+		std::vector<double> timers(M);
+		for (int m = 0; m < M; m++) {
+			for (int n = 0; n < N; n++) {
+				X[n].real() = rand1();
+				X[n].imag() = rand1();
+			}
+			fft(tests[m], X.data(), N);
+			std::vector<double> times;
+			for (int n = 0; n < NTRIAL; n++) {
+				timer tm;
+				for (int n = 0; n < N; n++) {
+					X[n].real() = rand1();
+					X[n].imag() = rand1();
+				}
+				tm.start();
+				fft(tests[m], X.data(), N);
+				tm.stop();
+				times.push_back(tm.read());
+			}
+			std::sort(times.begin(), times.end());
+			timers[m] = times[(times.size() + 1) / 2];
+		}
+		fft_method best_method;
+		double best_time = std::numeric_limits<double>::max();
+		for (int m = 0; m < M; m++) {
+			if (timers[m] < best_time) {
+				best_time = timers[m];
+				best_method = tests[m];
+			}
+		}
+		//	printf("%i - %s\n", N, fft_method_string(best_method).c_str());
+		cache[N] = best_method;
+		iter = cache.find(N);
+	}
+	return iter->second;
+}
+
+void fft(complex<double>* X, int N) {
+	if (N <= SFFT_NMAX) {
+		sfft_complex((double*) X, N);
+		return;
+	}
+	fft(select_start_fft(N), X, N);
 }
 
 void fft_indices(int* I, int N) {

@@ -15,78 +15,146 @@
 
 void fft2simd_real(int N1, double* X, int N);
 
+std::vector<fft_method> possible_start_ffts_real(int N) {
+	std::vector<fft_method> ffts;
+	fft_method m;
+	auto fac = prime_factorization(N);
+	bool found_ct = false;
+	for (int R = SIMD_SIZE; R <= SFFT_NMAX; R++) {
+		if (N % R == 0) {
+			int N2 = N / R;
+			if( N2 % 2 == 0 && R > SFFT_NMAX) {
+				continue;
+			}
+			m.type = FFT_CT;
+			m.R = R;
+			ffts.push_back(m);
+			found_ct = true;
+		}
+	}
+	if (!found_ct) {
+		int n = SFFT_NMAX + 1;
+		while (N % n != 0 && n < N) {
+			n++;
+		}
+		if (n < N) {
+			int N2 = N / n;
+			if( !(N2 % 2 == 0 && n > SFFT_NMAX)) {
+				m.type = FFT_CT;
+				m.R = n;
+				ffts.push_back(m);
+			}
+		}
+	}
+	const std::vector<std::pair<int, int>> vfac(fac.begin(), fac.end());
+	if (fac.size() > 2) {
+		for (unsigned l = 1; l < fac.size(); l++) {
+			auto nck = nchoosek(fac.size(), l);
+			for (unsigned p = 0; p < nck.size(); p++) {
+				int N1 = 1;
+				for (unsigned m = 0; m < nck[p].size(); m++) {
+					N1 *= std::pow(vfac[nck[p][m]].first, vfac[nck[p][m]].second);
+				}
+				m.R = N1;
+				m.type = FFT_PFAC;
+				ffts.push_back(m);
+			}
+		}
+	}
+	if (fac.size() == 1 && fac.begin()->first > SFFT_NMAX) {
+		m.type = FFT_RADERS;
+		ffts.push_back(m);
+		m.type = FFT_RADERS_PADDED;
+		ffts.push_back(m);
+	}
+	if (N % 2 == 0) {
+	//	m.type = FFT_241;
+	//	ffts.push_back(m);
+	}
+	return ffts;
+}
+
+void fft_real(const fft_method& m, double* X, int N) {
+	if (N <= SFFT_NMAX) {
+		sfft_real(X, N);
+		return;
+	}
+	switch (m.type) {
+	case FFT_CT:
+		fft2simd_real(m.R, X, N);
+		break;
+	case FFT_RADERS:
+		fft_raders_real(X, N, false);
+		break;
+	case FFT_RADERS_PADDED:
+		fft_raders_real(X, N, true);
+		break;
+	case FFT_241:
+		fft_twoforone_real(X, N);
+		break;
+	case FFT_PFAC:
+		fft_raders_prime_factor_real(m.R, X, N);
+		break;
+	default:
+		assert(false);
+		abort();
+	}
+}
+
+fft_method select_start_fft_real(int N) {
+	static std::unordered_map<int, fft_method> cache;
+	auto iter = cache.find(N);
+	if (iter == cache.end()) {
+		std::vector<double> X(N);
+		const auto tests = possible_start_ffts_real(N);
+		const int M = tests.size();
+		std::vector<double> timers(M);
+		for (int m = 0; m < M; m++) {
+			for (int n = 0; n < N; n++) {
+				X[n] = rand1();
+			}
+			fft_real(tests[m], X.data(), N);
+			std::vector<double> times;
+			for (int n = 0; n < NTRIAL; n++) {
+				timer tm;
+				for (int n = 0; n < N; n++) {
+					X[n] = rand1();
+				}
+				tm.start();
+				fft_real(tests[m], X.data(), N);
+				tm.stop();
+				times.push_back(tm.read());
+			}
+			std::sort(times.begin(), times.end());
+			timers[m] = times[(times.size() + 1) / 2];
+		}
+		fft_method best_method;
+		double best_time = std::numeric_limits<double>::max();
+		for (int m = 0; m < M; m++) {
+			if (timers[m] < best_time) {
+				best_time = timers[m];
+				best_method = tests[m];
+			}
+		}
+		cache[N] = best_method;
+		iter = cache.find(N);
+		//printf("%i %s\n", N, fft_method_string(best_method).c_str());
+	}
+	return iter->second;
+}
+
 void fft_real(double* X, int N) {
 	if (N <= SFFT_NMAX) {
 		sfft_real(X, N);
 		return;
-	} else {
-		if (is_prime(N) && N > SFFT_NMAX) {
-			fft_raders_real(X, N, false);
-		} else {
-			static std::unordered_map<int, int> cache;
-			auto iter = cache.find(N);
-			if (iter == cache.end()) {
-				for (int R = 4; R <= SFFT_NMAX; R++) {
-					if (N % R == 0) {
-						std::vector<double> X(N);
-						for (int n = 0; n < N; n++) {
-							X[n] = rand1();
-						}
-						fft2simd_real(R, X.data(), N);
-					}
-				}
-				double best_time = 1e99;
-				int best_R = -1;
-				for (int R = 4; R <= SFFT_NMAX; R++) {
-					if (N % R == 0) {
-						std::vector<double> times;
-						std::vector<double> X(N);
-						for (int k = 0; k < NTRIAL; k++) {
-							for (int n = 0; n < N; n++) {
-								X[n] = rand1();
-							}
-							timer tm;
-							tm.start();
-							fft2simd_real(R, X.data(), N);
-							tm.stop();
-							times.push_back(tm.read());
-						}
-						std::sort(times.begin(), times.end());
-						double tm = times[(times.size() + 1) / 2];
-						if (tm < best_time) {
-							best_time = tm;
-							best_R = R;
-						}
-					}
-				}
-				if (best_R == -1) {
-					if (N % 2 == 0) {
-						best_R = 2;
-					} else if (N % 3 == 0) {
-						best_R = 3;
-					} else {
-						best_R = SFFT_NMAX + 1;
-						while (N % best_R != 0) {
-							best_R++;
-						}
-					}
-				}
-				cache[N] = best_R;
-				iter = cache.find(N);
-			}
-			assert(iter->second != -1);
-			fft2simd_real(iter->second, X, N);
-		}
 	}
+	const auto meth = select_start_fft_real(N);
+	fft_real(meth, X, N);
 }
 
 std::vector<fft_method> possible_ffts_real(int N) {
 	std::vector<fft_method> ffts;
 	fft_method m;
-	if (N % 2 == 0) {
-		m.type = FFT_241;
-		ffts.push_back(m);
-	}
 	if (N % 4 == 0) {
 		for (m.R = 4; m.R <= std::min(SFFT_NMAX, N); m.R += 4) {
 			if (N % m.R == 0) {
@@ -99,6 +167,8 @@ std::vector<fft_method> possible_ffts_real(int N) {
 	if (pfac.begin()->first <= SFFT_NMAX) {
 		for (m.R = 2; m.R <= std::min(SFFT_NMAX, N); m.R++) {
 			if (N % m.R == 0) {
+			//	m.type = FFT_CONJ;
+			//	ffts.push_back(m);
 				m.type = FFT_CT;
 				ffts.push_back(m);
 			}
@@ -108,9 +178,9 @@ std::vector<fft_method> possible_ffts_real(int N) {
 		m.type = FFT_RADERS;
 		ffts.push_back(m);
 	}
-	if( ffts.size() == 0 ) {
+	if (ffts.size() == 0) {
 		m.R = SFFT_NMAX + 1;
-		while( N % m.R != 0 ) {
+		while (N % m.R != 0) {
 			m.R++;
 		}
 		m.type = FFT_CT;
@@ -120,12 +190,13 @@ std::vector<fft_method> possible_ffts_real(int N) {
 	return ffts;
 }
 
-template<class T>
-void fft_real(const fft_method& method, T* X, int N) {
-
+void fft_real(const fft_method& method, fft_simd4* X, int N) {
 	switch (method.type) {
 	case FFT_CT:
 		fft_cooley_tukey_real(method.R, X, N);
+		break;
+	case FFT_CONJ:
+		fft_conjugate_real(method.R, X, N);
 		break;
 	case FFT_RADERS:
 		fft_raders_real(X, N);
@@ -148,6 +219,8 @@ void fft_indices_real(const fft_method& method, int* I, int N) {
 	switch (method.type) {
 	case FFT_CT:
 		return fft_cooley_tukey_indices_real(method.R, I, N);
+	case FFT_CONJ:
+		return fft_conjugate_indices_real(method.R, I, N);
 	case FFT_RADERS:
 		return fft_raders_indices_real(I, N);
 	case FFT_SPLIT:
@@ -190,6 +263,7 @@ fft_method select_fft_real(int N) {
 				best_method = tests[m];
 			}
 		}
+	//	printf( "%i : %s\n", N, fft_method_string(best_method).c_str());
 		cache[N] = best_method;
 		iter = cache.find(N);
 	}

@@ -206,6 +206,30 @@ const std::vector<std::vector<complex<fft_simd4>>>& vector_twiddles(int N1, int 
 	}
 }
 
+const std::vector<std::vector<complex<fft_simd4>>>& shifted_vector_twiddles(int N1, int N2) {
+	std::swap(N1,N2);
+	using entry_type = std::shared_ptr<std::vector<std::vector<complex<fft_simd4>>>>;
+	static std::unordered_map<int, std::unordered_map<int, entry_type>> cache;
+	auto iter = cache[N1].find(N2);
+	if (iter != cache[N1].end()) {
+		return *(iter->second);
+	} else {
+		const int N = N1 * N2;
+		const int N1v = round_down(N1, SIMD_SIZE);
+		std::vector<std::vector<complex<fft_simd4>>>W(N1v/SIMD_SIZE, std::vector<complex<fft_simd4>>(N2));
+		for (int n = 0; n < N1v; n += SIMD_SIZE) {
+			for (int k = 0; k < N2; k++) {
+				for (int i = 0; i < SIMD_SIZE; i++) {
+					W[n / SIMD_SIZE][k].real()[i] = cos(-2.0 * M_PI * (n+i+1) * k / N);
+					W[n / SIMD_SIZE][k].imag()[i] = sin(-2.0 * M_PI * (n+i+1) * k / N);
+				}
+			}
+		}
+		cache[N1][N2] = std::make_shared<std::vector<std::vector<complex<fft_simd4>>>>(std::move(W));
+		return *(cache[N1][N2]);
+	}
+}
+
 bool padded_length(int M) {
 	auto factors = prime_factorization(M);
 	const int two_pow = factors.begin()->first == 2 ? factors.begin()->second : 0;

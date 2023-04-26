@@ -62,7 +62,7 @@ void fft_split_real(T* X, int N) {
 	}
 	sfft_real_odd<N1>(qo.data());
 	X[0] = qe[0] + qo[0];
-	for (int k1 = 1; k1 < N1o2; k1++) {
+	for (int k1 = 1; k1 < N1o4; k1++) {
 		X[N2 * k1] = qe[k1] + qo[k1];
 		X[N - N2 * k1] = qe[N1o2 - k1] + qo[N1o2 - k1];
 	}
@@ -122,6 +122,7 @@ void fft_split_real(T* X, int N) {
 	}
 }
 
+
 template<class T>
 void fft_split1_real(int N1, T* X, int N) {
 	switch (N1) {
@@ -167,4 +168,3 @@ void fft_split_real(int N1, double* X, int N) {
 void fft_split_real(int N1, fft_simd4* X, int N) {
 	fft_split1_real(N1, X, N);
 }
-
