@@ -81,34 +81,36 @@ void fft_split1(int N1, complex<T>* X, int N) {
 	switch (N1) {
 	case 4:
 		return fft_split<T, 4>(X, N);
-	case 6:
-		return fft_split<T, 6>(X, N);
 	case 8:
 		return fft_split<T, 8>(X, N);
-	case 10:
-		return fft_split<T, 10>(X, N);
 	case 12:
 		return fft_split<T, 12>(X, N);
-	case 14:
-		return fft_split<T, 14>(X, N);
 	case 16:
 		return fft_split<T, 16>(X, N);
-	case 18:
-		return fft_split<T, 18>(X, N);
 	case 20:
 		return fft_split<T, 20>(X, N);
-	case 22:
-		return fft_split<T, 22>(X, N);
 	case 24:
 		return fft_split<T, 24>(X, N);
-	case 26:
-		return fft_split<T, 26>(X, N);
 	case 28:
 		return fft_split<T, 28>(X, N);
-	case 30:
-		return fft_split<T, 30>(X, N);
 	case 32:
 		return fft_split<T, 32>(X, N);
+	case 36:
+		return fft_split<T, 36>(X, N);
+	case 40:
+		return fft_split<T, 40>(X, N);
+	case 44:
+		return fft_split<T, 44>(X, N);
+	case 48:
+		return fft_split<T, 48>(X, N);
+	case 52:
+		return fft_split<T, 52>(X, N);
+	case 56:
+		return fft_split<T, 56>(X, N);
+	case 60:
+		return fft_split<T, 60>(X, N);
+	case 64:
+		return fft_split<T, 64>(X, N);
 	}
 }
 

@@ -72,6 +72,8 @@ constexpr inline int round_down(int i, int m) {
 constexpr inline int round_up(int i, int m) {
 	return m * (((i - 1) / m) + 1);
 }
+const std::vector<double>& cos_twiddles(int N);
+const std::vector<double>& sin_twiddles(int N);
 const std::vector<complex<double>>& bluestein_multiplier(int N);
 const std::vector<complex<double>>& bluestein_filter(int N, int M);
 const std::vector<std::vector<complex<fft_simd4>>>& vector_twiddles(int N1, int N2);

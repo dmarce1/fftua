@@ -53,6 +53,7 @@ void fft_split_real_indices(int R, int* I, int N);
 void fft_split_real(int R, double* X, int N);
 void fft_split_real(int R, fft_simd4* X, int N);
 void fft_twoforone_real1(fft_simd4* X, int N);
+void fft_fourfortwo_real(double* X, int N);
 
 #define FFT_SPLIT 0
 #define FFT_SPLIT_CONJ 4
@@ -64,6 +65,7 @@ void fft_twoforone_real1(fft_simd4* X, int N);
 #define FFT_241 7
 #define FFT_PFAC 8
 #define FFT_BLUE 9
+#define FFT_442 10
 
 struct fft_method {
 	int type;
@@ -76,6 +78,7 @@ inline double rand1() {
 	return (rand() + 0.5) / (RAND_MAX + 1.0);
 }
 
+void fht_radix2(double* x, int N, bool scramble = true);
 
 template<class T>
 void fft_permute1(const std::vector<int>& I, T* X) {

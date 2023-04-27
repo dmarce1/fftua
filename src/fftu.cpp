@@ -317,6 +317,7 @@ std::vector<fft_method> possible_ffts(int N) {
 	if (lround(sqrt(N)) * lround(sqrt(N)) == N) {
 		m.type = FFT_6;
 		ffts.push_back(m);
+		return ffts;
 	}
 	if (N % 2 == 0) {
 		for (m.R = 4; m.R <= std::min(N, SFFT_NMAX); m.R += 4) {

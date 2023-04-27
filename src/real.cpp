@@ -23,9 +23,6 @@ std::vector<fft_method> possible_start_ffts_real(int N) {
 	for (int R = SIMD_SIZE; R <= SFFT_NMAX; R++) {
 		if (N % R == 0) {
 			int N2 = N / R;
-			if( N2 % 2 == 0 && R > SFFT_NMAX) {
-				continue;
-			}
 			m.type = FFT_CT;
 			m.R = R;
 			ffts.push_back(m);
@@ -68,8 +65,8 @@ std::vector<fft_method> possible_start_ffts_real(int N) {
 		ffts.push_back(m);
 	}
 	if (N % 2 == 0) {
-	//	m.type = FFT_241;
-	//	ffts.push_back(m);
+//		m.type = FFT_241;
+//		ffts.push_back(m);
 	}
 	return ffts;
 }
@@ -91,6 +88,9 @@ void fft_real(const fft_method& m, double* X, int N) {
 		break;
 	case FFT_241:
 		fft_twoforone_real(X, N);
+		break;
+	case FFT_442:
+		fft_fourfortwo_real(X, N);
 		break;
 	case FFT_PFAC:
 		fft_raders_prime_factor_real(m.R, X, N);
@@ -167,8 +167,8 @@ std::vector<fft_method> possible_ffts_real(int N) {
 	if (pfac.begin()->first <= SFFT_NMAX) {
 		for (m.R = 2; m.R <= std::min(SFFT_NMAX, N); m.R++) {
 			if (N % m.R == 0) {
-			//	m.type = FFT_CONJ;
-			//	ffts.push_back(m);
+				m.type = FFT_CONJ;
+				ffts.push_back(m);
 				m.type = FFT_CT;
 				ffts.push_back(m);
 			}
