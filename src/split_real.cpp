@@ -12,26 +12,28 @@ void fft_split_real_indices(int R, int* I, int N) {
 	if (N <= SFFT_NMAX) {
 		return;
 	}
-	const int N1 = R;
-	const int N1o2 = N1 / 2;
-	const int N2 = N / N1;
-	const int No2 = N / 2;
-	std::vector<int> J;
-	J.resize(N);
-	for (int n = 0; n < No2; n++) {
-		J[n] = I[2 * n];
-	}
-	for (int n1 = 0; n1 < N1o2; n1++) {
-		for (int n2 = 0; n2 < N2; n2++) {
-			J[No2 + N2 * n1 + n2] = I[N1 * n2 + 2 * n1 + 1];
+	if (!(1 << ilogb(N) == N && R == 4)) {
+		const int N1 = R;
+		const int N1o2 = N1 / 2;
+		const int N2 = N / N1;
+		const int No2 = N / 2;
+		std::vector<int> J;
+		J.resize(N);
+		for (int n = 0; n < No2; n++) {
+			J[n] = I[2 * n];
 		}
+		for (int n1 = 0; n1 < N1o2; n1++) {
+			for (int n2 = 0; n2 < N2; n2++) {
+				J[No2 + N2 * n1 + n2] = I[N1 * n2 + 2 * n1 + 1];
+			}
+		}
+		fft_indices_real(J.data(), No2);
+		for (int n1 = 0; n1 < N1o2; n1++) {
+			const int o = No2 + N2 * n1;
+			fft_indices_real(J.data() + o, N2);
+		}
+		std::memcpy(I, J.data(), sizeof(int) * N);
 	}
-	fft_indices_real(J.data(), No2);
-	for (int n1 = 0; n1 < N1o2; n1++) {
-		const int o = No2 + N2 * n1;
-		fft_indices_real(J.data() + o, N2);
-	}
-	std::memcpy(I, J.data(), sizeof(int) * N);
 }
 
 template<class T, int N1>
@@ -122,12 +124,134 @@ void fft_split_real(T* X, int N) {
 	}
 }
 
+template<class T>
+void fft_split_real_2pow(T* X, int N) {
+
+	if (N == 64) {
+		sfft_real_scrambled_64(X);
+		return;
+	} else if (N == 32) {
+		sfft_real_scrambled_32(X);
+		return;
+	}
+
+	const int No2 = N >> 1;
+	const int No4 = N >> 2;
+	const int No8 = N >> 3;
+	const auto& W = twiddles(N);
+
+	fft_split_real_2pow(X, No2);
+	fft_split_real_2pow(X + No2, No4);
+	fft_split_real_2pow(X + No2 + No4, No4);
+
+	int I0, J0, J1, J2, J3;
+	int I1 = No4;
+	int I2 = I1 + No4;
+	int I3 = I2 + No4;
+	auto qe0 = X[0];
+	auto qe1 = X[I1];
+	auto qo0 = X[I2];
+	auto qo1 = X[I3];
+	auto t0 = qo1 + qo0;
+	auto t1 = qo1 - qo0;
+	X[0] = qe0 + t0;
+	X[I1] = qe1;
+	X[I2] = qe0 - t0;
+	X[I3] = t1;
+	if (No8) {
+		I0 = No8;
+		I1 = I0 + No4;
+		I2 = I1 + No4;
+		I3 = I2 + No4;
+		qe0 = X[I0];
+		qe1 = X[I1];
+		qo0 = X[I2];
+		qo1 = X[I3];
+		t0 = (qo0 - qo1) * (1.0 / M_SQRT2);
+		t1 = (-qo0 - qo1) * (1.0 / M_SQRT2);
+		X[I0] = qe0 + t0;
+		X[I3] = qe1 + t1;
+		X[I1] = qe0 - t0;
+		X[I2] = -qe1 + t1;
+	}
+	for (int k2 = 1; k2 < (No4 + 1) / 2; k2++) {
+		const auto& W1 = W[k2];
+		const auto& W3 = W[3 * k2];
+		const auto& C1 = W1.real();
+		const auto& C3 = W3.real();
+		const auto& S1 = W1.imag();
+		const auto& S3 = W3.imag();
+		I0 = k2;
+		J0 = No4 - k2;
+		I1 = I0 + No4;
+		I2 = I1 + No4;
+		I3 = I2 + No4;
+		J1 = J0 + No4;
+		J2 = J1 + No4;
+		J3 = J2 + No4;
+		auto qe0r = X[I0];
+		auto qe0i = X[J1];
+		auto qe1r = X[J0];
+		auto qe1i = X[I1];
+		auto qo0r = X[I2];
+		auto qo0i = X[J2];
+		auto qo1r = X[I3];
+		auto qo1i = X[J3];
+		t0 = qo0r;
+		t1 = qo1r;
+		qo0r = qo0r * C1 - qo0i * S1;
+		qo1r = qo1r * C3 - qo1i * S3;
+		qo0i = t0 * S1 + qo0i * C1;
+		qo1i = t1 * S3 + qo1i * C3;
+		const auto zsr = qo0r + qo1r;
+		const auto zsi = qo0i + qo1i;
+		const auto zdr = qo1r - qo0r;
+		const auto zdi = qo1i - qo0i;
+		X[I0] = qe0r + zsr;
+		X[J3] = qe0i + zsi;
+		X[I1] = qe1r - zdi;
+		X[J2] = zdr - qe1i;
+		X[J1] = qe0r - zsr;
+		X[I2] = zsi - qe0i;
+		X[J0] = qe1r + zdi;
+		X[I3] = qe1i + zdr;
+	}
+}
+
+void fft_2pow(double* X, int N) {
+	if (N <= 64) {
+		sfft_real(X, N);
+		return;
+	}
+	fft_simd4* Z = (fft_simd4*) X;
+	const int No8 = N / 8;
+	const int No4 = N / 4;
+	const int No2 = N / 2;
+	int j = 0;
+	const int Nm1 = No4 - 1;
+	for (int i = 0; i < Nm1; i++) {
+		if (i < j) {
+			std::swap(Z[i], Z[j]);
+		}
+		int k = No8;
+		while (k <= j) {
+			j -= k;
+			k >>= 1;
+		}
+		j += k;
+	}
+	fft_split_real_2pow(Z, No4);
+}
 
 template<class T>
 void fft_split1_real(int N1, T* X, int N) {
 	switch (N1) {
 	case 4:
-		return fft_split_real<T, 4>(X, N);
+		if (1 << ilogb(N) == N) {
+			return fft_split_real_2pow<T>(X, N);
+		} else {
+			return fft_split_real<T, 4>(X, N);
+		}
 	case 8:
 		return fft_split_real<T, 8>(X, N);
 	case 12:

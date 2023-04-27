@@ -156,12 +156,13 @@ std::vector<fft_method> possible_ffts_real(int N) {
 	std::vector<fft_method> ffts;
 	fft_method m;
 	if (N % 4 == 0) {
-		for (m.R = 4; m.R <= std::min(SFFT_NMAX, N); m.R += 4) {
+		for (m.R = 4; m.R <= 4; m.R += 4) {
 			if (N % m.R == 0) {
 				m.type = FFT_SPLIT;
 				ffts.push_back(m);
 			}
 		}
+		return ffts;
 	}
 	auto pfac = prime_factorization(N);
 	if (pfac.begin()->first <= SFFT_NMAX) {

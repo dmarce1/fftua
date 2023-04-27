@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 4; N <= 1024 * 1024; N *= 4) {
+	for (int N = 8; N <= 1024 * 1024 * 1024; N *= 2) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
@@ -91,13 +91,12 @@ int main(int argc, char **argv) {
 				}
 				if (i == 0) {
 					fftw_real(Y, y);
-					fht_radix2(x.data(), N);
+					fft_2pow(x.data(), N);
 				} else {
 					auto b = fftw_real(Y, y);
 					timer tm;
 					tm.start();
-					fht_radix2(x.data(), N);
-					fht2fft(x.data(), N);
+					fft_2pow(x.data(), N);
 					X[0].real() = x[0];
 					X[0].imag() = 0.0;
 					for (int n = 1; n < N - n; n++) {
@@ -118,7 +117,7 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-					//	printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+						//	printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}

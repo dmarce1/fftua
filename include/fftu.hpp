@@ -78,7 +78,7 @@ inline double rand1() {
 	return (rand() + 0.5) / (RAND_MAX + 1.0);
 }
 
-void fht_radix2(double* x, int N, bool scramble = true);
+void fft_radix2(double* x, int N);
 
 template<class T>
 void fft_permute1(const std::vector<int>& I, T* X) {
@@ -138,6 +138,7 @@ void fft_raders_real(fft_simd4* X, int N);
 void fft_scramble_real(fft_simd4* X, int N);
 void fft_scramble_real(double* X, int N);
 void fft_raders_prime_factor_real(int N1, double* X, int N);
+void fft_2pow(double* X, int N);
 
 template<class T>
 void fft2fht(T* x, int N) {
