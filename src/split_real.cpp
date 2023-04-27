@@ -127,11 +127,8 @@ void fft_split_real(T* X, int N) {
 template<class T>
 void fft_split_real_2pow(T* X, int N) {
 
-	if (N == 64) {
-		sfft_real_scrambled_64(X);
-		return;
-	} else if (N == 32) {
-		sfft_real_scrambled_32(X);
+	if (N <= 256) {
+		sfft_real_scrambled(X, N);
 		return;
 	}
 
@@ -159,6 +156,7 @@ void fft_split_real_2pow(T* X, int N) {
 	X[I2] = qe0 - t0;
 	X[I3] = t1;
 	if (No8) {
+		constexpr auto c0 = (-1.0 / M_SQRT2);
 		I0 = No8;
 		I1 = I0 + No4;
 		I2 = I1 + No4;
@@ -167,14 +165,14 @@ void fft_split_real_2pow(T* X, int N) {
 		qe1 = X[I1];
 		qo0 = X[I2];
 		qo1 = X[I3];
-		t0 = (qo0 - qo1) * (1.0 / M_SQRT2);
-		t1 = (-qo0 - qo1) * (1.0 / M_SQRT2);
+		t0 = (qo1 - qo0) * c0;
+		t1 = (qo0 + qo1) * c0;
 		X[I0] = qe0 + t0;
 		X[I3] = qe1 + t1;
 		X[I1] = qe0 - t0;
-		X[I2] = -qe1 + t1;
+		X[I2] = t1 - qe1;
 	}
-	for (int k2 = 1; k2 < (No4 + 1) / 2; k2++) {
+	for (int k2 = 1; k2 < No8; k2++) {
 		const auto& W1 = W[k2];
 		const auto& W3 = W[3 * k2];
 		const auto& C1 = W1.real();
@@ -223,7 +221,28 @@ void fft_2pow(double* X, int N) {
 		sfft_real(X, N);
 		return;
 	}
+	/*	const int No8 = N / 8;
+	 const int No4 = N / 4;
+	 const int No2 = N / 2;
+	 int j = 0;
+	 const int Nm1 = N - 1;
+	 for (int i = 0; i < Nm1; i++) {
+	 if (i < j) {
+	 std::swap(X[i], X[j]);
+	 }
+	 int k = No2;
+	 while (k <= j) {
+	 j -= k;
+	 k >>= 1;
+	 }
+	 j += k;
+	 }
+	 fft_split_real_2pow(X, N);*/
+	constexpr int R = 4;
+	constexpr int Ro2 = 2;
 	fft_simd4* Z = (fft_simd4*) X;
+	static std::vector<double> Y;
+	Y.resize(N);
 	const int No8 = N / 8;
 	const int No4 = N / 4;
 	const int No2 = N / 2;
@@ -241,6 +260,77 @@ void fft_2pow(double* X, int N) {
 		j += k;
 	}
 	fft_split_real_2pow(Z, No4);
+	for (int k2 = 0; k2 < No4; k2++) {
+		for (int n1 = 0; n1 < R; n1++) {
+			Y[No4 * n1 + k2] = X[R * k2 + n1];
+		}
+	}
+	const auto& W = twiddles(N);
+	const auto& Wv = vector_twiddles(No4, R);
+	std::array<double, R> q;
+	q[0] = Y[0];
+	q[1] = Y[No4];
+	q[2] = Y[No2];
+	q[3] = Y[No2 + No4];
+	sfft_real<R>(q.data());
+	X[0] = q[0];
+	X[No4] = q[1];
+	X[No2] = q[2];
+	X[No2 + No4] = q[3];
+	for (int n1 = 0; n1 < R; n1++) {
+		q[n1] = Y[No4 * n1 + No8];
+	}
+	sfft_skew<R>(q.data());
+	for (int k1 = 0; k1 < Ro2; k1++) {
+		X[0 + (No4 * k1 + No8)] = q[k1];
+		X[N - (No4 * k1 + No8)] = q[R - k1 - 1];
+	}
+	for (int k2 = 1; k2 < std::min(No8, SIMD_SIZE); k2++) {
+		std::array<complex<double>, R> p;
+		for (int n1 = 0; n1 < R; n1++) {
+			p[n1].real() = Y[No4 * n1 + k2];
+			p[n1].imag() = Y[No4 * n1 - k2 + No4];
+			p[n1] *= W[n1 * k2];
+		}
+		sfft_complex<R>((double*) p.data());
+		for (int k1 = 0; k1 < Ro2; k1++) {
+			const int k = No4 * k1 + k2;
+			X[k] = p[k1].real();
+			X[N - k] = p[k1].imag();
+		}
+		for (int k1 = Ro2; k1 < R; k1++) {
+			const int k = No4 * k1 + k2;
+			X[N - k] = p[k1].real();
+			X[k] = -p[k1].imag();
+		}
+	}
+	alignas(32)
+	std::array<complex<fft_simd4>, R> p;
+	for (int k2 = SIMD_SIZE; k2 < No8; k2 += SIMD_SIZE) {
+		for (int n1 = 0; n1 < R; n1++) {
+			p[n1].real() = *((fft_simd4*) (&Y[No4 * n1 + k2]));
+			p[n1].imag().load(&Y[No4 * n1 + No4 - k2 - SIMD_SIZE + 1]);
+			p[n1].imag() = p[n1].imag().reverse();
+		}
+		for (int n1 = 1; n1 < R; n1++) {
+			p[n1] *= Wv[k2 / SIMD_SIZE][n1];
+		}
+		sfft_complex<R>((fft_simd4*) p.data());
+		for (int k1 = 0; k1 < Ro2; k1++) {
+			const int k = No4 * k1 + k2;
+			*((fft_simd4*) &X[k]) = p[k1].real();
+			for (int i = 0; i < SIMD_SIZE; i++) {
+				X[N - k - i] = p[k1].imag()[i];
+			}
+		}
+		for (int k1 = Ro2; k1 < R; k1++) {
+			const int k = No4 * k1 + k2;
+			for (int i = 0; i < SIMD_SIZE; i++) {
+				X[N - k - i] = p[k1].real()[i];
+			}
+			*((fft_simd4*) &X[k]) = -p[k1].imag();
+		}
+	}
 }
 
 template<class T>
