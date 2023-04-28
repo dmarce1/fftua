@@ -127,7 +127,7 @@ void fft_split_real(T* X, int N) {
 template<class T>
 void fft_split_real_2pow(T* X, int N) {
 
-	if (N <= 256) {
+	if (N <= 64) {
 		sfft_real_scrambled(X, N);
 		return;
 	}
