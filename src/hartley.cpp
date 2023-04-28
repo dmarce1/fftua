@@ -207,6 +207,15 @@ void fft_real_odd(double* x, int N) {
 		x[N / 2 - n - 1] = -0.5 * y[n].imag();
 	}
 }
+void fht_odd(double* x, int N) {
+	fft_real_odd(x, N);
+	for (int n = 0; n < N / 2 - n - 1; n++) {
+		const auto r = x[n];
+		const auto i = x[N / 2 - n - 1];
+		x[n] = r - i;
+		x[N / 2 - n - 1] = r + i;
+	}
+}
 
 void fft_radix6step(double* X, int N) {
 	int M = ilogb(N);
@@ -217,85 +226,78 @@ void fft_radix6step(double* X, int N) {
 	const auto& W = twiddles(N);
 	const int L = 1 << (M / 2);
 
-	for (int n = 0; n < L; n++) {
-		for (int m = n + 1; m < L; m++) {
-			std::swap(X[L * n + m], X[L * m + n]);
+	for (int n1 = 0; n1 < L; n1++) {
+		for (int n2 = n1 + 1; n2 < L; n2++) {
+			std::swap(X[L * n1 + n2], X[L * n2 + n1]);
 		}
 	}
-
 	for (int n = 0; n < L; n++) {
-		fft_real(X + L * n, L);
+		fht_radix2<double>(X + L * n, L, true);
 	}
-
-	for (int n = 1; n < L; n++) {
-		for (int m = 1; m < L / 2; m++) {
-			const auto w = W[n * m];
+	for (int n = 0; n < L; n++) {
+		for (int k = 1; k < L - k; k++) {
+			const auto e = X[n * L + k];
+			const auto o = X[n * L + L - k];
+			const auto w = W[n * k];
 			complex<double> z;
-			z.real() = X[L * n + m];
-			z.imag() = X[L * n - m + L];
+			z.real() = 0.5 * (e + o);
+			z.imag() = 0.5 * (o - e);
 			z *= w;
-			X[L * n + m] = z.real();
-			X[L * n - m + L] = z.imag();
+			X[L * n + k] = z.real();
+			X[L * n - k + L] = z.imag();
 		}
 	}
-
 	for (int n = 0; n < L; n++) {
-		for (int m = n + 1; m < L; m++) {
-			std::swap(X[L * n + m], X[L * m + n]);
+		for (int k = k + 1; k < L; k++) {
+			std::swap(X[L * n + k], X[L * k + n]);
 		}
 	}
-
-	fft_real(X, L);
-	fft_real_odd(X + N / 2, 2 * L);
-
-	for (int n = 1; n < L; n++) {
+	for (int n = 0; n < L; n++) {
 		if (n != L / 2) {
 			fht_radix2<double>(X + n * L, L, true);
+		} else {
+			fht_odd(X + N / 2, 2 * L);
+		}
+	}
+	for (int k = 1; k < L - k; k++) {
+		const auto R = 0.5 * (X[k] + X[L - k]);
+		const auto I = -0.5 * (X[k] - X[L - k]);
+		X[k] = R;
+		X[L - k] = I;
+	}
+	for (int k = 0; k < L - k - 1; k++) {
+		const auto e = X[N / 2 + k];
+		const auto o = X[N / 2 + L - k - 1];
+		X[N / 2 + k] = 0.5 * (e + o);
+		X[N / 2 + L - k - 1] = -0.5 * (e - o);
+	}
+	for (int k2 = 1; k2 < L / 2; k2++) {
+		for (int k1 = 1; k1 < L / 2; k1++) {
+			const auto ER = +0.5 * (X[L * k2 + k1] + X[L * k2 + (L - k1) % L]);
+			const auto EI = -0.5 * (X[L * k2 + k1] - X[L * k2 + (L - k1) % L]);
+			const auto OR = -0.5 * (X[L * (L - k2) + k1] - X[L * (L - k2) + (L - k1) % L]);
+			const auto OI = -0.5 * (X[L * (L - k2) + k1] + X[L * (L - k2) + (L - k1) % L]);
+			X[L * k2 + k1] = ER - OR;
+			X[L * (L - k2) + (L - k1) % L] = -EI - OI;
+			X[L * k2 + (L - k1) % L] = ER + OR;
+			X[L * (L - k2) + k1] = EI - OI;
 		}
 	}
 
-	for (int n = 1; n < L / 2; n++) {
-		for (int m = 0; m < L / 2; m++) {
-			const auto ER = +0.5 * (X[L * n + m] + X[L * n + (L - m) % L]);
-			const auto EI = -0.5 * (X[L * n + m] - X[L * n + (L - m) % L]);
-			const auto OR = -0.5 * (X[L * (L - n) + m] - X[L * (L - n) + (L - m) % L]);
-			const auto OI = -0.5 * (X[L * (L - n) + m] + X[L * (L - n) + (L - m) % L]);
-			X[L * n + m] = ER - OR;
-			X[L * (L - n) + m] = EI - OI;
-			if (m) {
-				X[L * n + L - m] = ER + OR;
-				X[L * (L - n) + L - m] = -(EI + OI);
-			}
+	for (int k1 = 0; k1 < L; k1++) {
+		for (int k2 = k1 + 1; k2 < L; k2++) {
+			std::swap(X[L * k1 + k2], X[L * k2 + k1]);
 		}
 	}
-	/*
-
-	 for (int n = 1; n < L / 2; n++) {
-	 std::vector<complex<double>> y(L);
-	 for (int m = 0; m < L; m++) {
-	 y[m].real() = X[L * n + m];
-	 y[m].imag() = X[N - L * n + m];
-	 }
-	 fft(y.data(), L);
-	 for (int m = 0; m < L; m++) {
-	 X[L * n + m] = y[m].real();
-	 X[N - L * n + m] = y[m].imag();
-	 }
-	 }*/
-	for (int n = 0; n < L; n++) {
-		for (int m = n + 1; m < L; m++) {
-			std::swap(X[L * n + m], X[L * m + n]);
+	for (int k1 = 0; k1 < L / 2; k1++) {
+		for (int k2 = L / 2 + 1; k2 < L; k2++) {
+			std::swap(X[L * k1 + k2], X[N - L * k1 - k2]);
 		}
 	}
-	for (int n = 0; n < L / 2; n++) {
-		for (int m = L / 2 + 1; m < L; m++) {
-			std::swap(X[L * n + m], X[N - L * n - m]);
-		}
-	}
-	for (int n = L / 2; n < L; n++) {
-		for (int m = 1; m < L - m - 1; m++) {
-			std::swap(X[L * n + m], X[L * n + L - m]);
-			X[L * n + m] = -X[L * n + m];
+	for (int k1 = L / 2; k1 < L; k1++) {
+		for (int k2 = 1; k2 < L - k2 - 1; k2++) {
+			std::swap(X[L * k1 + k2], X[L * k1 + L - k2]);
+			X[L * k1 + k2] = -X[L * k1 + k2];
 		}
 	}
 }
