@@ -78,7 +78,7 @@ inline double rand1() {
 	return (rand() + 0.5) / (RAND_MAX + 1.0);
 }
 
-void fft_radix2(double* x, int N);
+void fht_radix2(double* x, int N);
 
 template<class T>
 void fft_permute1(const std::vector<int>& I, T* X) {
@@ -114,11 +114,13 @@ inline void fft_permute(const std::vector<int>& I, complex<fft_simd4>* X) {
 inline void fft_permute(const std::vector<int>& I, double* X) {
 	fft_permute1(I, X);
 }
+void fft_radix6step(double* X, int N);
 
 inline void fft_permute(const std::vector<int>& I, fft_simd4* X) {
 	fft_permute1(I, X);
 }
 
+void fft_real_odd(double* x, int N);
 
 void fft_cooley_tukey_real(int N1, complex<double>* X, int N);
 void fft_cooley_tukey_real(int N1, double* X, int N);

@@ -18,7 +18,6 @@ std::map<int, int> prime_factorization(int N);
 
 bool are_coprime(int a, int b);
 
-
 class indexer {
 	std::vector<int> N;
 	std::vector<int> Nprod;
@@ -38,8 +37,6 @@ public:
 		return Nprod.back() * N.back();
 	}
 };
-
-
 
 int mod(int a, int b) {
 	while (a < 0) {
@@ -183,6 +180,42 @@ const std::vector<complex<double>>& twiddles(int N) {
 	}
 }
 
+const std::vector<std::vector<double>>& cos_twiddles_array(int N1, int N2) {
+	using entry_type = std::shared_ptr<std::vector<std::vector<double>>>;
+	static std::unordered_map<int, std::unordered_map<int, entry_type>> cache;
+	auto iter = cache[N1].find(N2);
+	if (iter != cache[N1].end()) {
+		return *(iter->second);
+	} else {
+		std::vector<std::vector<double>> W(N1, std::vector<double>(round_up(N2, SIMD_SIZE)));
+		for (int n1 = 0; n1 < N1; n1++) {
+			for (int k2 = 0; k2 < N2; k2++) {
+				W[n1][k2] = cos(2.0 * M_PI * n1 * k2 / (N1 * N2));
+			}
+		}
+		cache[N1][N2] = std::make_shared<std::vector<std::vector<double>>>(std::move(W));
+		return *(cache[N1][N2]);
+	}
+}
+
+const std::vector<std::vector<double>>& sin_twiddles_array(int N1, int N2) {
+	using entry_type = std::shared_ptr<std::vector<std::vector<double>>>;
+	static std::unordered_map<int, std::unordered_map<int, entry_type>> cache;
+	auto iter = cache[N1].find(N2);
+	if (iter != cache[N1].end()) {
+		return *(iter->second);
+	} else {
+		std::vector<std::vector<double>> W(N1, std::vector<double>(round_up(N2, SIMD_SIZE)));
+		for (int n1 = 0; n1 < N1; n1++) {
+			for (int k2 = 0; k2 < N2; k2++) {
+				W[n1][k2] = sin(2.0 * M_PI * n1 * k2 / (N1 * N2));
+			}
+		}
+		cache[N1][N2] = std::make_shared<std::vector<std::vector<double>>>(std::move(W));
+		return *(cache[N1][N2]);
+	}
+}
+
 const std::vector<double>& cos_twiddles(int N) {
 	using entry_type = std::shared_ptr<std::vector<double>>;
 	static std::unordered_map<int, entry_type> cache;
@@ -317,14 +350,13 @@ const std::vector<complex<double>>& raders_twiddle(int N, int M) {
 			}
 		}
 		fftw(b);
-			b.resize(round_up(b.size(), SIMD_SIZE));
+		b.resize(round_up(b.size(), SIMD_SIZE));
 		cache[N][M] = std::make_shared<std::vector<complex<double>>>(std::move(b));
 		return *(cache[N][M]);
 	}
 }
 
 void fftw_dht(std::vector<double>& xin);
-
 
 const std::vector<double>& raders_twiddle_real(int N, int M) {
 	using entry_type = std::shared_ptr<std::vector<double>>;

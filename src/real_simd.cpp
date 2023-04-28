@@ -14,8 +14,8 @@
 
 void fft2simd_real(int N1, double* X, int N) {
 	if (N <= SFFT_NMAX) {
-		sfft_real(X, N);
-		return;
+//		sfft_real(X, N);
+//		return;
 	}
 	const int N2 = N / N1;
 	const int No2 = N / 2;

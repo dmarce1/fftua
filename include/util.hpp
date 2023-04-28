@@ -108,6 +108,8 @@ public:
 template<class T>
 std::stack<std::vector<T>> workspace<T>::stack;
 
+const std::vector<std::vector<double>>& cos_twiddles_array(int N1, int N2);
+const std::vector<std::vector<double>>& sin_twiddles_array(int N1, int N2);
 
 
 #endif

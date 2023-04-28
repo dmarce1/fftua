@@ -4,124 +4,7 @@
 
 #include <cmath>
 #include <numeric>
-
-void fht_radix2_indices(int* I, int N) {
-	const int No4 = N >> 2;
-	if (N <= SFFT_NMAX) {
-		return;
-	}
-	std::vector<int> J(I, I + N);
-	for (int n = 0; n < N / 4; n++) {
-		I[n + 0 * N / 4] = J[4 * n + 0];
-		I[n + 1 * N / 4] = J[4 * n + 1];
-		I[n + 2 * N / 4] = J[4 * n + 2];
-		I[n + 3 * N / 4] = J[4 * n + 3];
-	}
-	fht_radix2_indices(I, No4);
-	fht_radix2_indices(I + No4, No4);
-	fht_radix2_indices(I + 2 * No4, No4);
-	fht_radix2_indices(I + 3 * No4, No4);
-}
-
-/*template<class T>
- void fht_radix2(T* x, int N, bool scramble = false) {
- const int No2 = N >> 1;
- if (scramble) {
- int j = 0;
- for (int i = 0; i < N - 1; i++) {
- if (i > j) {
- std::swap(x[i], x[j]);
- }
- int k = No2;
- while (k <= j) {
- j -= k;
- k >>= 1;
- }
- j += k;
- }
- }
- if (N == 64) {
- fht_64(x);
- return;
- } else if (N == 32) {
- fht_32(x);
- return;
- } else if (N < 32) {
- sfht(x, N);
- return;
- }
- const int No4 = N >> 2;
- const int No8 = N >> 3;
- fht_radix2<T>(x, No4);
- fht_radix2<T>(x + No4, No4);
- fht_radix2<T>(x + 2 * No4, No4);
- fht_radix2<T>(x + 3 * No4, No4);
- const auto& C = cos_twiddles(N);
- const auto& S = sin_twiddles(N);
- const int L11 = 0;
- const int L12 = L11 + No4;
- const int L13 = L12 + No4;
- const int L14 = L13 + No4;
- const int L21 = No8;
- const int L22 = L21 + No4;
- const int L23 = L22 + No4;
- const int L24 = L23 + No4;
- auto T1 = x[L11] + x[L13];
- auto T2 = x[L11] - x[L13];
- auto T3 = x[L12] + x[L14];
- auto T4 = x[L12] - x[L14];
- x[L11] = T1 + T3;
- x[L12] = T1 - T3;
- x[L13] = T2 + T4;
- x[L14] = T2 - T4;
- T1 = x[L21];
- T2 = x[L23] * sqrt(2.0);
- T3 = x[L22];
- T4 = x[L24] * sqrt(2.0);
- x[L21] = T1 + T2 + T3;
- x[L22] = T1 - T3 + T4;
- x[L23] = T1 - T2 + T3;
- x[L24] = T1 - T3 - T4;
- for (int k = 1; k < No8; k++) {
- const auto C1 = C[k];
- const auto S1 = S[k];
- const auto C2 = C[2 * k];
- const auto S2 = S[2 * k];
- const auto C3 = C[3 * k];
- const auto S3 = S[3 * k];
- const int L11 = k;
- const int L12 = L11 + No4;
- const int L13 = L12 + No4;
- const int L14 = L13 + No4;
- const int L21 = No4 - k;
- const int L22 = L21 + No4;
- const int L23 = L22 + No4;
- const int L24 = L23 + No4;
- const auto T12 = x[L13] * C1 + x[L23] * S1;
- const auto T13 = x[L12] * C2 + x[L22] * S2;
- const auto T14 = x[L14] * C3 + x[L24] * S3;
- const auto T22 = x[L13] * S1 - x[L23] * C1;
- const auto T23 = x[L12] * S2 - x[L22] * C2;
- const auto T24 = x[L14] * S3 - x[L24] * C3;
- auto T1 = x[L21] + T23;
- auto T2 = x[L21] - T23;
- auto T3 = T22 + T24;
- auto T4 = T12 - T14;
- x[L24] = T2 - T3;
- x[L23] = T1 - T4;
- x[L22] = T2 + T3;
- x[L21] = T1 + T4;
- T1 = x[L11] + T13;
- T2 = x[L11] - T13;
- T3 = T24 - T22;
- T4 = T12 + T14;
- x[L14] = T2 - T3;
- x[L13] = T1 - T4;
- x[L12] = T2 + T3;
- x[L11] = T1 + T4;
- }
- }
-
+/*
  template<class T>
  void fht_radix2(T* X, int N) {
  if (N == 2) {
@@ -200,112 +83,340 @@ void fht_radix2_indices(int* I, int N) {
  */
 
 template<class T>
-void fft_radix2(double* X, int N) {
-	if (N == 2) {
-		const auto z0 = X[0];
-		const auto z1 = X[1];
-		X[0] = z0 + z1;
-		X[1] = z0 - z1;
-		return;
-	} else if (N <= 1) {
+void fht_radix2(T* x, int N) {
+	if (N <= 16) {
+		sfht(x, N);
 		return;
 	}
-	constexpr int N1 = 4;
-	const int No2 = N / 2;
-	const int No4 = N / 4;
-	constexpr int N1o2 = N1 / 2;
-	constexpr int N1o4 = N1 / 4;
-	const int N2 = N / N1;
-	const int N2o2 = N2 / 2;
+	const int No4 = N >> 2;
+	const int No8 = N >> 3;
+	fht_radix2<T>(x, No4);
+	fht_radix2<T>(x + No4, No4);
+	fht_radix2<T>(x + 2 * No4, No4);
+	fht_radix2<T>(x + 3 * No4, No4);
+	const auto& C = cos_twiddles(N);
+	const auto& S = sin_twiddles(N);
+	const int L11 = 0;
+	const int L12 = L11 + No4;
+	const int L13 = L12 + No4;
+	const int L14 = L13 + No4;
+	const int L21 = No8;
+	const int L22 = L21 + No4;
+	const int L23 = L22 + No4;
+	const int L24 = L23 + No4;
+	auto T1 = x[L11] + x[L13];
+	auto T2 = x[L11] - x[L13];
+	auto T3 = x[L12] + x[L14];
+	auto T4 = x[L12] - x[L14];
+	x[L11] = T1 + T3;
+	x[L12] = T1 - T3;
+	x[L13] = T2 + T4;
+	x[L14] = T2 - T4;
+	T1 = x[L21];
+	T2 = x[L23] * M_SQRT2;
+	T3 = x[L22];
+	T4 = x[L24] * M_SQRT2;
+	x[L21] = T1 + T2 + T3;
+	x[L22] = T1 - T3 + T4;
+	x[L23] = T1 - T2 + T3;
+	x[L24] = T1 - T3 - T4;
+	for (int k = 1; k < No8; k++) {
+		const auto C1 = C[k];
+		const auto S1 = S[k];
+		const auto C2 = C[2 * k];
+		const auto S2 = S[2 * k];
+		const auto C3 = C[3 * k];
+		const auto S3 = S[3 * k];
+		const int L11 = k;
+		const int L12 = L11 + No4;
+		const int L13 = L12 + No4;
+		const int L14 = L13 + No4;
+		const int L21 = No4 - k;
+		const int L22 = L21 + No4;
+		const int L23 = L22 + No4;
+		const int L24 = L23 + No4;
+		const auto T12 = x[L13] * C1 + x[L23] * S1;
+		const auto T13 = x[L12] * C2 + x[L22] * S2;
+		const auto T14 = x[L14] * C3 + x[L24] * S3;
+		const auto T22 = x[L13] * S1 - x[L23] * C1;
+		const auto T23 = x[L12] * S2 - x[L22] * C2;
+		const auto T24 = x[L14] * S3 - x[L24] * C3;
+		auto T1 = x[L21] + T23;
+		auto T2 = x[L21] - T23;
+		auto T3 = T22 + T24;
+		auto T4 = T12 - T14;
+		x[L24] = T2 - T3;
+		x[L23] = T1 - T4;
+		x[L22] = T2 + T3;
+		x[L21] = T1 + T4;
+		T1 = x[L11] + T13;
+		T2 = x[L11] - T13;
+		T3 = T24 - T22;
+		T4 = T12 + T14;
+		x[L14] = T2 - T3;
+		x[L13] = T1 - T4;
+		x[L12] = T2 + T3;
+		x[L11] = T1 + T4;
+	}
+}
+
+#include <cstring>
+
+void fft_real_odd(double* x, int N) {
+	static std::vector<complex<double>> y;
+	y.resize(N / 4);
+	double t1 = 0.0;
+	double t2 = 0.0;
+	const auto& w = twiddles(N);
+	for (int n = 0; n < N / 2; n += 2) {
+		t1 += x[n] * w[n].real();
+	}
+	for (int n = 1; n < N / 2; n += 2) {
+		t2 += x[n] * w[n].real();
+	}
+	for (int n = 0; n < N / 2; n++) {
+		x[n] *= 4.0 * w[n].imag();
+	}
+	fft_real(x, N / 2);
+	y[0].real() = 2.0 * (t1 + t2);
+	y[0].imag() = -0.5 * x[0];
+	for (int n = 1; n < N / 4 - 1; n++) {
+		y[n].real() = -x[N / 2 - n] + y[n - 1].real();
+		y[n].imag() = -x[n] + y[n - 1].imag();
+	}
+	y[N / 4 - 1].real() = 2.0 * (t1 - t2);
+	y[N / 4 - 1].imag() = 0.5 * x[N / 4];
+	for (int n = 0; n < N / 4; n++) {
+		x[n] = 0.5 * y[n].real();
+		x[N / 2 - n - 1] = -0.5 * y[n].imag();
+	}
+}
+
+void fft_radix6step(double* X, int N) {
+	int M = ilogb(N);
+	if (N != 1 << M || M % 2 == 1) {
+		printf("6 step not eligible\n");
+		abort();
+	}
 	const auto& W = twiddles(N);
-	fft_real(X, No2);
-	for (int n1 = 0; n1 < N1o2; n1++) {
-		int o = No2 + N2 * n1;
-		fft_real(X + o, N2);
-	}
-	std::array<T, N1o2> qo;
-	std::array<T, N1o2> qe;
-	for (int n1 = 0; n1 < N1o2; n1++) {
-		qe[n1] = X[N2 * n1];
-	}
-	for (int n1 = 0; n1 < N1o2; n1++) {
-		qo[n1] = X[No2 + N2 * n1];
-	}
-	sfft_real_odd<N1>(qo.data());
-	X[0] = qe[0] + qo[0];
-	for (int k1 = 1; k1 < N1o4; k1++) {
-		X[N2 * k1] = qe[k1] + qo[k1];
-		X[N - N2 * k1] = qe[N1o2 - k1] + qo[N1o2 - k1];
-	}
-	X[No4] = qe[N1o4];
-	X[N - No4] = qo[N1o4];
-	for (int k1 = N1o4 + 1; k1 < N1o2; k1++) {
-		X[N2 * k1] = qe[N1o2 - k1] - qo[N1o2 - k1];
-		X[N - N2 * k1] = -qe[k1] + qo[k1];
-	}
-	X[No2] = qe[0] - qo[0];
-	std::array<complex<T>, N1o2> po;
-	std::array<complex<T>, N1o2> pe;
-	for (int k2 = 1; k2 < (N2 + 1) / 2; k2++) {
-		for (int n1 = 0; n1 < N1o2; n1++) {
-			pe[n1].real() = X[N2 * n1 + k2];
-			pe[n1].imag() = X[No2 - N2 * n1 - k2];
-		}
-		for (int n1 = 0; n1 < N1o2; n1++) {
-			po[n1].real() = X[No2 + N2 * n1 + k2];
-			po[n1].imag() = X[No2 + N2 * n1 - k2 + N2];
-			po[n1] *= W[(2 * n1 + 1) * k2];
-		}
-		for (int n1 = (N1o2 + 1) / 2; n1 < N1o2; n1++) {
-			std::swap(pe[n1].real(), pe[n1].imag());
-			pe[n1] = pe[n1].conj();
-		}
-		sfft_complex_odd<N1>((T*) po.data());
-		for (int k1 = 0; k1 < N1o2; k1++) {
-			const int k = N2 * k1 + k2;
-			X[k] = pe[k1].real() + po[k1].real();
-			X[N - k] = pe[k1].imag() + po[k1].imag();
-			assert(N - k > k);
-		}
-		for (int k1 = N1o2; k1 < N1; k1++) {
-			const int k = N2 * k1 + k2;
-			X[N - k] = pe[k1 - N1o2].real() - po[k1 - N1o2].real();
-			X[k] = -pe[k1 - N1o2].imag() + po[k1 - N1o2].imag();
-			assert(N - k < k);
+	const int L = 1 << (M / 2);
+
+	for (int n = 0; n < L; n++) {
+		for (int m = 0; m < L; m++) {
+			if (L * n + m < L * m + n) {
+				std::swap(X[L * n + m], X[L * m + n]);
+			}
 		}
 	}
-	if (N2 % 2 == 0) {
-		std::array<T, N1o2> qe;
-		std::array<T, N1o2> qo;
-		for (int n1 = 0; n1 < N1o2; n1++) {
-			qe[n1] = X[N2 * n1 + N2o2];
-			qo[n1] = X[No2 + N2 * n1 + N2o2];
+
+	for (int n = 0; n < L; n++) {
+		fft_real(X + L * n, L);
+	}
+
+	for (int n = 1; n < L; n++) {
+		for (int m = 1; m < L / 2; m++) {
+			const auto w = W[n * m];
+			complex<double> z;
+			z.real() = X[L * n + m];
+			z.imag() = X[L * n - m + L];
+			z *= w;
+			X[L * n + m] = z.real();
+			X[L * n - m + L] = z.imag();
 		}
-		sfft_skew_odd<N1>(qo.data());
-		for (int k1 = 0; k1 < N1o4; k1++) {
-			X[N2 * k1 + N2o2] = qe[k1] + qo[k1];
-			X[N - (N2 * k1 + N2o2)] = qe[N1o2 - k1 - 1] + qo[N1o2 - k1 - 1];
+	}
+
+	for (int n = 0; n < L; n++) {
+		for (int m = 0; m < L; m++) {
+			if (L * n + m < L * m + n) {
+				std::swap(X[L * n + m], X[L * m + n]);
+			}
 		}
-		for (int k1 = N1o4; k1 < N1o2; k1++) {
-			X[N2 * k1 + N2o2] = qe[N1o2 - k1 - 1] - qo[N1o2 - k1 - 1];
-			X[N - (N2 * k1 + N2o2)] = -qe[k1] + qo[k1];
+	}
+	fft_real(X, L);
+	fft_real_odd(X + N / 2, 2 * L);
+	for (int n = 1; n < L / 2; n++) {
+		std::vector<complex<double>> y(L);
+		for (int m = 0; m < L; m++) {
+			y[m].real() = X[L * n + m];
+			y[m].imag() = X[N - L * n + m];
+		}
+		fft(y.data(), L);
+		for (int m = 0; m < L; m++) {
+			X[L * n + m] = y[m].real();
+			X[N - L * n + m] = y[m].imag();
+		}
+	}
+	for (int n = 0; n < L; n++) {
+		for (int m = n + 1; m < L; m++) {
+			std::swap(X[L * n + m], X[L * m + n]);
+		}
+	}
+	for (int n = 0; n < L / 2; n++) {
+		for (int m = L / 2 + 1; m < L; m++) {
+			std::swap(X[L * n + m], X[N - L * n - m]);
+		}
+	}
+	for (int n = L / 2; n < L; n++) {
+		for (int m = 1; m < L - m - 1; m++) {
+			std::swap(X[L * n + m], X[L * n + L - m]);
+			X[L * n + m] = -X[L * n + m];
 		}
 	}
 }
 
-void fft_radix2(double* X, int N) {
+void fht_radix2(double* X, int N) {
+	constexpr int N1 = 4;
+	using simd_t = fft_simd4;
+	const int N2 = N / N1;
 	int j = 0;
-	for (int i = 0; i < N - 1; i++) {
+	simd_t* Z = (simd_t*) X;
+	for (int i = 0; i < N2 - 1; i++) {
 		if (i > j) {
-			std::swap(X[i], X[j]);
+			const auto tmp = Z[i];
+			Z[i] = Z[j];
+			Z[j] = tmp;
 		}
-		int k = N / 2;
+		int k = N2 / 2;
 		while (k <= j) {
 			j -= k;
 			k >>= 1;
 		}
 		j += k;
 	}
-	fft_radix2<double>(X, N);
+	if (N <= 32) {
+		sfht(X, N);
+		return;
+	}
+	fht_radix2<simd_t>(Z, N2);
+	static std::vector<double> Y;
+	Y.resize(N);
+	for (int k2 = 0; k2 < N2; k2++) {
+		for (int n1 = 0; n1 < N1; n1++) {
+			Y[N2 * n1 + k2] = X[N1 * k2 + n1];
+		}
+	}
+	const auto& C = cos_twiddles_array(N1, N2);
+	const auto& S = sin_twiddles_array(N1, N2);
+	const int L11 = 0;
+	const int L12 = L11 + N2;
+	const int L13 = L12 + N2;
+	const int L14 = L13 + N2;
+	const int L21 = N2 / 2;
+	const int L22 = L21 + N2;
+	const int L23 = L22 + N2;
+	const int L24 = L23 + N2;
+	auto T1 = Y[L11] + Y[L12];
+	auto T2 = Y[L11] - Y[L12];
+	auto T3 = Y[L13] + Y[L14];
+	auto T4 = Y[L13] - Y[L14];
+	X[L11] = T1 + T3;
+	X[L12] = T1 - T3;
+	X[L13] = T2 + T4;
+	X[L14] = T2 - T4;
+	T1 = Y[L21];
+	T2 = Y[L22] * M_SQRT2;
+	T3 = Y[L23];
+	T4 = Y[L24] * M_SQRT2;
+	X[L21] = T1 + T2 + T3;
+	X[L22] = T1 - T3 + T4;
+	X[L23] = T1 - T2 + T3;
+	X[L24] = T1 - T3 - T4;
+	for (int k = 1; k < N1; k++) {
+		const auto C1 = C[1][k];
+		const auto S1 = S[1][k];
+		const auto C2 = C[2][k];
+		const auto S2 = S[2][k];
+		const auto C3 = C[3][k];
+		const auto S3 = S[3][k];
+		const int L11 = k;
+		const int L12 = L11 + N2;
+		const int L13 = L12 + N2;
+		const int L14 = L13 + N2;
+		const int L21 = N2 - k;
+		const int L22 = L21 + N2;
+		const int L23 = L22 + N2;
+		const int L24 = L23 + N2;
+		const auto T12 = Y[L12] * C1 + Y[L22] * S1;
+		const auto T13 = Y[L13] * C2 + Y[L23] * S2;
+		const auto T14 = Y[L14] * C3 + Y[L24] * S3;
+		const auto T22 = Y[L12] * S1 - Y[L22] * C1;
+		const auto T23 = Y[L13] * S2 - Y[L23] * C2;
+		const auto T24 = Y[L14] * S3 - Y[L24] * C3;
+		auto T1 = Y[L21] + T23;
+		auto T2 = Y[L21] - T23;
+		auto T3 = T22 + T24;
+		auto T4 = T12 - T14;
+		X[L24] = T2 - T3;
+		X[L23] = T1 - T4;
+		X[L22] = T2 + T3;
+		X[L21] = T1 + T4;
+		T1 = Y[L11] + T13;
+		T2 = Y[L11] - T13;
+		T3 = T24 - T22;
+		T4 = T12 + T14;
+		X[L14] = T2 - T3;
+		X[L13] = T1 - T4;
+		X[L12] = T2 + T3;
+		X[L11] = T1 + T4;
+	}
+	for (int k = N1; k < N2 / 2; k += N1) {
+		const simd_t C1 = *((simd_t*) &C[1][k]);
+		const simd_t S1 = *((simd_t*) &S[1][k]);
+		const simd_t C2 = *((simd_t*) &C[2][k]);
+		const simd_t S2 = *((simd_t*) &S[2][k]);
+		const simd_t C3 = *((simd_t*) &C[3][k]);
+		const simd_t S3 = *((simd_t*) &S[3][k]);
+		const int L11 = k;
+		const int L12 = L11 + N2;
+		const int L13 = L12 + N2;
+		const int L14 = L13 + N2;
+		const int L21 = N2 - k;
+		const int L22 = L21 + N2;
+		const int L23 = L22 + N2;
+		const int L24 = L23 + N2;
+		const simd_t Y11 = *((simd_t*) &Y[L11]);
+		const simd_t Y12 = *((simd_t*) &Y[L12]);
+		const simd_t Y13 = *((simd_t*) &Y[L13]);
+		const simd_t Y14 = *((simd_t*) &Y[L14]);
+		simd_t Y21, Y22, Y23, Y24;
+		for (int i = 0; i < N1; i++) {
+			Y21[i] = Y[L21 - i];
+			Y22[i] = Y[L22 - i];
+			Y23[i] = Y[L23 - i];
+			Y24[i] = Y[L24 - i];
+		}
+		const simd_t T12 = Y12 * C1 + Y22 * S1;
+		const simd_t T13 = Y13 * C2 + Y23 * S2;
+		const simd_t T14 = Y14 * C3 + Y24 * S3;
+		const simd_t T22 = Y12 * S1 - Y22 * C1;
+		const simd_t T23 = Y13 * S2 - Y23 * C2;
+		const simd_t T24 = Y14 * S3 - Y24 * C3;
+		simd_t T1 = Y21 + T23;
+		simd_t T2 = Y21 - T23;
+		simd_t T3 = T22 + T24;
+		simd_t T4 = T12 - T14;
+		const simd_t X24 = T2 - T3;
+		const simd_t X23 = T1 - T4;
+		const simd_t X22 = T2 + T3;
+		const simd_t X21 = T1 + T4;
+		T1 = Y11 + T13;
+		T2 = Y11 - T13;
+		T3 = T24 - T22;
+		T4 = T12 + T14;
+		const simd_t X14 = T2 - T3;
+		const simd_t X13 = T1 - T4;
+		const simd_t X12 = T2 + T3;
+		const simd_t X11 = T1 + T4;
+		for (int i = 0; i < N1; i++) {
+			X[L21 - i] = X21[i];
+			X[L22 - i] = X22[i];
+			X[L23 - i] = X23[i];
+			X[L24 - i] = X24[i];
+		}
+		*((simd_t*) &X[L11]) = X11;
+		*((simd_t*) &X[L12]) = X12;
+		*((simd_t*) &X[L13]) = X13;
+		*((simd_t*) &X[L14]) = X14;
+	}
 }
 
