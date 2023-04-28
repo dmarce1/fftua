@@ -83,7 +83,23 @@
  */
 
 template<class T>
-void fht_radix2(T* x, int N) {
+void fht_radix2(T* x, int N, bool scramble = false) {
+	if (scramble) {
+		int j = 0;
+		for (int i = 0; i < N - 1; i++) {
+			if (i > j) {
+				const auto tmp = x[i];
+				x[i] = x[j];
+				x[j] = tmp;
+			}
+			int k = N / 2;
+			while (k <= j) {
+				j -= k;
+				k >>= 1;
+			}
+			j += k;
+		}
+	}
 	if (N <= 16) {
 		sfht(x, N);
 		return;
@@ -202,10 +218,8 @@ void fft_radix6step(double* X, int N) {
 	const int L = 1 << (M / 2);
 
 	for (int n = 0; n < L; n++) {
-		for (int m = 0; m < L; m++) {
-			if (L * n + m < L * m + n) {
-				std::swap(X[L * n + m], X[L * m + n]);
-			}
+		for (int m = n + 1; m < L; m++) {
+			std::swap(X[L * n + m], X[L * m + n]);
 		}
 	}
 
@@ -226,26 +240,48 @@ void fft_radix6step(double* X, int N) {
 	}
 
 	for (int n = 0; n < L; n++) {
-		for (int m = 0; m < L; m++) {
-			if (L * n + m < L * m + n) {
-				std::swap(X[L * n + m], X[L * m + n]);
+		for (int m = n + 1; m < L; m++) {
+			std::swap(X[L * n + m], X[L * m + n]);
+		}
+	}
+
+	fft_real(X, L);
+	fft_real_odd(X + N / 2, 2 * L);
+
+	for (int n = 1; n < L; n++) {
+		if (n != L / 2) {
+			fht_radix2<double>(X + n * L, L, true);
+		}
+	}
+
+	for (int n = 1; n < L / 2; n++) {
+		for (int m = 0; m < L / 2; m++) {
+			const auto ER = +0.5 * (X[L * n + m] + X[L * n + (L - m) % L]);
+			const auto EI = -0.5 * (X[L * n + m] - X[L * n + (L - m) % L]);
+			const auto OR = -0.5 * (X[L * (L - n) + m] - X[L * (L - n) + (L - m) % L]);
+			const auto OI = -0.5 * (X[L * (L - n) + m] + X[L * (L - n) + (L - m) % L]);
+			X[L * n + m] = ER - OR;
+			X[L * (L - n) + m] = EI - OI;
+			if (m) {
+				X[L * n + L - m] = ER + OR;
+				X[L * (L - n) + L - m] = -(EI + OI);
 			}
 		}
 	}
-	fft_real(X, L);
-	fft_real_odd(X + N / 2, 2 * L);
-	for (int n = 1; n < L / 2; n++) {
-		std::vector<complex<double>> y(L);
-		for (int m = 0; m < L; m++) {
-			y[m].real() = X[L * n + m];
-			y[m].imag() = X[N - L * n + m];
-		}
-		fft(y.data(), L);
-		for (int m = 0; m < L; m++) {
-			X[L * n + m] = y[m].real();
-			X[N - L * n + m] = y[m].imag();
-		}
-	}
+	/*
+
+	 for (int n = 1; n < L / 2; n++) {
+	 std::vector<complex<double>> y(L);
+	 for (int m = 0; m < L; m++) {
+	 y[m].real() = X[L * n + m];
+	 y[m].imag() = X[N - L * n + m];
+	 }
+	 fft(y.data(), L);
+	 for (int m = 0; m < L; m++) {
+	 X[L * n + m] = y[m].real();
+	 X[N - L * n + m] = y[m].imag();
+	 }
+	 }*/
 	for (int n = 0; n < L; n++) {
 		for (int m = n + 1; m < L; m++) {
 			std::swap(X[L * n + m], X[L * m + n]);

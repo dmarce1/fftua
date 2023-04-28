@@ -79,19 +79,24 @@ int main(int argc, char **argv) {
 	}
 	fftw(y);
 	fft_radix6step(x.data(), N);
+	double err = abs(x[0] - y[0].real());
 	printf("%i | %e %e | %e %e\n", 0, x[0], 0.0, y[0].real(), y[0].imag());
 	for (int n = 1; n < N / 2; n++) {
+		err += abs(x[n] - y[n].real());
+		err += abs(x[N - n] - y[n].imag());
 		printf("%i | %e %e | %e %e | %e %e\n", n, x[n], x[N - n], y[n].real(), y[n].imag(), x[n] - y[n].real(), x[N - n] - y[n].imag());
 	}
 	printf("%i | %e %e | %e %e\n", N / 2, x[N / 2], 0.0, y[N / 2].real(), y[N / 2].imag());
-	abort();
+	err += abs(x[N / 2] - y[N / 2].real());
+	printf("%e\n", err / N);
+	//abort();
 	timer tm3, tm4;
 	double t3 = 0.0;
 	double t4 = 0.0;
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 256; N <= 1024 * 1024 * 1024; N *= 2) {
+	for (int N = 16; N <= 1024 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
@@ -107,14 +112,14 @@ int main(int argc, char **argv) {
 				}
 				if (i == 0) {
 					fftw_real(Y, y);
-					fht_radix2(x.data(), N);
-					fht2fft(x.data(), N);
+					fft_radix6step(x.data(), N);
+					//fht2fft(x.data(), N);
 				} else {
 					auto b = fftw_real(Y, y);
 					timer tm;
 					tm.start();
-					fht_radix2(x.data(), N);
-					fht2fft(x.data(), N);
+					fft_radix6step(x.data(), N);
+				//	fht2fft(x.data(), N);
 					X[0].real() = x[0];
 					X[0].imag() = 0.0;
 					for (int n = 1; n < N - n; n++) {
@@ -151,7 +156,7 @@ int main(int argc, char **argv) {
 			cnt++;
 			score /= cnt;
 			printf("R %c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
-			//		abort();
+//				abort();
 		}
 		{
 			double avg_err = 0.0;
