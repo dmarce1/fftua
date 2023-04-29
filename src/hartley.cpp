@@ -257,14 +257,6 @@ void fft_radix6step(double* X, int N) {
 			fht_odd(X + N / 2, 2 * L);
 		}
 	}
-	for (int n = 0; n < L; n++) {
-		for (int k = 1; k < L - k; k++) {
-			const auto e = X[n + k * L];
-			const auto o = X[n + (L - k) * L];
-			X[n + k * L] = 0.5 * (e + o);
-			X[n + (L - k) * L] = 0.5 * (o - e);
-		}
-	}
 	for (int k = 1; k < L - k; k++) {
 		const auto R = 0.5 * (X[k] + X[L - k]);
 		const auto I = -0.5 * (X[k] - X[L - k]);
@@ -277,16 +269,33 @@ void fft_radix6step(double* X, int N) {
 		X[N / 2 + k] = 0.5 * (e + o);
 		X[N / 2 + L - k - 1] = -0.5 * (e - o);
 	}
+	for (int k1 = 1; k1 < L - k1; k1++) {
+		const auto e = X[k1 * L];
+		const auto o = X[(L - k1) * L];
+		X[k1 * L] = 0.5 * (e + o);
+		X[(L - k1) * L] = 0.5 * (o - e);
+	}
+	{
+		int k2 = L / 2;
+		for (int k1 = 1; k1 < L - k1; k1++) {
+			const auto e = X[k2 + k1 * L];
+			const auto o = X[k2 + (L - k1) * L];
+			X[k2 + k1 * L] = 0.5 * (e + o);
+			X[k2 + (L - k1) * L] = 0.5 * (o - e);
+		}
+	}
 	for (int k2 = 1; k2 < L / 2; k2++) {
 		for (int k1 = 1; k1 < L / 2; k1++) {
-			const auto ER = +0.5 * (X[L * k2 + k1] + X[L * k2 + (L - k1) % L]);
-			const auto EI = -0.5 * (X[L * k2 + k1] - X[L * k2 + (L - k1) % L]);
-			const auto OR = 0.5 * (X[L * (L - k2) + k1] - X[L * (L - k2) + (L - k1) % L]);
-			const auto OI = 0.5 * (X[L * (L - k2) + k1] + X[L * (L - k2) + (L - k1) % L]);
-			X[L * k2 + k1] = ER + OR;
+			const auto ER = 0.5 * X[L * k2 + k1];
+			const auto EI = 0.5 * X[L * k2 + (L - k1) % L];
+			const auto OR = -0.5 * X[L * (L - k2) + (L - k1) % L];
+			const auto OI = 0.5 * X[L * (L - k2) + k1];
+			X[L * k2 + k1] = EI + OI;
+			X[N - L * k2 + k1] = -ER - OR;
+
 			X[L * k2 + L - k1] = ER - OR;
+
 			X[N - L * k2 + L - k1] = -EI + OI;
-			X[N - L * k2 + k1] = EI + OI;
 		}
 	}
 
