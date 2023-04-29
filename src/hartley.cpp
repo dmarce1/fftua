@@ -242,12 +242,12 @@ void fft_radix6step(double* X, int N) {
 	for (int n = 0; n < L; n++) {
 		for (int k = 1; k < L - k; k++) {
 			const auto w = W[n * k];
-			complex<double> z;
-			z.real() = X[n + k * L];
-			z.imag() = X[n + (L - k) * L];
-			z *= w;
-			X[n + k * L] = z.real();
-			X[n + (L - k) * L] = z.imag();
+			const auto r = X[n + k * L];
+			const auto i = X[n + (L - k) * L];
+			const auto c = w.real();
+			const auto s = w.imag();
+			X[n + k * L] = r * c - i * s;
+			X[n + (L - k) * L] = i * c + r * s;
 		}
 	}
 	for (int n = 0; n < L; n++) {
@@ -280,25 +280,27 @@ void fft_radix6step(double* X, int N) {
 		for (int k1 = 1; k1 < L - k1; k1++) {
 			const auto e = X[k2 + k1 * L];
 			const auto o = X[k2 + (L - k1) * L];
-			X[k2 + k1 * L] = 0.5 * (e + o);
-			X[k2 + (L - k1) * L] = 0.5 * (o - e);
+			X[k2 + k1 * L] = -0.5 * (o - e);
+			X[k2 + (L - k1) * L] = 0.5 * (e + o);
 		}
 	}
 	for (int k2 = 1; k2 < L / 2; k2++) {
 		for (int k1 = 1; k1 < L / 2; k1++) {
 			const auto ER = 0.5 * X[L * k2 + k1];
 			const auto EI = 0.5 * X[L * k2 + (L - k1) % L];
-			const auto OR = -0.5 * X[L * (L - k2) + (L - k1) % L];
+			const auto OR = 0.5 * X[L * (L - k2) + (L - k1) % L];
 			const auto OI = 0.5 * X[L * (L - k2) + k1];
 			X[L * k2 + k1] = EI + OI;
-			X[N - L * k2 + k1] = -ER - OR;
-
-			X[L * k2 + L - k1] = ER - OR;
-
-			X[N - L * k2 + L - k1] = -EI + OI;
+			X[N - L * k2 + k1] = OR - ER;
+			X[L * k2 + L - k1] = EI - OI;
+			X[N - L * k2 + L - k1] = OR + ER;
 		}
 	}
-
+	for (int k1 = L / 2; k1 < L; k1++) {
+		for (int k2 = 1; k2 < L - k2; k2++) {
+//			std::swap(X[L * k2 + k1], X[N - L * k2 + k1]);
+		}
+	}
 	for (int k1 = 0; k1 < L; k1++) {
 		for (int k2 = k1 + 1; k2 < L; k2++) {
 			std::swap(X[L * k1 + k2], X[L * k2 + k1]);
@@ -306,13 +308,7 @@ void fft_radix6step(double* X, int N) {
 	}
 	for (int k1 = 0; k1 < L / 2; k1++) {
 		for (int k2 = L / 2 + 1; k2 < L; k2++) {
-			std::swap(X[L * k1 + k2], X[N - L * k1 - k2]);
-		}
-	}
-	for (int k1 = L / 2; k1 < L; k1++) {
-		for (int k2 = 1; k2 < L - k2 - 1; k2++) {
-			X[L * k1 + L - k2] = -X[L * k1 + L - k2];
-			std::swap(X[L * k1 + k2], X[L * k1 + L - k2]);
+			std::swap(X[L * k1 + k2], X[N - L * k1 + k2 - L]);
 		}
 	}
 	for (int k = 1; k < N - k; k++) {
