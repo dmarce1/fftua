@@ -284,31 +284,33 @@ void fft_radix6step(double* X, int N) {
 			X[k2 + (L - k1) * L] = 0.5 * (e + o);
 		}
 	}
-	for (int k2 = 1; k2 < L / 2; k2++) {
-		for (int k1 = 1; k1 < L / 2; k1++) {
-			const auto ER = 0.5 * X[L * k2 + k1];
-			const auto EI = 0.5 * X[L * k2 + (L - k1) % L];
-			const auto OR = 0.5 * X[L * (L - k2) + (L - k1) % L];
-			const auto OI = 0.5 * X[L * (L - k2) + k1];
-			X[L * k2 + k1] = EI + OI;
-			X[N - L * k2 + k1] = OR - ER;
-			X[L * k2 + L - k1] = EI - OI;
-			X[N - L * k2 + L - k1] = OR + ER;
-		}
-	}
-	for (int k1 = L / 2; k1 < L; k1++) {
-		for (int k2 = 1; k2 < L - k2; k2++) {
-//			std::swap(X[L * k2 + k1], X[N - L * k2 + k1]);
-		}
-	}
 	for (int k1 = 0; k1 < L; k1++) {
 		for (int k2 = k1 + 1; k2 < L; k2++) {
 			std::swap(X[L * k1 + k2], X[L * k2 + k1]);
 		}
 	}
-	for (int k1 = 0; k1 < L / 2; k1++) {
-		for (int k2 = L / 2 + 1; k2 < L; k2++) {
-			std::swap(X[L * k1 + k2], X[N - L * k1 + k2 - L]);
+	for (int k2 = 1; k2 < L / 2; k2++) {
+		for (int k1 = 1; k1 < L / 2; k1++) {
+			const auto aa = L * k1 + k2;
+			const auto ab = L * k1 + L - k2;
+			const auto ba = L * (L - k1) + k2;
+			const auto bb = L * (L - k1) + L - k2;
+			const auto Xaa = X[aa];
+			const auto Xba = X[ba];
+			const auto Xab = X[ab];
+			const auto Xbb = X[bb];
+			X[aa] = 0.5 * (Xba + Xab);
+			X[ab] = 0.5 * (Xbb - Xaa);
+			X[ba] = 0.5 * (Xba - Xab);
+			X[bb] = 0.5 * (Xbb + Xaa);
+		}
+	}
+	for (int k2 = 1; k2 < L / 2; k2++) {
+		std::swap(X[k2 + L / 2], X[N - L / 2 + k2]);
+	}
+	for (int k1 = 1; k1 < L / 2; k1++) {
+		for (int k2 = 1 + L / 2; k2 < L; k2++) {
+			std::swap(X[L * k1 + k2], X[N - L * k1 - (L - k2)]);
 		}
 	}
 	for (int k = 1; k < N - k; k++) {
