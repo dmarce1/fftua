@@ -235,21 +235,19 @@ void fft_radix6step(double* X, int N) {
 		fht_radix2<double>(X + L * n, L, true);
 	}
 	for (int n = 0; n < L; n++) {
-		for (int k = 1; k < L - k; k++) {
-			const auto e = X[n * L + k];
-			const auto o = X[n * L + L - k];
-			const auto w = W[n * k];
-			complex<double> z;
-			z.real() = 0.5 * (e + o);
-			z.imag() = 0.5 * (o - e);
-			z *= w;
-			X[L * n + k] = z.real();
-			X[L * n - k + L] = z.imag();
+		for (int k = n + 1; k < L; k++) {
+			std::swap(X[L * n + k], X[L * k + n]);
 		}
 	}
 	for (int n = 0; n < L; n++) {
-		for (int k = k + 1; k < L; k++) {
-			std::swap(X[L * n + k], X[L * k + n]);
+		for (int k = 1; k < L - k; k++) {
+			const auto w = W[n * k];
+			complex<double> z;
+			z.real() = X[n + k * L];
+			z.imag() = X[n + (L - k) * L];
+			z *= w;
+			X[n + k * L] = z.real();
+			X[n + (L - k) * L] = z.imag();
 		}
 	}
 	for (int n = 0; n < L; n++) {
@@ -257,6 +255,14 @@ void fft_radix6step(double* X, int N) {
 			fht_radix2<double>(X + n * L, L, true);
 		} else {
 			fht_odd(X + N / 2, 2 * L);
+		}
+	}
+	for (int n = 0; n < L; n++) {
+		for (int k = 1; k < L - k; k++) {
+			const auto e = X[n + k * L];
+			const auto o = X[n + (L - k) * L];
+			X[n + k * L] = 0.5 * (e + o);
+			X[n + (L - k) * L] = 0.5 * (o - e);
 		}
 	}
 	for (int k = 1; k < L - k; k++) {
@@ -275,12 +281,12 @@ void fft_radix6step(double* X, int N) {
 		for (int k1 = 1; k1 < L / 2; k1++) {
 			const auto ER = +0.5 * (X[L * k2 + k1] + X[L * k2 + (L - k1) % L]);
 			const auto EI = -0.5 * (X[L * k2 + k1] - X[L * k2 + (L - k1) % L]);
-			const auto OR = -0.5 * (X[L * (L - k2) + k1] - X[L * (L - k2) + (L - k1) % L]);
-			const auto OI = -0.5 * (X[L * (L - k2) + k1] + X[L * (L - k2) + (L - k1) % L]);
-			X[L * k2 + k1] = ER - OR;
-			X[L * (L - k2) + (L - k1) % L] = -EI - OI;
-			X[L * k2 + (L - k1) % L] = ER + OR;
-			X[L * (L - k2) + k1] = EI - OI;
+			const auto OR = 0.5 * (X[L * (L - k2) + k1] - X[L * (L - k2) + (L - k1) % L]);
+			const auto OI = 0.5 * (X[L * (L - k2) + k1] + X[L * (L - k2) + (L - k1) % L]);
+			X[L * k2 + k1] = ER + OR;
+			X[L * k2 + L - k1] = ER - OR;
+			X[N - L * k2 + L - k1] = -EI + OI;
+			X[N - L * k2 + k1] = EI + OI;
 		}
 	}
 
@@ -296,10 +302,17 @@ void fft_radix6step(double* X, int N) {
 	}
 	for (int k1 = L / 2; k1 < L; k1++) {
 		for (int k2 = 1; k2 < L - k2 - 1; k2++) {
+			X[L * k1 + L - k2] = -X[L * k1 + L - k2];
 			std::swap(X[L * k1 + k2], X[L * k1 + L - k2]);
-			X[L * k1 + k2] = -X[L * k1 + k2];
 		}
 	}
+	for (int k = 1; k < N - k; k++) {
+		const auto r = X[k];
+		const auto i = X[N - k];
+		X[k] = r - i;
+		X[N - k] = r + i;
+	}
+	fht2fft(X, N);
 }
 
 void fht_radix2(double* X, int N) {
