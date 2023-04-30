@@ -70,7 +70,7 @@ void fft_scramble_real(double* X, int N);
 int main(int argc, char **argv) {
 	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
-	constexpr int N = 16;
+	constexpr int N = 64;
 	std::vector<double> x(N);
 	std::vector<complex<double>> y(N);
 	for (int n = 0; n < N; n++) {
@@ -80,11 +80,31 @@ int main(int argc, char **argv) {
 	fftw(y);
 	fft_radix6step(x.data(), N);
 	double err = abs(x[0] - y[0].real());
-	printf("%i | %e %e | %e %e\n", 0, x[0], 0.0, y[0].real(), y[0].imag());
-	for (int n = 1; n < N / 2; n++) {
-		err += abs(x[n] - y[n].real());
-		err += abs(x[N - n] - y[n].imag());
-		printf("%i | %e %e | %e %e | %e %e\n", n, x[n], x[N - n], y[n].real(), y[n].imag(), x[n] - y[n].real(), x[N - n] - y[n].imag());
+	std::vector<double> z(N);
+	for (int n = 1; n < N - n; n++) {
+		z[n] = y[n].real();
+		z[N - n] = y[n].imag();
+	}
+	z[0] = y[0].real();
+	z[N / 2] = y[N / 2].real();
+	const int M = lround(sqrt(N));
+	printf( "\n");
+	for (int n = 0; n < M; n++) {
+		printf("%4i | ", n);
+		for (int m = 0; m < M; m++) {
+			printf("%13.3e ", x[M * n + m]);
+		}
+		printf(" | ");
+		for (int m = 0; m < M; m++) {
+			printf("%13.3e ", z[M * n + m]);
+		}
+		printf(" | ");
+		for (int m = 0; m < M; m++) {
+			printf("%13.3e ", x[M * n + m] - z[M * n + m]);
+		}
+		printf(" \n");
+		err += abs(x[n] - z[n]);
+
 	}
 	printf("%i | %e %e | %e %e\n", N / 2, x[N / 2], 0.0, y[N / 2].real(), y[N / 2].imag());
 	err += abs(x[N / 2] - y[N / 2].real());
@@ -119,7 +139,7 @@ int main(int argc, char **argv) {
 					timer tm;
 					tm.start();
 					fft_radix6step(x.data(), N);
-				//	fht2fft(x.data(), N);
+					//	fht2fft(x.data(), N);
 					X[0].real() = x[0];
 					X[0].imag() = 0.0;
 					for (int n = 1; n < N - n; n++) {

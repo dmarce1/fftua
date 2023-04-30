@@ -180,31 +180,31 @@ void fht_radix2(T* x, int N, bool scramble = false) {
 
 void fft_real_odd(double* x, int N) {
 	static std::vector<complex<double>> y;
-	y.resize(N / 4);
+	y.resize(N / 2);
 	double t1 = 0.0;
 	double t2 = 0.0;
-	const auto& w = twiddles(N);
-	for (int n = 0; n < N / 2; n += 2) {
+	const auto& w = twiddles(2 * N);
+	for (int n = 0; n < N; n += 2) {
 		t1 += x[n] * w[n].real();
 	}
-	for (int n = 1; n < N / 2; n += 2) {
+	for (int n = 1; n < N; n += 2) {
 		t2 += x[n] * w[n].real();
 	}
-	for (int n = 0; n < N / 2; n++) {
+	for (int n = 0; n < N; n++) {
 		x[n] *= 4.0 * w[n].imag();
 	}
-	fft_real(x, N / 2);
+	fft_real(x, N);
 	y[0].real() = 2.0 * (t1 + t2);
 	y[0].imag() = -0.5 * x[0];
-	for (int n = 1; n < N / 4 - 1; n++) {
-		y[n].real() = -x[N / 2 - n] + y[n - 1].real();
+	for (int n = 1; n < N / 2 - 1; n++) {
+		y[n].real() = -x[N - n] + y[n - 1].real();
 		y[n].imag() = -x[n] + y[n - 1].imag();
 	}
-	y[N / 4 - 1].real() = 2.0 * (t1 - t2);
-	y[N / 4 - 1].imag() = 0.5 * x[N / 4];
-	for (int n = 0; n < N / 4; n++) {
+	y[N / 2 - 1].real() = 2.0 * (t1 - t2);
+	y[N / 2 - 1].imag() = 0.5 * x[N / 2];
+	for (int n = 0; n < N / 2; n++) {
 		x[n] = 0.5 * y[n].real();
-		x[N / 2 - n - 1] = -0.5 * y[n].imag();
+		x[N - n - 1] = -0.5 * y[n].imag();
 	}
 }
 void fht_odd(double* x, int N) {
@@ -218,108 +218,84 @@ void fht_odd(double* x, int N) {
 }
 
 void fft_radix6step(double* X, int N) {
-	int M = ilogb(N);
-	if (N != 1 << M || M % 2 == 1) {
+	int L = ilogb(N);
+	if (N != 1 << L || L % 2 == 1) {
 		printf("6 step not eligible\n");
 		abort();
 	}
 	const auto& W = twiddles(N);
-	const int L = 1 << (M / 2);
+	const int M = 1 << (L / 2);
+	const int M2 = M / 2;
+	for (int n1 = 0; n1 < M; n1++) {
+		for (int n2 = n1 + 1; n2 < M; n2++) {
+			std::swap(X[M * n2 + n1], X[M * n1 + n2]);
+		}
+	}
 
-	for (int n1 = 0; n1 < L; n1++) {
-		for (int n2 = n1 + 1; n2 < L; n2++) {
-			std::swap(X[L * n1 + n2], X[L * n2 + n1]);
+	for (int n1 = 0; n1 < M; n1++) {
+		fft_real(X + M * n1, M);
+	}
+
+	for (int k2 = 1; k2 < M2; k2++) {
+		for (int n1 = 1; n1 < M; n1++) {
+			const auto w = W[n1 * k2];
+			const auto r = M * n1 + k2;
+			const auto i = M * n1 + (M - k2);
+			auto xr = X[r];
+			auto xi = X[i];
+			X[r] = xr * w.real() - xi * w.imag();
+			X[i] = xr * w.imag() + xi * w.real();
 		}
 	}
-	for (int n = 0; n < L; n++) {
-		fht_radix2<double>(X + L * n, L, true);
-	}
-	for (int n = 0; n < L; n++) {
-		for (int k = n + 1; k < L; k++) {
-			std::swap(X[L * n + k], X[L * k + n]);
+
+	for (int k2 = 0; k2 < M; k2++) {
+		for (int n1 = k2 + 1; n1 < M; n1++) {
+			std::swap(X[M * n1 + k2], X[M * k2 + n1]);
 		}
 	}
-	for (int n = 0; n < L; n++) {
-		for (int k = 1; k < L - k; k++) {
-			const auto w = W[n * k];
-			const auto r = X[n + k * L];
-			const auto i = X[n + (L - k) * L];
-			const auto c = w.real();
-			const auto s = w.imag();
-			X[n + k * L] = r * c - i * s;
-			X[n + (L - k) * L] = i * c + r * s;
-		}
-	}
-	for (int n = 0; n < L; n++) {
-		if (n != L / 2) {
-			fht_radix2<double>(X + n * L, L, true);
+
+	for (int k2 = 0; k2 < M; k2++) {
+		if (k2 != M / 2) {
+			fft_real(X + M * k2, M);
 		} else {
-			fht_odd(X + N / 2, 2 * L);
+			fft_real_odd(X + M * k2, M);
 		}
 	}
-	for (int k = 1; k < L - k; k++) {
-		const auto R = 0.5 * (X[k] + X[L - k]);
-		const auto I = -0.5 * (X[k] - X[L - k]);
-		X[k] = R;
-		X[L - k] = I;
-	}
-	for (int k = 0; k < L - k - 1; k++) {
-		const auto e = X[N / 2 + k];
-		const auto o = X[N / 2 + L - k - 1];
-		X[N / 2 + k] = 0.5 * (e + o);
-		X[N / 2 + L - k - 1] = -0.5 * (e - o);
-	}
-	for (int k1 = 1; k1 < L - k1; k1++) {
-		const auto e = X[k1 * L];
-		const auto o = X[(L - k1) * L];
-		X[k1 * L] = 0.5 * (e + o);
-		X[(L - k1) * L] = 0.5 * (o - e);
-	}
-	{
-		int k2 = L / 2;
-		for (int k1 = 1; k1 < L - k1; k1++) {
-			const auto e = X[k2 + k1 * L];
-			const auto o = X[k2 + (L - k1) * L];
-			X[k2 + k1 * L] = -0.5 * (o - e);
-			X[k2 + (L - k1) * L] = 0.5 * (e + o);
+
+	for (int k2 = 1; k2 < M2; k2++) {
+		for (int k1 = 1; k1 < M2; k1++) {
+			const int rr = M * k2 + k1;
+			const int ri = M * k2 + M - k1;
+			const int ir = N - M * k2 + k1;
+			const int ii = N - M * k2 + M - k1;
+			const auto xrr = X[rr];
+			const auto xri = X[ri];
+			const auto xir = X[ir];
+			const auto xii = X[ii];
+			X[rr] = xrr - xii;
+			X[ri] = xrr + xii;
+			X[ir] = xir + xri;
+			X[ii] = xir - xri;
 		}
 	}
-	for (int k1 = 0; k1 < L; k1++) {
-		for (int k2 = k1 + 1; k2 < L; k2++) {
-			std::swap(X[L * k1 + k2], X[L * k2 + k1]);
+	for (int k2 = 0; k2 < M; k2++) {
+		for (int k1 = k2 + 1; k1 < M; k1++) {
+			const int i1 = M * k2 + k1;
+			const int i2 = M * k1 + k2;
+			std::swap(X[i1], X[i2]);
 		}
 	}
-	for (int k2 = 1; k2 < L / 2; k2++) {
-		for (int k1 = 1; k1 < L / 2; k1++) {
-			const auto aa = L * k1 + k2;
-			const auto ab = L * k1 + L - k2;
-			const auto ba = L * (L - k1) + k2;
-			const auto bb = L * (L - k1) + L - k2;
-			const auto Xaa = X[aa];
-			const auto Xba = X[ba];
-			const auto Xab = X[ab];
-			const auto Xbb = X[bb];
-			X[aa] = 0.5 * (Xba + Xab);
-			X[ab] = 0.5 * (Xbb - Xaa);
-			X[ba] = 0.5 * (Xba - Xab);
-			X[bb] = 0.5 * (Xbb + Xaa);
+	for (int k2 = M2; k2 < M; k2++) {
+		for (int k1 = 1; k1 < M2; k1++) {
+			std::swap(X[M * k2 + k1], X[N - M * k2 - k1]);
 		}
 	}
-	for (int k2 = 1; k2 < L / 2; k2++) {
-		std::swap(X[k2 + L / 2], X[N - L / 2 + k2]);
-	}
-	for (int k1 = 1; k1 < L / 2; k1++) {
-		for (int k2 = 1 + L / 2; k2 < L; k2++) {
-			std::swap(X[L * k1 + k2], X[N - L * k1 - (L - k2)]);
+	for (int k2 = M2; k2 < M; k2++) {
+		for (int k1 = 1; k1 < M2; k1++) {
+			std::swap(X[M * k2 + k1], X[M * k2 + M - k1]);
+			X[M * k2 + k1] = -X[M * k2 + k1];
 		}
 	}
-	for (int k = 1; k < N - k; k++) {
-		const auto r = X[k];
-		const auto i = X[N - k];
-		X[k] = r - i;
-		X[N - k] = r + i;
-	}
-	fht2fft(X, N);
 }
 
 void fht_radix2(double* X, int N) {
