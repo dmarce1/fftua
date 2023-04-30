@@ -226,6 +226,7 @@ void fft_radix6step(double* X, int N) {
 	const auto& W = twiddles(N);
 	const int M = 1 << (L / 2);
 	const int M2 = M / 2;
+	const int N2 = N / 2;
 	for (int n1 = 0; n1 < M; n1++) {
 		for (int n2 = n1 + 1; n2 < M; n2++) {
 			std::swap(X[M * n2 + n1], X[M * n1 + n2]);
@@ -278,22 +279,44 @@ void fft_radix6step(double* X, int N) {
 			X[ii] = xir - xri;
 		}
 	}
-	for (int k2 = 0; k2 < M; k2++) {
-		for (int k1 = k2 + 1; k1 < M; k1++) {
+	for (int k2 = 0; k2 < M2; k2++) {
+		for (int k1 = k2 + 1; k1 < M2; k1++) {
 			const int i1 = M * k2 + k1;
 			const int i2 = M * k1 + k2;
 			std::swap(X[i1], X[i2]);
-		}
-	}
-	for (int k2 = M2; k2 < M; k2++) {
-		for (int k1 = 1; k1 < M2; k1++) {
-			std::swap(X[M * k2 + k1], X[N - M * k2 - k1]);
+			std::swap(X[i1 + M2], X[i2 + M2]);
+			std::swap(X[i1 + N2], X[i2 + N2]);
+			std::swap(X[i1 + M2 + N2], X[i2 + M2 + N2]);
 		}
 	}
 	for (int k2 = M2; k2 < M; k2++) {
 		for (int k1 = 1; k1 < M2; k1++) {
 			std::swap(X[M * k2 + k1], X[M * k2 + M - k1]);
 			X[M * k2 + k1] = -X[M * k2 + k1];
+		}
+	}
+	for (int k2 = 1; k2 < M2; k2++) {
+		for (int k1 = 0; k1 < M2; k1++) {
+			const int i1 = M * k1 + k2;
+			const int i2 = M * (M2 - k1 - 1) + (M2 - k2);
+			if (i1 < i2) {
+				std::swap(X[i1 + M2], X[i2 + M2]);
+				std::swap(X[i1 + N2 + M2], X[i2 + N2 + M2]);
+			}
+		}
+	}
+
+	for (int k1 = 0; k1 < M2; k1++) {
+		std::swap(X[M * k1 + N2], X[M * k1 + M2]);
+	}
+	/*	for (int k2 = 1; k2 < M2; k2++) {
+	 for (int k1 = 0; k1 < M2; k1++) {
+	 std::swap(X[M * k2 + k1 + M2], X[M * k1 + k2 + N2]);
+	 }
+	 }*/
+	for (int k2 = 1; k2 < M2; k2++) {
+		for (int k1 = 0; k1 < M2; k1++) {
+			//		std::swap(X[N2 + M * k1 + k2], X[N2 - M * k1 - k2]);
 		}
 	}
 }
