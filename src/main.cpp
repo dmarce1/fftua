@@ -70,7 +70,7 @@ void fft_scramble_real(double* X, int N);
 int main(int argc, char **argv) {
 	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
-	constexpr int N = 16;
+	constexpr int N = 64;
 	std::vector<double> xre(N);
 	std::vector<double> xim(N);
 	std::vector<complex<double>> y(N);
@@ -81,50 +81,64 @@ int main(int argc, char **argv) {
 		xim[n] = y[n].imag();
 	}
 	fftw(y);
-	fft_simd_16((__m256d*) xre.data(), (__m256d*) xim.data());
-	for( int n = 0; n < N; n++) {
-		printf( "%i | %e %e | %e %e\n", n, xre[n], xim[n], y[n].real(), y[n].imag());
+	int j = 0;
+	for (int i = 0; i < N - 1; i++) {
+		if (i > j) {
+			std::swap(xre[i], xre[j]);
+			std::swap(xim[i], xim[j]);
+		}
+		printf( "%i %i\n", i, j);
+		int k = N / 2;
+		while (k <= j) {
+			j -= k;
+			k >>= 1;
+		}
+		j += k;
 	}
-
-/*	constexpr int N = 64;
-	std::vector<double> x(N);
-	std::vector<complex<double>> y(N);
+	fft_2pow(xre.data(), xim.data(), N);
 	for (int n = 0; n < N; n++) {
-		y[n].imag() = 0.0;
-		x[n] = y[n].real() = rand1();
+		printf("%i | %e %e | %e %e\n", n, xre[n], xim[n], y[n].real(), y[n].imag());
 	}
-	fftw(y);
-	fft_radix6step(x.data(), N);
-	double err = abs(x[0] - y[0].real());
-	std::vector<double> z(N);
-	for (int n = 1; n < N - n; n++) {
-		z[n] = y[n].real();
-		z[N - n] = y[n].imag();
-	}
-	z[0] = y[0].real();
-	z[N / 2] = y[N / 2].real();
-	const int M = lround(sqrt(N));
-	printf( "\n");
-	for (int n = 0; n < M; n++) {
-		printf("%4i | ", n);
-		for (int m = 0; m < M; m++) {
-			printf("%13.3e ", x[M * n + m]);
-		}
-		printf(" | ");
-		for (int m = 0; m < M; m++) {
-			printf("%13.3e ", z[M * n + m]);
-		}
-		printf(" | ");
-		for (int m = 0; m < M; m++) {
-			printf("%13.3e ", x[M * n + m] - z[M * n + m]);
-		}
-		printf(" \n");
-		err += abs(x[n] - z[n]);
 
-	}
-	printf("%i | %e %e | %e %e\n", N / 2, x[N / 2], 0.0, y[N / 2].real(), y[N / 2].imag());
-	err += abs(x[N / 2] - y[N / 2].real());
-	printf("%e\n", err / N);*/
+	/*	constexpr int N = 64;
+	 std::vector<double> x(N);
+	 std::vector<complex<double>> y(N);
+	 for (int n = 0; n < N; n++) {
+	 y[n].imag() = 0.0;
+	 x[n] = y[n].real() = rand1();
+	 }
+	 fftw(y);
+	 fft_radix6step(x.data(), N);
+	 double err = abs(x[0] - y[0].real());
+	 std::vector<double> z(N);
+	 for (int n = 1; n < N - n; n++) {
+	 z[n] = y[n].real();
+	 z[N - n] = y[n].imag();
+	 }
+	 z[0] = y[0].real();
+	 z[N / 2] = y[N / 2].real();
+	 const int M = lround(sqrt(N));
+	 printf( "\n");
+	 for (int n = 0; n < M; n++) {
+	 printf("%4i | ", n);
+	 for (int m = 0; m < M; m++) {
+	 printf("%13.3e ", x[M * n + m]);
+	 }
+	 printf(" | ");
+	 for (int m = 0; m < M; m++) {
+	 printf("%13.3e ", z[M * n + m]);
+	 }
+	 printf(" | ");
+	 for (int m = 0; m < M; m++) {
+	 printf("%13.3e ", x[M * n + m] - z[M * n + m]);
+	 }
+	 printf(" \n");
+	 err += abs(x[n] - z[n]);
+
+	 }
+	 printf("%i | %e %e | %e %e\n", N / 2, x[N / 2], 0.0, y[N / 2].real(), y[N / 2].imag());
+	 err += abs(x[N / 2] - y[N / 2].real());
+	 printf("%e\n", err / N);*/
 	abort();
 	timer tm3, tm4;
 	double t3 = 0.0;

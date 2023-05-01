@@ -121,6 +121,7 @@ inline void fft_permute(const std::vector<int>& I, fft_simd4* X) {
 }
 
 void fft_real_odd(double* x, int N);
+void fft_2pow(double* x, double* y, int N);
 
 void fft_cooley_tukey_real(int N1, complex<double>* X, int N);
 void fft_cooley_tukey_real(int N1, double* X, int N);
@@ -142,6 +143,8 @@ void fft_scramble_real(double* X, int N);
 void fft_raders_prime_factor_real(int N1, double* X, int N);
 void fft_2pow(double* X, int N);
 void fft_simd_16(__m256d* x, __m256d* y);
+void fft_simd_32(__m256d* x, __m256d* y);
+void fft_simd_8(__m256d* x, __m256d* y);
 
 template<class T>
 void fft2fht(T* x, int N) {

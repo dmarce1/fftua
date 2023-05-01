@@ -472,7 +472,70 @@ void fht_radix2(double* X, int N) {
 	}
 }
 
+void fft_simd_8(__m256d* x, __m256d* y) {
+
+	static constexpr __m256d TC1 = {1.0,cos(1.0 * 2.0*M_PI/8.0),cos(2.0 * 2.0*M_PI/8.0),cos(3.0 * 2.0*M_PI/8.0)};
+	static constexpr __m256d TS1 = {0.0,sin(-1.0 * 2.0*M_PI/8.0),sin(-2.0 * 2.0*M_PI/8.0),sin(-3.0 * 2.0*M_PI/8.0)};
+	static constexpr int scl = 8;
+	static constexpr __m256i I = {0, 2, 4, 6};
+	static constexpr __m256d T = {1.0, -1.0, 1.0, -1.0};
+
+	auto& R0 = x[0];
+	auto& R1 = x[1];
+	auto& I0 = y[0];
+	auto& I1 = y[1];
+
+	__m256d A0, A1;
+	__m256d B0, B1;
+
+	A0 = _mm256_i64gather_pd((((double*)x) + 0), I, scl);
+	A1 = _mm256_i64gather_pd((((double*)x) + 1), I, scl);
+	B0 = _mm256_i64gather_pd((((double*)y) + 0), I, scl);
+	B1 = _mm256_i64gather_pd((((double*)y) + 1), I, scl);
+	R0 = _mm256_add_pd(A0, A1);
+	R1 = _mm256_sub_pd(A0, A1);
+	I0 = _mm256_add_pd(B0, B1);
+	I1 = _mm256_sub_pd(B0, B1);
+	std::swap(R1[1], I1[1]);
+	std::swap(R1[3], I1[3]);
+	I1 = _mm256_mul_pd(I1, T);
+	A0 = _mm256_i64gather_pd((((double*)x) + 0), I, scl);
+	A1 = _mm256_i64gather_pd((((double*)x) + 1), I, scl);
+	B0 = _mm256_i64gather_pd((((double*)y) + 0), I, scl);
+	B1 = _mm256_i64gather_pd((((double*)y) + 1), I, scl);
+
+	R0 = _mm256_add_pd(A0, A1);
+	R1 = _mm256_sub_pd(A0, A1);
+	I0 = _mm256_add_pd(B0, B1);
+	I1 = _mm256_sub_pd(B0, B1);
+	A0 = _mm256_i64gather_pd((((double*)x) + 0), I, scl);
+	A1 = _mm256_i64gather_pd((((double*)x) + 1), I, scl);
+	B0 = _mm256_i64gather_pd((((double*)y) + 0), I, scl);
+	B1 = _mm256_i64gather_pd((((double*)y) + 1), I, scl);
+	R0 = A0;
+	R1 = A1;
+	I0 = B0;
+	I1 = B1;
+	A1 = _mm256_mul_pd(I1, TS1);
+	A1 = _mm256_fmsub_pd(R1, TC1, A1);
+	B1 = _mm256_mul_pd(I1, TC1);
+	B1 = _mm256_fmadd_pd(R1, TS1, B1);
+	R0 = _mm256_add_pd(A0, A1);
+	R1 = _mm256_sub_pd(A0, A1);
+	I0 = _mm256_add_pd(B0, B1);
+	I1 = _mm256_sub_pd(B0, B1);
+}
+
 void fft_simd_16(__m256d* x, __m256d* y) {
+
+	static constexpr __m256d TC1 = {1.0,cos(1.0 * 2.0*M_PI/16.0),cos(2.0 * 2.0*M_PI/16.0),cos(3.0 * 2.0*M_PI/16.0)};
+	static constexpr __m256d TC2 = {1.0,cos(2.0 * 2.0*M_PI/16.0),cos(4.0 * 2.0*M_PI/16.0),cos(6.0 * 2.0*M_PI/16.0)};
+	static constexpr __m256d TC3 = {1.0,cos(3.0 * 2.0*M_PI/16.0),cos(6.0 * 2.0*M_PI/16.0),cos(9.0 * 2.0*M_PI/16.0)};
+	static constexpr __m256d TS1 = {0.0,-sin(1.0 * 2.0*M_PI/16.0),-sin(2.0 * 2.0*M_PI/16.0),-sin(3.0 * 2.0*M_PI/16.0)};
+	static constexpr __m256d TS2 = {0.0,-sin(2.0 * 2.0*M_PI/16.0),-sin(4.0 * 2.0*M_PI/16.0),-sin(6.0 * 2.0*M_PI/16.0)};
+	static constexpr __m256d TS3 = {0.0,-sin(3.0 * 2.0*M_PI/16.0),-sin(6.0 * 2.0*M_PI/16.0),-sin(9.0 * 2.0*M_PI/16.0)};
+	static constexpr int scl = 8;
+	static constexpr __m256i I = {0, 4, 8, 12};
 
 	auto& R0 = x[0];
 	auto& R1 = x[1];
@@ -486,49 +549,6 @@ void fft_simd_16(__m256d* x, __m256d* y) {
 	__m256d A0, A1, A2, A3;
 	__m256d B0, B1, B2, B3;
 
-	static constexpr __m256d TC1 = {1.0,cos(1.0 * 2.0*M_PI/16.0),cos(2.0 * 2.0*M_PI/16.0),cos(3.0 * 2.0*M_PI/16.0)};
-	static constexpr __m256d TC2 = {1.0,cos(2.0 * 2.0*M_PI/16.0),cos(4.0 * 2.0*M_PI/16.0),cos(6.0 * 2.0*M_PI/16.0)};
-	static constexpr __m256d TC3 = {1.0,cos(3.0 * 2.0*M_PI/16.0),cos(6.0 * 2.0*M_PI/16.0),cos(9.0 * 2.0*M_PI/16.0)};
-	static constexpr __m256d TS1 = {0.0,-sin(1.0 * 2.0*M_PI/16.0),-sin(2.0 * 2.0*M_PI/16.0),-sin(3.0 * 2.0*M_PI/16.0)};
-	static constexpr __m256d TS2 = {0.0,-sin(2.0 * 2.0*M_PI/16.0),-sin(4.0 * 2.0*M_PI/16.0),-sin(6.0 * 2.0*M_PI/16.0)};
-	static constexpr __m256d TS3 = {0.0,-sin(3.0 * 2.0*M_PI/16.0),-sin(6.0 * 2.0*M_PI/16.0),-sin(9.0 * 2.0*M_PI/16.0)};
-	static constexpr int scl = 8;
-	const __m256i I = {0, 4, 8, 12};
-
-	A0 = R0;
-	A1 = R1;
-	A2 = R2;
-	A3 = R3;
-	B0 = I0;
-	B1 = I1;
-	B2 = I2;
-	B3 = I3;
-
-	R0 = _mm256_add_pd(A0, A2);
-	R1 = _mm256_sub_pd(A0, A2);
-	R2 = _mm256_add_pd(A1, A3);
-	R3 = _mm256_sub_pd(A1, A3);
-	I0 = _mm256_add_pd(B0, B2);
-	I1 = _mm256_sub_pd(B0, B2);
-	I2 = _mm256_add_pd(B1, B3);
-	I3 = _mm256_sub_pd(B1, B3);
-	A0 = R0;
-	A1 = R1;
-	A2 = R2;
-	A3 = R3;
-	B0 = I0;
-	B1 = I1;
-	B2 = I2;
-	B3 = I3;
-	R0 = _mm256_add_pd(A0, A2);
-	R2 = _mm256_sub_pd(A0, A2);
-	R1 = _mm256_add_pd(A1, B3);
-	R3 = _mm256_sub_pd(A1, B3);
-	I0 = _mm256_add_pd(B0, B2);
-	I2 = _mm256_sub_pd(B0, B2);
-	I1 = _mm256_sub_pd(B1, A3);
-	I3 = _mm256_add_pd(B1, A3);
-
 	A0 = _mm256_i64gather_pd((((double*)x) + 0), I, scl);
 	A1 = _mm256_i64gather_pd((((double*)x) + 1), I, scl);
 	A2 = _mm256_i64gather_pd((((double*)x) + 2), I, scl);
@@ -537,44 +557,60 @@ void fft_simd_16(__m256d* x, __m256d* y) {
 	B1 = _mm256_i64gather_pd((((double*)y) + 1), I, scl);
 	B2 = _mm256_i64gather_pd((((double*)y) + 2), I, scl);
 	B3 = _mm256_i64gather_pd((((double*)y) + 3), I, scl);
-
+	R0 = A0;
 	R1 = A1;
 	R2 = A2;
 	R3 = A3;
+	I0 = B0;
 	I1 = B1;
 	I2 = B2;
 	I3 = B3;
-
-	A1 = _mm256_mul_pd(I1, TS1);
-	A2 = _mm256_mul_pd(I2, TS2);
-	A3 = _mm256_mul_pd(I3, TS3);
-	A1 = _mm256_fmsub_pd(R1, TC1, A1);
-	A2 = _mm256_fmsub_pd(R2, TC2, A2);
-	A3 = _mm256_fmsub_pd(R3, TC3, A3);
-
-	B1 = _mm256_mul_pd(R1, TS1);
-	B2 = _mm256_mul_pd(R2, TS2);
-	B3 = _mm256_mul_pd(R3, TS3);
-	B1 = _mm256_fmadd_pd(I1, TC1, B1);
-	B2 = _mm256_fmadd_pd(I2, TC2, B2);
-	B3 = _mm256_fmadd_pd(I3, TC3, B3);
-
+	A0 = _mm256_add_pd(R0, R1);
+	A1 = _mm256_sub_pd(R0, R1);
+	A2 = _mm256_add_pd(R2, R3);
+	A3 = _mm256_sub_pd(R2, R3);
+	B0 = _mm256_add_pd(I0, I1);
+	B1 = _mm256_sub_pd(I0, I1);
+	B2 = _mm256_add_pd(I2, I3);
+	B3 = _mm256_sub_pd(I2, I3);
 	R0 = _mm256_add_pd(A0, A2);
-	R1 = _mm256_sub_pd(A0, A2);
-	R2 = _mm256_add_pd(A1, A3);
-	R3 = _mm256_sub_pd(A1, A3);
+	R2 = _mm256_sub_pd(A0, A2);
+	R1 = _mm256_add_pd(A1, B3);
+	R3 = _mm256_sub_pd(A1, B3);
 	I0 = _mm256_add_pd(B0, B2);
-	I1 = _mm256_sub_pd(B0, B2);
-	I2 = _mm256_add_pd(B1, B3);
-	I3 = _mm256_sub_pd(B1, B3);
-	A0 = R0;
-	A1 = R1;
-	A2 = R2;
-	A3 = R3;
-	B0 = I0;
-	B1 = I1;
-	B2 = I2;
-	B3 = I3;
+	I2 = _mm256_sub_pd(B0, B2);
+	I1 = _mm256_sub_pd(B1, A3);
+	I3 = _mm256_add_pd(B1, A3);
+	A0 = _mm256_i64gather_pd((((double*)x) + 0), I, scl);
+	A1 = _mm256_i64gather_pd((((double*)x) + 1), I, scl);
+	A2 = _mm256_i64gather_pd((((double*)x) + 2), I, scl);
+	A3 = _mm256_i64gather_pd((((double*)x) + 3), I, scl);
+	B0 = _mm256_i64gather_pd((((double*)y) + 0), I, scl);
+	B1 = _mm256_i64gather_pd((((double*)y) + 1), I, scl);
+	B2 = _mm256_i64gather_pd((((double*)y) + 2), I, scl);
+	B3 = _mm256_i64gather_pd((((double*)y) + 3), I, scl);
+	R0 = A0;
+	R1 = _mm256_mul_pd(B1, TS2);
+	R2 = _mm256_mul_pd(B2, TS1);
+	R3 = _mm256_mul_pd(B3, TS3);
+	R1 = _mm256_fmsub_pd(A1, TC2, R1);
+	R2 = _mm256_fmsub_pd(A2, TC1, R2);
+	R3 = _mm256_fmsub_pd(A3, TC3, R3);
+	I0 = B0;
+	I1 = _mm256_mul_pd(A1, TS2);
+	I2 = _mm256_mul_pd(A2, TS1);
+	I3 = _mm256_mul_pd(A3, TS3);
+	I1 = _mm256_fmadd_pd(B1, TC2, I1);
+	I2 = _mm256_fmadd_pd(B2, TC1, I2);
+	I3 = _mm256_fmadd_pd(B3, TC3, I3);
+	A0 = _mm256_add_pd(R0, R1);
+	A1 = _mm256_sub_pd(R0, R1);
+	A2 = _mm256_add_pd(R2, R3);
+	A3 = _mm256_sub_pd(R2, R3);
+	B0 = _mm256_add_pd(I0, I1);
+	B1 = _mm256_sub_pd(I0, I1);
+	B2 = _mm256_add_pd(I2, I3);
+	B3 = _mm256_sub_pd(I2, I3);
 	R0 = _mm256_add_pd(A0, A2);
 	R2 = _mm256_sub_pd(A0, A2);
 	R1 = _mm256_add_pd(A1, B3);
@@ -584,6 +620,186 @@ void fft_simd_16(__m256d* x, __m256d* y) {
 	I1 = _mm256_sub_pd(B1, A3);
 	I3 = _mm256_add_pd(B1, A3);
 
+}
+
+constexpr double C(int n, int N) {
+	return cos(2.0 * M_PI * n / N);
+}
+
+constexpr double S(int n, int N) {
+	return -sin(2.0 * M_PI * n / N);
+}
+
+void fft_simd_32(__m256d* x, __m256d* y) {
+
+	static constexpr __m256d TC1 = {1.0,C(1,32), C(2,32), C(3,32)};
+	static constexpr __m256d TS1 = {0.0,S(1,32), S(2,32), S(3,32)};
+	static constexpr __m256d TC2 = {C(4,32), C(5,32), C(6,32), C(7,32)};
+	static constexpr __m256d TS2 = {S(4,32), S(5,32), S(6,32), S(7,32)};
+	static constexpr __m256d TC3 = {C(8,32), C(9,32), C(10,32), C(11,32)};
+	static constexpr __m256d TS3 = {S(8,32), S(9,32), S(10,32), S(11,32)};
+	static constexpr __m256d TC4 = {C(12,32), C(13,32), C(14,32), C(15,32)};
+	static constexpr __m256d TS4 = {S(12,32), S(13,32), S(14,32), S(15,32)};
+
+	auto& R0 = x[0];
+	auto& R1 = x[1];
+	auto& R2 = x[2];
+	auto& R3 = x[3];
+	auto& R4 = x[4];
+	auto& R5 = x[5];
+	auto& R6 = x[6];
+	auto& R7 = x[7];
+	auto& I0 = y[0];
+	auto& I1 = y[1];
+	auto& I2 = y[2];
+	auto& I3 = y[3];
+	auto& I4 = y[4];
+	auto& I5 = y[5];
+	auto& I6 = y[6];
+	auto& I7 = y[7];
+
+	__m256d A0, A1, A2, A3, A4, A5, A6, A7;
+	__m256d B0, B1, B2, B3, B4, B5, B6, B7;
+
+	fft_simd_16(x, y);
+	fft_simd_16(x + 4,y + 4);
+
+	A0 = R0;
+	A1 = R1;
+	A2 = R2;
+	A3 = R3;
+	A4 = _mm256_mul_pd(I4, TS1);
+	A4 = _mm256_fmsub_pd(R4, TC1, A4);
+	A5 = _mm256_mul_pd(I5, TS2);
+	A5 = _mm256_fmsub_pd(R5, TC2, A5);
+	A6 = _mm256_mul_pd(I6, TS3);
+	A6 = _mm256_fmsub_pd(R6, TC3, A6);
+	A7 = _mm256_mul_pd(I7, TS4);
+	A7 = _mm256_fmsub_pd(R7, TC4, A7);
+
+	B0 = I0;
+	B1 = I1;
+	B2 = I2;
+	B3 = I3;
+	B4 = _mm256_mul_pd(R4, TS1);
+	B4 = _mm256_fmadd_pd(I4, TC1, B4);
+	B5 = _mm256_mul_pd(R5, TS2);
+	B5 = _mm256_fmadd_pd(I5, TC2, B5);
+	B6 = _mm256_mul_pd(R6, TS3);
+	B6 = _mm256_fmadd_pd(I6, TC3, B6);
+	B7 = _mm256_mul_pd(R7, TS4);
+	B7 = _mm256_fmadd_pd(I7, TC4, B7);
+
+	R0 = _mm256_add_pd(A0, A4);
+	R4 = _mm256_sub_pd(A0, A4);
+	R1 = _mm256_add_pd(A1, A5);
+	R5 = _mm256_sub_pd(A1, A5);
+	R2 = _mm256_add_pd(A2, A6);
+	R6 = _mm256_sub_pd(A2, A6);
+	R3 = _mm256_add_pd(A3, A7);
+	R7 = _mm256_sub_pd(A3, A7);
+
+	I0 = _mm256_add_pd(B0, B4);
+	I4 = _mm256_sub_pd(B0, B4);
+	I1 = _mm256_add_pd(B1, B5);
+	I5 = _mm256_sub_pd(B1, B5);
+	I2 = _mm256_add_pd(B2, B6);
+	I6 = _mm256_sub_pd(B2, B6);
+	I3 = _mm256_add_pd(B3, B7);
+	I7 = _mm256_sub_pd(B3, B7);
+
+}
+
+#include <memory>
+
+const std::vector<std::vector<complex<__m256d >>>& simd_twiddles(int N1, int N2) {
+	using entry_type = std::shared_ptr<std::vector<std::vector<complex<__m256d>>>>;
+	static std::unordered_map<int, std::unordered_map<int, entry_type>> cache;
+	auto iter = cache[N1].find(N2);
+	if (iter != cache[N1].end()) {
+		return *(iter->second);
+	} else {
+		const int N = N1 * N2;
+		const int N1v = round_down(N1, SIMD_SIZE);
+		std::vector<std::vector<complex<__m256d>>>W(N1v/SIMD_SIZE, std::vector<complex<__m256d>>(N2));
+		for (int n = 0; n < N1v; n += SIMD_SIZE) {
+			for (int k = 0; k < N2; k++) {
+				for (int i = 0; i < SIMD_SIZE; i++) {
+					W[n / SIMD_SIZE][k].real()[i] = cos(-2.0 * M_PI * (n+i) * k / N);
+					W[n / SIMD_SIZE][k].imag()[i] = sin(-2.0 * M_PI * (n+i) * k / N);
+				}
+			}
+		}
+		cache[N1][N2] = std::make_shared<std::vector<std::vector<complex<__m256d>>>>(std::move(W));
+		return *(cache[N1][N2]);
+	}
+}
+
+void fft_2pow(double* x, double* y, int N) {
+	constexpr int N1 = 8;
+	if (N == 8) {
+		fft_simd_8((__m256d *) x, (__m256d *) y);
+		return;
+	} else if (N == 16) {
+		fft_simd_16((__m256d *) x, (__m256d *) y);
+		return;
+	} else if (N == 32) {
+		fft_simd_32((__m256d *) x, (__m256d *) y);
+		return;
+	}
+	constexpr int bit_reverse[N1] = { 0, 4, 2, 6, 1, 5, 3, 7 };
+	const int N2 = N / N1;
+	const auto& W = simd_twiddles(N1, N2);
+	for (int n1 = 0; n1 < N1; n1++) {
+		fft_2pow(x + N2 * n1, y + N2 * n1, N2);
+	}
+	double re[N1];
+	double im[N1];
+	for (int k2 = 0; k2 < N2; k2++) {
+		for (int n1 = 0; n1 < N1; n1++) {
+			const int i = N2 * n1 + k2;
+			re[n1] = x[i];
+			im[n1] = y[i];
+		}
+		for (int n1 = 0; n1 < N1; n1++) {
+			int j = bit_reverse[n1];
+			if( n1 < j ) {
+				std::swap(re[n1], re[j]);
+				std::swap(im[n1], im[j]);
+			}
+		}
+		for (int n1 = 0, n0 = 0; n1 < N1; n1 += SIMD_SIZE, n0++) {
+			__m256d xre = *((__m256d *) &re[n1]);
+			__m256d xim = *((__m256d *) &im[n1]);
+			const __m256d& wre = W[n0][k2].real();
+			const __m256d& wim = W[n0][k2].imag();
+			*((__m256d *) &re[n1]) = _mm256_fmsub_pd(xre, wre, _mm256_mul_pd(xim, wim));
+			*((__m256d *) &im[n1]) = _mm256_fmadd_pd(xim, wre, _mm256_mul_pd(xre, wim));
+		}
+		for (int n1 = 0; n1 < N1; n1++) {
+			int j = bit_reverse[n1];
+			if( n1 < j ) {
+				std::swap(re[n1], re[j]);
+				std::swap(im[n1], im[j]);
+			}
+		}
+		switch (N1) {
+		case 8:
+			fft_simd_8((__m256d *) re, (__m256d *) im);
+			break;
+		case 16:
+			fft_simd_16((__m256d *) re, (__m256d *) im);
+			break;
+		case 32:
+			fft_simd_32((__m256d *) re, (__m256d *) im);
+			break;
+		}
+		for (int n1 = 0; n1 < N1; n1++) {
+			const int i = N2 * n1 + k2;
+			x[i] = re[n1];
+			y[i] = im[n1];
+		}
+	}
 }
 
 template<class T>
