@@ -81,21 +81,7 @@ int main(int argc, char **argv) {
 		xim[n] = y[n].imag();
 	}
 	fftw(y);
-	int j = 0;
-	for (int i = 0; i < N - 1; i++) {
-		if (i > j) {
-			std::swap(xre[i], xre[j]);
-			std::swap(xim[i], xim[j]);
-		}
-		printf( "%i %i\n", i, j);
-		int k = N / 2;
-		while (k <= j) {
-			j -= k;
-			k >>= 1;
-		}
-		j += k;
-	}
-	fft_2pow(xre.data(), xim.data(), N);
+	fft_2pow(xre.data(), xim.data(), N, true);
 	for (int n = 0; n < N; n++) {
 		printf("%i | %e %e | %e %e\n", n, xre[n], xim[n], y[n].real(), y[n].imag());
 	}
@@ -139,16 +125,15 @@ int main(int argc, char **argv) {
 	 printf("%i | %e %e | %e %e\n", N / 2, x[N / 2], 0.0, y[N / 2].real(), y[N / 2].imag());
 	 err += abs(x[N / 2] - y[N / 2].real());
 	 printf("%e\n", err / N);*/
-	abort();
 	timer tm3, tm4;
 	double t3 = 0.0;
 	double t4 = 0.0;
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 16; N <= 1024 * 1024 * 1024; N *= 4) {
+	for (int N = 16; N <= 1024 * 1024 * 1024; N *= 2) {
 		auto pfac = prime_factorization(N);
-		{
+		/*{
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
@@ -207,7 +192,7 @@ int main(int argc, char **argv) {
 			score /= cnt;
 			printf("R %c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
 //				abort();
-		}
+		}*/
 		{
 			double avg_err = 0.0;
 			double t1 = 0.0;

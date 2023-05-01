@@ -629,7 +629,95 @@ constexpr double C(int n, int N) {
 constexpr double S(int n, int N) {
 	return -sin(2.0 * M_PI * n / N);
 }
+/*
+ void fft_simd_64(__m256d* x, __m256d* y) {
 
+ static constexpr __m256d TC1[] = { {C(0,64),C(1,64), C(2,64), C(3,64)},
+ {	C(4,64), C(5,64), C(6,64), C(7,64)},
+ {	C(8,64), C(9,64), C(10,64), C(11,64)},
+ {	C(12,64), C(13,64), C(14,64), C(15,64)}};
+
+ static constexpr __m256d TC2[] = { {C(0,64),C(2,64), C(4,64), C(6,64)},
+ {	C(8,64), C(10,64), C(12,64), C(14,64)},
+ {	C(16,64), C(18,64), C(20,64), C(22,64)},
+ {	C(24,64), C(26,64), C(28,64), C(30,64)}};
+
+ static constexpr __m256d TC3[] = { {C(0,64),C(3,64), C(6,64), C(9,64)},
+ {	C(12,64), C(15,64), C(18,64), C(21,64)},
+ {	C(24,64), C(27,64), C(30,64), C(33,64)},
+ {	C(36,64), C(39,64), C(42,64), C(45,64)}};
+
+ static constexpr __m256d TS1[] = { {S(0,64),S(1,64), S(2,64), S(3,64)},
+ {	S(4,64), S(5,64), S(6,64), S(7,64)},
+ {	S(8,64), S(9,64), S(10,64), S(11,64)},
+ {	S(12,64), S(13,64), S(14,64), S(15,64)}};
+
+ static constexpr __m256d TS2[] = { {S(0,64),S(2,64), S(4,64), S(6,64)},
+ {	S(8,64), S(10,64), S(12,64), S(14,64)},
+ {	S(16,64), S(18,64), S(20,64), S(22,64)},
+ {	S(24,64), S(26,64), S(28,64), S(30,64)}};
+
+ static constexpr __m256d TS3[] = { {S(0,64),S(3,64), S(6,64), S(9,64)},
+ {	S(12,64), S(15,64), S(18,64), S(21,64)},
+ {	S(24,64), S(27,64), S(30,64), S(33,64)},
+ {	S(36,64), S(39,64), S(42,64), S(45,64)}};
+
+ __m256d* R = (__256d*) x;
+ __m256d* I = (__256d*) y;
+ __m256d A[4];
+ __m256d B[4];
+
+ static constexpr int scl = 8;
+ static constexpr __m256i I = {0, 4, 8, 12};
+
+ for( int n = 0; n < 4; n++) {
+ const int i = 4*n;
+ for( int m = 0; m < 4; m++) {
+ A[m] = _mm256_i64gather_pd((((double*)x) + i+m), I, scl);
+ B[m] = _mm256_i64gather_pd((((double*)y) + i+m), I, scl);
+ }
+ for( int m = 0; m < 4; m++) {
+ R[i+m] = A[m];
+ I[i+m] = B[m];
+ }
+ A[0] = _mm256_add_pd(R[i+0], R[i+1]);
+ A[1] = _mm256_sub_pd(R[i+0], R[i+1]);
+ A[2] = _mm256_add_pd(R[i+2], R[i+3]);
+ A[3] = _mm256_sub_pd(R[i+2], R[i+3]);
+ B[0] = _mm256_add_pd(I[i+0], I[i+1]);
+ B[1] = _mm256_sub_pd(I[i+0], I[i+1]);
+ B[2] = _mm256_add_pd(I[i+2], I[i+3]);
+ B[3] = _mm256_sub_pd(I[i+2], I[i+3]);
+ R[0] = _mm256_add_pd(R[i+0], R[i+2]);
+ R[1] = _mm256_sub_pd(R[i+0], R[i+2]);
+ R[2] = _mm256_add_pd(R[i+1], R[i+3]);
+ R[3] = _mm256_sub_pd(R[i+1], R[i+3]);
+ I[0] = _mm256_add_pd(I[i+0], I[i+2]);
+ I[1] = _mm256_sub_pd(I[i+0], I[i+2]);
+ I[2] = _mm256_sub_pd(I[i+1], I[i+3]);
+ I[3] = _mm256_add_pd(I[i+1], I[i+3]);
+ for( int m = 0; m < 4; m++) {
+ A[m] = _mm256_i64gather_pd((((double*)x) + i+m), I, scl);
+ B[m] = _mm256_i64gather_pd((((double*)y) + i+m), I, scl);
+ }
+ R[i+0] = A[0];
+ R[i+1] = _mm256_mul_pd(B[1], TS2);
+ R2 = _mm256_mul_pd(B2, TS1);
+ R3 = _mm256_mul_pd(B3, TS3);
+ R1 = _mm256_fmsub_pd(A1, TC2, R1);
+ R2 = _mm256_fmsub_pd(A2, TC1, R2);
+ R3 = _mm256_fmsub_pd(A3, TC3, R3);
+ I0 = B0;
+ I1 = _mm256_mul_pd(A1, TS2);
+ I2 = _mm256_mul_pd(A2, TS1);
+ I3 = _mm256_mul_pd(A3, TS3);
+ I1 = _mm256_fmadd_pd(B1, TC2, I1);
+ I2 = _mm256_fmadd_pd(B2, TC1, I2);
+ I3 = _mm256_fmadd_pd(B3, TC3, I3);
+ }
+
+ }
+ */
 void fft_simd_32(__m256d* x, __m256d* y) {
 
 	static constexpr __m256d TC1 = {1.0,C(1,32), C(2,32), C(3,32)};
@@ -735,7 +823,22 @@ const std::vector<std::vector<complex<__m256d >>>& simd_twiddles(int N1, int N2)
 	}
 }
 
-void fft_2pow(double* x, double* y, int N) {
+void fft_2pow(double* x, double* y, int N, bool scramble) {
+	if (scramble) {
+		int j = 0;
+		for (int i = 0; i < N - 1; i++) {
+			if (i > j) {
+				std::swap(x[i], x[j]);
+				std::swap(y[i], y[j]);
+			}
+			int k = N / 2;
+			while (k <= j) {
+				j -= k;
+				k >>= 1;
+			}
+			j += k;
+		}
+	}
 	constexpr int N1 = 8;
 	if (N == 8) {
 		fft_simd_8((__m256d *) x, (__m256d *) y);
@@ -747,11 +850,16 @@ void fft_2pow(double* x, double* y, int N) {
 		fft_simd_32((__m256d *) x, (__m256d *) y);
 		return;
 	}
+	else if ( N < 8 ) {
+			printf( "Radix %i not found\n", N);
+			abort();
+		}
+//		constexpr int bit_reverse[N1] = { 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15 };
 	constexpr int bit_reverse[N1] = { 0, 4, 2, 6, 1, 5, 3, 7 };
 	const int N2 = N / N1;
 	const auto& W = simd_twiddles(N1, N2);
 	for (int n1 = 0; n1 < N1; n1++) {
-		fft_2pow(x + N2 * n1, y + N2 * n1, N2);
+		fft_2pow(x + N2 * n1, y + N2 * n1, N2, false);
 	}
 	double re[N1];
 	double im[N1];
@@ -763,7 +871,7 @@ void fft_2pow(double* x, double* y, int N) {
 		}
 		for (int n1 = 0; n1 < N1; n1++) {
 			int j = bit_reverse[n1];
-			if( n1 < j ) {
+			if (n1 < j) {
 				std::swap(re[n1], re[j]);
 				std::swap(im[n1], im[j]);
 			}
@@ -778,7 +886,7 @@ void fft_2pow(double* x, double* y, int N) {
 		}
 		for (int n1 = 0; n1 < N1; n1++) {
 			int j = bit_reverse[n1];
-			if( n1 < j ) {
+			if (n1 < j) {
 				std::swap(re[n1], re[j]);
 				std::swap(im[n1], im[j]);
 			}

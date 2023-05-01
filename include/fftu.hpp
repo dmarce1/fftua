@@ -121,7 +121,7 @@ inline void fft_permute(const std::vector<int>& I, fft_simd4* X) {
 }
 
 void fft_real_odd(double* x, int N);
-void fft_2pow(double* x, double* y, int N);
+void fft_2pow(double* x, double* y, int N, bool);
 
 void fft_cooley_tukey_real(int N1, complex<double>* X, int N);
 void fft_cooley_tukey_real(int N1, double* X, int N);
