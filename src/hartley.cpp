@@ -277,6 +277,13 @@ void fft_radix6step(double* X, int N) {
 			X[ri] = xrr + xii;
 			X[ir] = xir + xri;
 			X[ii] = xir - xri;
+
+		}
+	}
+	for (int k2 = 0; k2 < M2; k2++) {
+		for (int k1 = 0; k1 < M2; k1++) {
+			std::swap(X[N2 + M * k2 + (M - k1) % M], X[N2 + M2 + M * k2 + k1]);
+			X[N2 + M * k2 + (M - k1) % M] = -X[N2 + M * k2 + (M - k1) % M];
 		}
 	}
 	for (int k2 = 0; k2 < M2; k2++) {
@@ -289,34 +296,22 @@ void fft_radix6step(double* X, int N) {
 			std::swap(X[i1 + M2 + N2], X[i2 + M2 + N2]);
 		}
 	}
-	for (int k2 = M2; k2 < M; k2++) {
-		for (int k1 = 1; k1 < M2; k1++) {
-			std::swap(X[M * k2 + k1], X[M * k2 + M - k1]);
-			X[M * k2 + k1] = -X[M * k2 + k1];
-		}
-	}
 	for (int k2 = 1; k2 < M2; k2++) {
 		for (int k1 = 0; k1 < M2; k1++) {
-			const int i1 = M * k1 + k2;
-			const int i2 = M * (M2 - k1 - 1) + (M2 - k2);
-			if (i1 < i2) {
-				std::swap(X[i1 + M2], X[i2 + M2]);
-				std::swap(X[i1 + N2 + M2], X[i2 + N2 + M2]);
+			int i = M * k1 + k2;
+			int j = M * ((M2 - k1) % M2) + (M2 - k2);
+			if (i < j) {
+				std::swap(X[i + M2], X[j + M2]);
 			}
 		}
 	}
-
-	for (int k1 = 0; k1 < M2; k1++) {
-		std::swap(X[M * k1 + N2], X[M * k1 + M2]);
-	}
-	/*	for (int k2 = 1; k2 < M2; k2++) {
-	 for (int k1 = 0; k1 < M2; k1++) {
-	 std::swap(X[M * k2 + k1 + M2], X[M * k1 + k2 + N2]);
-	 }
-	 }*/
 	for (int k2 = 1; k2 < M2; k2++) {
 		for (int k1 = 0; k1 < M2; k1++) {
-			//		std::swap(X[N2 + M * k1 + k2], X[N2 - M * k1 - k2]);
+			int i = M * k1 + k2;
+			int j = M * ((M2 - k1) % M2) + (M2 - k2) % M2;
+			if (i < j) {
+				std::swap(X[i + N2], X[j + N2]);
+			}
 		}
 	}
 }
@@ -474,6 +469,212 @@ void fht_radix2(double* X, int N) {
 		*((simd_t*) &X[L12]) = X12;
 		*((simd_t*) &X[L13]) = X13;
 		*((simd_t*) &X[L14]) = X14;
+	}
+}
+
+void fft_simd_16(__m256d* x, __m256d* y) {
+
+	auto& R0 = x[0];
+	auto& R1 = x[1];
+	auto& R2 = x[2];
+	auto& R3 = x[3];
+	auto& I0 = y[0];
+	auto& I1 = y[1];
+	auto& I2 = y[2];
+	auto& I3 = y[3];
+
+	__m256d A0, A1, A2, A3;
+	__m256d B0, B1, B2, B3;
+
+	static constexpr __m256d TC1 = {1.0,cos(1.0 * 2.0*M_PI/16.0),cos(2.0 * 2.0*M_PI/16.0),cos(3.0 * 2.0*M_PI/16.0)};
+	static constexpr __m256d TC2 = {1.0,cos(2.0 * 2.0*M_PI/16.0),cos(4.0 * 2.0*M_PI/16.0),cos(6.0 * 2.0*M_PI/16.0)};
+	static constexpr __m256d TC3 = {1.0,cos(3.0 * 2.0*M_PI/16.0),cos(6.0 * 2.0*M_PI/16.0),cos(9.0 * 2.0*M_PI/16.0)};
+	static constexpr __m256d TS1 = {0.0,-sin(1.0 * 2.0*M_PI/16.0),-sin(2.0 * 2.0*M_PI/16.0),-sin(3.0 * 2.0*M_PI/16.0)};
+	static constexpr __m256d TS2 = {0.0,-sin(2.0 * 2.0*M_PI/16.0),-sin(4.0 * 2.0*M_PI/16.0),-sin(6.0 * 2.0*M_PI/16.0)};
+	static constexpr __m256d TS3 = {0.0,-sin(3.0 * 2.0*M_PI/16.0),-sin(6.0 * 2.0*M_PI/16.0),-sin(9.0 * 2.0*M_PI/16.0)};
+	static constexpr int scl = 8;
+	const __m256i I = {0, 4, 8, 12};
+
+	A0 = R0;
+	A1 = R1;
+	A2 = R2;
+	A3 = R3;
+	B0 = I0;
+	B1 = I1;
+	B2 = I2;
+	B3 = I3;
+
+	R0 = _mm256_add_pd(A0, A2);
+	R1 = _mm256_sub_pd(A0, A2);
+	R2 = _mm256_add_pd(A1, A3);
+	R3 = _mm256_sub_pd(A1, A3);
+	I0 = _mm256_add_pd(B0, B2);
+	I1 = _mm256_sub_pd(B0, B2);
+	I2 = _mm256_add_pd(B1, B3);
+	I3 = _mm256_sub_pd(B1, B3);
+	A0 = R0;
+	A1 = R1;
+	A2 = R2;
+	A3 = R3;
+	B0 = I0;
+	B1 = I1;
+	B2 = I2;
+	B3 = I3;
+	R0 = _mm256_add_pd(A0, A2);
+	R2 = _mm256_sub_pd(A0, A2);
+	R1 = _mm256_add_pd(A1, B3);
+	R3 = _mm256_sub_pd(A1, B3);
+	I0 = _mm256_add_pd(B0, B2);
+	I2 = _mm256_sub_pd(B0, B2);
+	I1 = _mm256_sub_pd(B1, A3);
+	I3 = _mm256_add_pd(B1, A3);
+
+	A0 = _mm256_i64gather_pd((((double*)x) + 0), I, scl);
+	A1 = _mm256_i64gather_pd((((double*)x) + 1), I, scl);
+	A2 = _mm256_i64gather_pd((((double*)x) + 2), I, scl);
+	A3 = _mm256_i64gather_pd((((double*)x) + 3), I, scl);
+	B0 = _mm256_i64gather_pd((((double*)y) + 0), I, scl);
+	B1 = _mm256_i64gather_pd((((double*)y) + 1), I, scl);
+	B2 = _mm256_i64gather_pd((((double*)y) + 2), I, scl);
+	B3 = _mm256_i64gather_pd((((double*)y) + 3), I, scl);
+
+	R1 = A1;
+	R2 = A2;
+	R3 = A3;
+	I1 = B1;
+	I2 = B2;
+	I3 = B3;
+
+	A1 = _mm256_mul_pd(I1, TS1);
+	A2 = _mm256_mul_pd(I2, TS2);
+	A3 = _mm256_mul_pd(I3, TS3);
+	A1 = _mm256_fmsub_pd(R1, TC1, A1);
+	A2 = _mm256_fmsub_pd(R2, TC2, A2);
+	A3 = _mm256_fmsub_pd(R3, TC3, A3);
+
+	B1 = _mm256_mul_pd(R1, TS1);
+	B2 = _mm256_mul_pd(R2, TS2);
+	B3 = _mm256_mul_pd(R3, TS3);
+	B1 = _mm256_fmadd_pd(I1, TC1, B1);
+	B2 = _mm256_fmadd_pd(I2, TC2, B2);
+	B3 = _mm256_fmadd_pd(I3, TC3, B3);
+
+	R0 = _mm256_add_pd(A0, A2);
+	R1 = _mm256_sub_pd(A0, A2);
+	R2 = _mm256_add_pd(A1, A3);
+	R3 = _mm256_sub_pd(A1, A3);
+	I0 = _mm256_add_pd(B0, B2);
+	I1 = _mm256_sub_pd(B0, B2);
+	I2 = _mm256_add_pd(B1, B3);
+	I3 = _mm256_sub_pd(B1, B3);
+	A0 = R0;
+	A1 = R1;
+	A2 = R2;
+	A3 = R3;
+	B0 = I0;
+	B1 = I1;
+	B2 = I2;
+	B3 = I3;
+	R0 = _mm256_add_pd(A0, A2);
+	R2 = _mm256_sub_pd(A0, A2);
+	R1 = _mm256_add_pd(A1, B3);
+	R3 = _mm256_sub_pd(A1, B3);
+	I0 = _mm256_add_pd(B0, B2);
+	I2 = _mm256_sub_pd(B0, B2);
+	I1 = _mm256_sub_pd(B1, A3);
+	I3 = _mm256_add_pd(B1, A3);
+
+}
+
+template<class T>
+void fft_split_real_2pow(T* X, int N) {
+
+	if (N <= 64) {
+		sfft_real_scrambled(X, N);
+		return;
+	}
+
+	const int No2 = N >> 1;
+	const int No4 = N >> 2;
+	const int No8 = N >> 3;
+	const auto& W = twiddles(N);
+
+	fft_split_real_2pow(X, No2);
+	fft_split_real_2pow(X + No2, No4);
+	fft_split_real_2pow(X + No2 + No4, No4);
+
+	int I0, J0, J1, J2, J3;
+	int I1 = No4;
+	int I2 = I1 + No4;
+	int I3 = I2 + No4;
+	auto qe0 = X[0];
+	auto qe1 = X[I1];
+	auto qo0 = X[I2];
+	auto qo1 = X[I3];
+	auto t0 = qo1 + qo0;
+	auto t1 = qo1 - qo0;
+	X[0] = qe0 + t0;
+	X[I1] = qe1;
+	X[I2] = qe0 - t0;
+	X[I3] = t1;
+	if (No8) {
+		constexpr auto c0 = (-1.0 / M_SQRT2);
+		I0 = No8;
+		I1 = I0 + No4;
+		I2 = I1 + No4;
+		I3 = I2 + No4;
+		qe0 = X[I0];
+		qe1 = X[I1];
+		qo0 = X[I2];
+		qo1 = X[I3];
+		t0 = (qo1 - qo0) * c0;
+		t1 = (qo0 + qo1) * c0;
+		X[I0] = qe0 + t0;
+		X[I3] = qe1 + t1;
+		X[I1] = qe0 - t0;
+		X[I2] = t1 - qe1;
+	}
+	for (int k2 = 1; k2 < No8; k2++) {
+		const auto& W1 = W[k2];
+		const auto& W3 = W[3 * k2];
+		const auto& C1 = W1.real();
+		const auto& C3 = W3.real();
+		const auto& S1 = W1.imag();
+		const auto& S3 = W3.imag();
+		I0 = k2;
+		J0 = No4 - k2;
+		I1 = I0 + No4;
+		I2 = I1 + No4;
+		I3 = I2 + No4;
+		J1 = J0 + No4;
+		J2 = J1 + No4;
+		J3 = J2 + No4;
+		auto qe0r = X[I0];
+		auto qe0i = X[J1];
+		auto qe1r = X[J0];
+		auto qe1i = X[I1];
+		auto qo0r = X[I2];
+		auto qo0i = X[J2];
+		auto qo1r = X[I3];
+		auto qo1i = X[J3];
+		t0 = qo0r;
+		t1 = qo1r;
+		qo0r = qo0r * C1 - qo0i * S1;
+		qo1r = qo1r * C3 - qo1i * S3;
+		qo0i = t0 * S1 + qo0i * C1;
+		qo1i = t1 * S3 + qo1i * C3;
+		const auto zsr = qo0r + qo1r;
+		const auto zsi = qo0i + qo1i;
+		const auto zdr = qo1r - qo0r;
+		const auto zdi = qo1i - qo0i;
+		X[I0] = qe0r + zsr;
+		X[J3] = qe0i + zsi;
+		X[I1] = qe1r - zdi;
+		X[J2] = zdr - qe1i;
+		X[J1] = qe0r - zsr;
+		X[I2] = zsi - qe0i;
+		X[J0] = qe1r + zdi;
+		X[I3] = qe1i + zdr;
 	}
 }
 

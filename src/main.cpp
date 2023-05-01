@@ -70,7 +70,23 @@ void fft_scramble_real(double* X, int N);
 int main(int argc, char **argv) {
 	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 
-	constexpr int N = 64;
+	constexpr int N = 16;
+	std::vector<double> xre(N);
+	std::vector<double> xim(N);
+	std::vector<complex<double>> y(N);
+	for (int n = 0; n < N; n++) {
+		y[n].imag() = rand1();
+		y[n].real() = rand1();
+		xre[n] = y[n].real();
+		xim[n] = y[n].imag();
+	}
+	fftw(y);
+	fft_simd_16((__m256d*) xre.data(), (__m256d*) xim.data());
+	for( int n = 0; n < N; n++) {
+		printf( "%i | %e %e | %e %e\n", n, xre[n], xim[n], y[n].real(), y[n].imag());
+	}
+
+/*	constexpr int N = 64;
 	std::vector<double> x(N);
 	std::vector<complex<double>> y(N);
 	for (int n = 0; n < N; n++) {
@@ -108,8 +124,8 @@ int main(int argc, char **argv) {
 	}
 	printf("%i | %e %e | %e %e\n", N / 2, x[N / 2], 0.0, y[N / 2].real(), y[N / 2].imag());
 	err += abs(x[N / 2] - y[N / 2].real());
-	printf("%e\n", err / N);
-	//abort();
+	printf("%e\n", err / N);*/
+	abort();
 	timer tm3, tm4;
 	double t3 = 0.0;
 	double t4 = 0.0;
