@@ -158,8 +158,8 @@ std::vector<fft_method> possible_ffts_real(int N) {
 	if (N % 4 == 0) {
 		for (m.R = 4; m.R <= std::min(SFFT_NMAX, N); m.R += 4) {
 			if (N % m.R == 0) {
-				m.type = FFT_SPLIT;
-				ffts.push_back(m);
+			//	m.type = FFT_SPLIT;
+			//	ffts.push_back(m);
 			}
 		}
 	}

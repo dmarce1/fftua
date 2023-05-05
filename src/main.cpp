@@ -65,8 +65,7 @@ int permute_index(int index, int width) {
 }
 
 #include <fenv.h>
-void fft_scramble_real(double* X, int N);
-
+void fft_2pow(double* x, int N);
 int main(int argc, char **argv) {
 	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	timer tm3, tm4;
@@ -75,7 +74,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 5; N <= 1024 * 1024; N *= 5) {
+	for (int N = 2; N <= 1024 * 1024; N *= 2) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
@@ -89,14 +88,18 @@ int main(int argc, char **argv) {
 				for (int n = 0; n < N; n++) {
 					x[n] = (y[n] = rand1());
 				}
+			//	x[0] = y[0] = 1.0;
+			//	x[2] = y[2] = 1.0;
 				if (i == 0) {
 					fftw_real(Y, y);
-					fft_real(x.data(), N);
+					fft_2pow(x.data(), N);
 				} else {
+
 					auto b = fftw_real(Y, y);
 					timer tm;
 					tm.start();
-					fft_real(x.data(), N);
+					fft_2pow(x.data(), N);
+					tm.stop();
 					X[0].real() = x[0];
 					X[0].imag() = 0.0;
 					for (int n = 1; n < N - n; n++) {
@@ -107,7 +110,6 @@ int main(int argc, char **argv) {
 						X[N / 2].real() = x[N / 2];
 						X[N / 2].imag() = 0.0;
 					}
-					tm.stop();
 					t2 += tm.read();
 					t4 += tm.read();
 					t1 += b;
@@ -117,10 +119,11 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-				//			printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+			//			printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
+			//abort();
 			std::string f;
 			for (auto i = pfac.begin(); i != pfac.end(); i++) {
 				f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
@@ -135,6 +138,7 @@ int main(int argc, char **argv) {
 			printf("R %c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
 		}
 		{
+			continue;
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
