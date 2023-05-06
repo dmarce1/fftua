@@ -556,59 +556,269 @@ void fft_2pow_complex(double* x, int N) {
 	}
 }
 
-void fft_2pow(double* x, int N) {
-	static std::vector<double> y;
-	constexpr int N1 = 4;
+template<class T>
+void fft_dit_real(T* x, int N) {
+	constexpr int N1 = 8;
 	const int N2 = N / N1;
-	y.resize(N);
-	scramble_into((fft_simd4*) x, (fft_simd4*) y.data(), N2);
-	fft_depth((fft_simd4*) y.data(), N2);
-	const auto& W = vector_twiddles(N2, N1);
-	std::array<complex<fft_simd4>, N1> p;
-	for (int k2 = 0; k2 < N2 / 2; k2 += SIMD_SIZE) {
-		for (int si = 0; si < SIMD_SIZE; si++) {
-			for (int n1 = 0; n1 < N1; n1++) {
-				p[n1].real()[si] = y[N1 * (k2 + si) + n1];
-				p[n1].imag()[si] = y[N - N1 * (k2 + si) + n1];
-			}
-		}
-		for (int n1 = 1; n1 < N1; n1++) {
-			p[n1] *= W[k2 / SIMD_SIZE][n1];
-		}
-		sfft_complex<N1>((fft_simd4*) p.data());
-		for (int k1 = 0; k1 < N1 / 2; k1++) {
-			const int k = N2 * k1 + k2;
-			for (int si = 0; si < SIMD_SIZE; si++) {
-				x[k + si] = p[k1].real()[si];
-				x[N - k - si] = p[k1].imag()[si];
-			}
-		}
-		for (int k1 = N1 / 2; k1 < N1; k1++) {
-			const int k = N2 * k1 + k2;
-			for (int si = 0; si < SIMD_SIZE; si++) {
-				x[N - k - si] = p[k1].real()[si];
-				x[k + si] = -p[k1].imag()[si];
-			}
-		}
+	T T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
+	T T4R, T4I, T5R, T5I, T6R, T6I, T7R, T7I;
+	T U0R, U0I, U1R, U1I, U2R, U2I, U3R, U3I;
+	T U4R, U4I, U5R, U5I, U6R, U6I, U7R, U7I;
+	T C1, C2, C3, C4, C5, C6, C7, S1, S2, S3, S4, S5, S6, S7;
+	int i0, i1, i2, i3, i4, i5, i6, i7;
+	int i8, i9, i10, i11, i12, i13, i14, i15;
+	int j1, j2, j3, j4, j5, j6, j7;
+
+	if (N <= 1) {
+		return;
+	} else if (N == 2) {
+		T0R = x[0];
+		T1R = x[1];
+		U0R = T0R + T1R;
+		U1R = T0R - T1R;
+		x[0] = U0R;
+		x[1] = U1R;
+		return;
+	} else if (N == 4) {
+		U0R = x[0];
+		U1R = x[2];
+		U2R = x[1];
+		U3R = x[3];
+		T0R = U0R + U2R;
+		T2R = U0R - U2R;
+		T1R = U1R + U3R;
+		T3R = U1R - U3R;
+		U0R = T0R + T1R;
+		U1R = T2R;
+		U1I = -T3R;
+		U2R = T0R - T1R;
+		x[0] = U0R;
+		x[1] = U1R;
+		x[2] = U2R;
+		x[3] = U1I;
+		return;
 	}
-	std::array<double, N1> q;
+
 	for (int n1 = 0; n1 < N1; n1++) {
-		q[n1] = y[n1];
+		fft_dit_real(x + n1 * N2, N2);
 	}
-	sfft_real<N1>(q.data());
-	x[0] = q[0];
-	x[N / 2] = q[N1 / 2];
-	for (int k1 = 1; k1 < N1 / 2; k1++) {
-		x[N2 * k1] = q[k1];
-		x[N - N2 * k1] = q[N1 - k1];
+	const auto& W = twiddles(N);
+	U0R = x[0];
+	U1R = x[4];
+	U2R = x[2];
+	U3R = x[6];
+	U4R = x[1];
+	U5R = x[5];
+	U6R = x[3];
+	U7R = x[7];
+	T0R = U0R + U4R;
+	T2R = U0R - U4R;
+	T1R = U2R + U6R;
+	T3R = U2R - U6R;
+	T4R = U1R + U5R;
+	T6R = U1R - U5R;
+	T5R = U3R + U7R;
+	T7R = U3R - U7R;
+	U0R = T0R + T1R;
+	U2R = T2R;
+	U2I = -T3R;
+	U4R = T0R - T1R;
+	U1R = T4R + T5R;
+	U3R = T6R;
+	U3I = -T7R;
+	U5R = T4R - T5R;
+	T3R = U3R;
+	T5R = U5R;
+	U3R = (T3R + U3I) * M_SQRT1_2;
+	U3I = (-T3R + U3I) * M_SQRT1_2;
+	U5I = -T5R;
+	T0R = U0R;
+	T2R = U2R;
+	T2I = U2I;
+	T4R = U4R;
+	T4I = U4I;
+	T6R = U2R;
+	T6I = -U2I;
+	U0R = T0R + U1R;
+	U1R = T0R - U1R;
+	U2R = T2R + U3R;
+	U2I = T2I + U3I;
+	U4R = T4R;
+	U4I = U5I;
+	U6R = T6R - U3R;
+	U6I = T6I + U3I;
+	x[0] = U0R;
+	x[1] = U2R;
+	x[2] = U4R;
+	x[3] = U6R;
+	x[4] = U1R;
+	x[5] = U6I;
+	x[6] = U4I;
+	x[7] = U2I;
+	if (N2 / 2) {
+
 	}
-	for (int n1 = 0; n1 < N1; n1++) {
-		q[n1] = y[N / 2 + n1];
+	for (int k2 = 1; k2 < N2; k2++) {
+		j1 = k2;
+		j2 = 2 * k2;
+		j3 = 3 * k2;
+		j4 = 4 * k2;
+		j5 = 5 * k2;
+		j6 = 6 * k2;
+		j7 = 7 * k2;
+		C1 = W[j1].real();
+		C2 = W[j2].real();
+		C3 = W[j3].real();
+		C4 = W[j4].real();
+		C5 = W[j5].real();
+		C6 = W[j6].real();
+		C7 = W[j7].real();
+		S1 = W[j1].imag();
+		S2 = W[j2].imag();
+		S3 = W[j3].imag();
+		S4 = W[j4].imag();
+		S5 = W[j5].imag();
+		S6 = W[j6].imag();
+		S7 = W[j7].imag();
+		i0 = k2;
+		i1 = i0 + N2;
+		i2 = i1 + N2;
+		i3 = i2 + N2;
+		i4 = i3 + N2;
+		i5 = i4 + N2;
+		i6 = i5 + N2;
+		i7 = i6 + N2;
+		i8 = N2 - k2;
+		i9 = i8 + N2;
+		i10 = i9 + N2;
+		i11 = i10 + N2;
+		i12 = i11 + N2;
+		i13 = i12 + N2;
+		i14 = i13 + N2;
+		i15 = i14 + N2;
+		U0R = x[i0];
+		U0I = x[i8];
+		U1R = x[i4];
+		U1I = x[i12];
+		U2R = x[i2];
+		U2I = x[i10];
+		U3R = x[i6];
+		U3I = x[i14];
+		U4R = x[i1];
+		U4I = x[i9];
+		U5R = x[i5];
+		U5I = x[i13];
+		U6R = x[i3];
+		U6I = x[i11];
+		U7R = x[i7];
+		U7I = x[i15];
+		T1R = U1R;
+		T2R = U2R;
+		T3R = U3R;
+		T4R = U4R;
+		T5R = U5R;
+		T6R = U6R;
+		T7R = U7R;
+		U1R = T1R * C1 - U1I * S1;
+		U2R = T2R * C2 - U2I * S2;
+		U3R = T3R * C3 - U3I * S3;
+		U4R = T4R * C4 - U4I * S4;
+		U5R = T5R * C5 - U5I * S5;
+		U6R = T6R * C6 - U6I * S6;
+		U7R = T7R * C7 - U7I * S7;
+		U1I = T1R * S1 + U1I * C1;
+		U2I = T2R * S2 + U2I * C2;
+		U3I = T3R * S3 + U3I * C3;
+		U4I = T4R * S4 + U4I * C4;
+		U5I = T5R * S5 + U5I * C5;
+		U6I = T6R * S6 + U6I * C6;
+		U7I = T7R * S7 + U7I * C7;
+		T0R = U0R + U4R;
+		T0I = U0I + U4I;
+		T2R = U0R - U4R;
+		T2I = U0I - U4I;
+		T1R = U2R + U6R;
+		T1I = U2I + U6I;
+		T3R = U2R - U6R;
+		T3I = U2I - U6I;
+		T4R = U1R + U5R;
+		T4I = U1I + U5I;
+		T6R = U1R - U5R;
+		T6I = U1I - U5I;
+		T5R = U3R + U7R;
+		T5I = U3I + U7I;
+		T7R = U3R - U7R;
+		T7I = U3I - U7I;
+		U0R = T0R + T1R;
+		U0I = T0I + T1I;
+		U2R = T2R + T3I;
+		U2I = T2I - T3R;
+		U4R = T0R - T1R;
+		U4I = T0I - T1I;
+		U6R = T2R - T3I;
+		U6I = T2I + T3R;
+		U1R = T4R + T5R;
+		U1I = T4I + T5I;
+		U3R = T6R + T7I;
+		U3I = T6I - T7R;
+		U5R = T4R - T5R;
+		U5I = T4I - T5I;
+		U7R = T6R - T7I;
+		U7I = T6I + T7R;
+		T3R = U3R;
+		T5R = U5R;
+		T7R = U7R;
+		U3R = (T3R + U3I) * M_SQRT1_2;
+		U3I = (-T3R + U3I) * M_SQRT1_2;
+		U5R = U5I;
+		U5I = -T5R;
+		U7R = (-T7R + U7I) * M_SQRT1_2;
+		U7I = (-T7R - U7I) * M_SQRT1_2;
+		T0R = U0R;
+		T0I = U0I;
+		T2R = U2R;
+		T2I = U2I;
+		T4R = U4R;
+		T4I = U4I;
+		T6R = U6R;
+		T6I = U6I;
+		U0R = T0R + U1R;
+		U0I = T0I + U1I;
+		U1R = T0R - U1R;
+		U1I = T0I - U1I;
+		U2R = T2R + U3R;
+		U2I = T2I + U3I;
+		U3R = T2R - U3R;
+		U3I = T2I - U3I;
+		U4R = T4R + U5R;
+		U4I = T4I + U5I;
+		U5R = T4R - U5R;
+		U5I = T4I - U5I;
+		U6R = T6R + U7R;
+		U6I = T6I + U7I;
+		U7R = T6R - U7R;
+		U7I = T6I - U7I;
+		x[i0] = U0R;
+		x[i15] = U0I;
+		x[i1] = U2R;
+		x[i14] = U2I;
+		x[i2] = U4R;
+		x[i13] = U4I;
+		x[i3] = U6R;
+		x[i12] = U6I;
+		x[i11] = U1R;
+		x[i4] = -U1I;
+		x[i10] = U3R;
+		x[i5] = -U3I;
+		x[i9] = U5R;
+		x[i6] = -U5I;
+		x[i8] = U7R;
+		x[i7] = -U7I;
 	}
-	sfft_skew<N1>(q.data());
-	for (int k1 = 0; k1 < N1 / 2; k1++) {
-		x[(N2 * k1 + N2 / 2)] = q[k1];
-		x[N - (N2 * k1 + N2 / 2)] = q[N1 - k1 - 1];
-	}
+}
+
+void fft_2pow(double* x, int N) {
+	scramble(x, N);
+	fft_dit_real(x, N);
 }
 
