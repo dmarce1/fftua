@@ -66,6 +66,7 @@ int permute_index(int index, int width) {
 
 #include <fenv.h>
 void fft_2pow(double* x, int N);
+void fft_2pow_complex(double* x, int N);
 int main(int argc, char **argv) {
 	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	timer tm3, tm4;
@@ -76,7 +77,7 @@ int main(int argc, char **argv) {
 	int cnt = 0;
 	for (int N = 2; N <= 1024 * 1024; N *= 2) {
 		auto pfac = prime_factorization(N);
-		{
+		/*{
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
@@ -136,13 +137,12 @@ int main(int argc, char **argv) {
 			cnt++;
 			score /= cnt;
 			printf("R %c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
-		}
+		}*/
 		{
-			continue;
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 21; i++) {
+			for (int i = 0; i < 2; i++) {
 				std::vector<complex<double>> X(N);
 				std::vector<complex<double>> Y(N);
 				for (int n = 0; n < N; n++) {
@@ -151,12 +151,12 @@ int main(int argc, char **argv) {
 				}
 				if (i == 0) {
 					fftw(Y);
-					fft(X.data(), N);
+					fft_2pow_complex((double*)X.data(), N);
 				} else {
 					auto b = fftw(Y);
 					timer tm;
 					tm.start();
-					fft(X.data(), N);
+					fft_2pow_complex((double*)X.data(), N);
 					tm.stop();
 					t2 += tm.read();
 					t4 += tm.read();
@@ -167,7 +167,7 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-						//		printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+				//			printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
@@ -175,6 +175,7 @@ int main(int argc, char **argv) {
 			for (auto i = pfac.begin(); i != pfac.end(); i++) {
 				f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
 			}
+		//	abort();
 			printf("%i: %32s ", N, f.c_str());
 			fflush(stdout);
 			avg_err /= (20 * N);
