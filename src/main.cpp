@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 2; N <= 1024 * 1024; N *= 2) {
+	for (int N = 32; N <= 1024 * 1024 * 1024; N *= 2) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
@@ -120,11 +120,11 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-			//			printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+						printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
-		//	abort();
+			abort();
 			std::string f;
 			for (auto i = pfac.begin(); i != pfac.end(); i++) {
 				f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
