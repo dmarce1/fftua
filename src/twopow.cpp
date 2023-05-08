@@ -69,6 +69,24 @@ void scramble_complex(T* x, int N) {
 }
 
 template<class T>
+void scramble_complex4(T* x, int N) {
+	int N1m = N - 1;
+	int j = 0;
+	for (int i = 0; i < N1m; i++) {
+		if (i > j) {
+			std::swap(x[2 * i], x[2 * j]);
+			std::swap(x[2 * i + 1], x[2 * j + 1]);
+		}
+		int k = N / 4;
+		while (3 * k <= j) {
+			j -= 3 * k;
+			k >>= 2;
+		}
+		j += k;
+	}
+}
+
+template<class T>
 void scramble_into(T* x, T* y, int N) {
 	int N1m = N - 1;
 	int j = 0;
@@ -100,23 +118,109 @@ int int_pow(int a, int b) {
 }
 
 void fft_width(double* X, int N) {
-	constexpr int N1 = 2;
-	constexpr int cache_size = 4*1024;
+	constexpr int N1 = 4;
+
+	int nhi = 1;
+	int nlo = N / N1;
+	const int npass = ilogb(N) / ilogb(N1);
+	const auto& W = twiddles(N);
+	for (int pass = 0; pass < npass; pass++) {
+		printf("pass = %i nhi = %i nlo = %i\n", pass, nhi, nlo);
+		for (int hi = 0; hi < nhi; hi++) {
+			for (int lo = 0; lo < nlo; lo++) {
+				const int ki = hi * nlo * N1 + lo;
+				const int ti = lo * nhi;
+				printf("pass = %i hi = %i lo = %i ki = %i ti = %i\n", pass, hi, lo, ki, ti);
+				double T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
+				double U0R, U0I, U1R, U1I, U2R, U2I, U3R, U3I;
+				double C1, C2, C3, S1, S2, S3;
+				int i0, i1, i2, i3, i4, i5, i6, i7;
+				int j1, j2, j3;
+				int D = nlo;
+				i0 = 2 * ki;
+				i4 = 2 * ki + 1;
+				i1 = i0 + 2 * D;
+				i2 = i1 + 2 * D;
+				i3 = i2 + 2 * D;
+				i5 = i4 + 2 * D;
+				i6 = i5 + 2 * D;
+				i7 = i6 + 2 * D;
+				U0R = X[i0];
+				U1R = X[i1];
+				U2R = X[i2];
+				U3R = X[i3];
+				U0I = X[i4];
+				U1I = X[i5];
+				U2I = X[i6];
+				U3I = X[i7];
+				j1 = ti;
+				j2 = 2 * j1;
+				j3 = 3 * j1;
+				C1 = W[j1].real();
+				C2 = W[j2].real();
+				C3 = W[j3].real();
+				S1 = W[j1].imag();
+				S2 = W[j2].imag();
+				S3 = W[j3].imag();
+				T0R = U0R + U2R;
+				T0I = U0I + U2I;
+				T2R = U0R - U2R;
+				T2I = U0I - U2I;
+				T1R = U1R + U3R;
+				T1I = U1I + U3I;
+				T3R = U1R - U3R;
+				T3I = U1I - U3I;
+				U0R = T0R + T1R;
+				U0I = T0I + T1I;
+				U1R = T2R + T3I;
+				U1I = T2I - T3R;
+				U2R = T0R - T1R;
+				U2I = T0I - T1I;
+				U3R = T2R - T3I;
+				U3I = T2I + T3R;
+				T1R = U1R;
+				T2R = U2R;
+				T3R = U3R;
+				U1R = T1R * C1 - U1I * S1;
+				U2R = T2R * C2 - U2I * S2;
+				U3R = T3R * C3 - U3I * S3;
+				U1I = T1R * S1 + U1I * C1;
+				U2I = T2R * S2 + U2I * C2;
+				U3I = T3R * S3 + U3I * C3;
+				X[i0] = U0R;
+				X[i4] = U0I;
+				X[i1] = U1R;
+				X[i5] = U1I;
+				X[i2] = U2R;
+				X[i6] = U2I;
+				X[i3] = U3R;
+				X[i7] = U3I;
+			}
+		}
+		nhi *= N1;
+		nlo /= N1;
+	}
+	scramble_complex4(X, N);
+}
+
+void fft_width2(double* X, int N) {
+	constexpr int N1 = 4;
+	constexpr int cache_size = 64;
 
 	int nepoch = ceil(log(N) / log(N1) / floor(log(cache_size) / log(N1)));
 	const int nlev = ilogb(N) / ilogb(N1);
-	while( nlev % nepoch != 0 ) {
+	while (nlev % nepoch != 0) {
 		nepoch++;
 	}
 	const int npass = nlev / nepoch;
-	int nbutter = cache_size;
+	int nbutter = std::min(cache_size, N);
 	int ngroup = N / nbutter;
-	while(ilogb(ngroup) % ilogb(nbutter) != 0 ) {
+	while ((ilogb(ngroup) / ilogb(N1)) % (ilogb(nbutter) / ilogb(N1)) != 0) {
 		nbutter /= N1;
 		ngroup *= N1;
 	}
 
-	printf("N1 = %i cache_size = %i nlev = %i nepoch = %i npass = %i ngroup = %i nbutter = %i\n", N1, cache_size, nlev, nepoch, npass, ngroup, nbutter);
+//	printf("N1 = %i cache_size = %i nlev = %i nepoch = %i npass = %i ngroup = %i nbutter = %i\n", N1, cache_size, nlev, nepoch, npass, ngroup, nbutter);
 
 	scramble_complex(X, N);
 	const auto& W = twiddles(N);
@@ -134,21 +238,69 @@ void fft_width(double* X, int N) {
 					for (int bhi = 0; bhi < nbhi; bhi++) {
 						for (int blo = 0; blo < nblo; blo++) {
 							const int k0 = blo + N1 * nblo * (bhi + nbhi * (glo + nglo * ghi));
-							const int k1 = k0 + nblo;
 							const int ti = (glo + nglo * blo) * tishft;
-						//	printf("ei = %i ghi = %i glo = %i pi = %i bhi = %i blo = %i k0 = %i k1 = %i ti = %i\n", ei, ghi, glo, pi, bhi, blo, k0, k1, ti);
-							const auto w = W[ti];
-							const auto x0r = X[2 * k0];
-							const auto x0i = X[2 * k0 + 1];
-							auto x1r = X[2 * k1];
-							auto x1i = X[2 * k1 + 1];
-							auto tmp = x1r;
-							x1r = tmp * w.real() - x1i * w.imag();
-							x1i = tmp * w.imag() + x1i * w.real();
-							X[2 * k0] = x0r + x1r;
-							X[2 * k0 + 1] = x0i + x1i;
-							X[2 * k1] = x0r - x1r;
-							X[2 * k1 + 1] = x0i - x1i;
+							//		printf("ei = %i ghi = %i glo = %i pi = %i bhi = %i blo = %i k0 = %i ti = %i nbhi = %i nblo = %i\n", ei, ghi, glo, pi, bhi, blo, k0, ti, nbhi, nblo);
+							double T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
+							double U0R, U0I, U1R, U1I, U2R, U2I, U3R, U3I;
+							double C1, C2, C3, S1, S2, S3;
+							int i0, i1, i2, i3, i4, i5, i6, i7;
+							int j1, j2, j3;
+							int D = nblo;
+							i0 = 2 * k0;
+							i4 = 2 * k0 + 1;
+							i1 = i0 + 2 * D;
+							i2 = i1 + 2 * D;
+							i3 = i2 + 2 * D;
+							i5 = i4 + 2 * D;
+							i6 = i5 + 2 * D;
+							i7 = i6 + 2 * D;
+							U0R = X[i0];
+							T1R = X[i2];
+							T2R = X[i1];
+							T3R = X[i3];
+							U0I = X[i4];
+							U1I = X[i6];
+							U2I = X[i5];
+							U3I = X[i7];
+							j1 = ti;
+							j2 = 2 * j1;
+							j3 = 3 * j1;
+							C1 = W[j1].real();
+							C2 = W[j2].real();
+							C3 = W[j3].real();
+							S1 = W[j1].imag();
+							S2 = W[j2].imag();
+							S3 = W[j3].imag();
+							U1R = T1R * C1 - U1I * S1;
+							U2R = T2R * C2 - U2I * S2;
+							U3R = T3R * C3 - U3I * S3;
+							U1I = T1R * S1 + U1I * C1;
+							U2I = T2R * S2 + U2I * C2;
+							U3I = T3R * S3 + U3I * C3;
+							T0R = U0R + U2R;
+							T0I = U0I + U2I;
+							T2R = U0R - U2R;
+							T2I = U0I - U2I;
+							T1R = U1R + U3R;
+							T1I = U1I + U3I;
+							T3R = U1R - U3R;
+							T3I = U1I - U3I;
+							U0R = T0R + T1R;
+							U0I = T0I + T1I;
+							U1R = T2R + T3I;
+							U1I = T2I - T3R;
+							U2R = T0R - T1R;
+							U2I = T0I - T1I;
+							U3R = T2R - T3I;
+							U3I = T2I + T3R;
+							X[i0] = U0R;
+							X[i4] = U0I;
+							X[i1] = U1R;
+							X[i5] = U1I;
+							X[i2] = U2R;
+							X[i6] = U2I;
+							X[i3] = U3R;
+							X[i7] = U3I;
 						}
 					}
 					nbhi /= N1;
@@ -191,17 +343,17 @@ void fft_width(double* X, int N) {
 				std::swap(X[2 * ihi * nlo + n], X[2 * jhi * nlo + n]);
 			}
 		}
-		int k = nhi >> 1;
-		while (k <= jhi) {
-			jhi -= k;
-			k >>= 1;
+		int k = nhi >> 2;
+		while (3 * k <= jhi) {
+			jhi -= 3 * k;
+			k >>= 2;
 		}
 		jhi += k;
 	}
 	for (int ihi = 0; ihi < nhi; ihi++) {
-		scramble_complex(X + 2 * ihi * nlo, nbutter);
+		scramble_complex4(X + 2 * ihi * nlo, nbutter);
 	}
-	scramble_complex(X, N);
+	scramble_complex4(X, N);
 
 }
 
