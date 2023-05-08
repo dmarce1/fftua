@@ -101,18 +101,21 @@ int int_pow(int a, int b) {
 
 void fft_width(double* X, int N) {
 	constexpr int N1 = 2;
-	constexpr int cache_size = 8;
+	constexpr int cache_size = 4*1024;
 
-	const int nepoch = ceil(ilogb(N) / ilogb(N1) / floor(ilogb(cache_size) / ilogb(N1)));
-	int ngroup = N / cache_size;
-	int nbutter = cache_size;
+	int nepoch = ceil(log(N) / log(N1) / floor(log(cache_size) / log(N1)));
 	const int nlev = ilogb(N) / ilogb(N1);
-	const int npass = (nlev) / nepoch;
-
-	while (ngroup % nbutter != 0) {
+	while( nlev % nepoch != 0 ) {
+		nepoch++;
+	}
+	const int npass = nlev / nepoch;
+	int nbutter = cache_size;
+	int ngroup = N / nbutter;
+	while(ilogb(ngroup) % ilogb(nbutter) != 0 ) {
 		nbutter /= N1;
 		ngroup *= N1;
 	}
+
 	printf("N1 = %i cache_size = %i nlev = %i nepoch = %i npass = %i ngroup = %i nbutter = %i\n", N1, cache_size, nlev, nepoch, npass, ngroup, nbutter);
 
 	scramble_complex(X, N);
@@ -151,6 +154,9 @@ void fft_width(double* X, int N) {
 					nbhi /= N1;
 					nblo *= N1;
 					this_digit++;
+					if (this_digit == nlev) {
+						break;
+					}
 				}
 			}
 		}
@@ -176,6 +182,26 @@ void fft_width(double* X, int N) {
 		nglo *= nbutter;
 		digit += npass;
 	}
+	int nhi = N / nbutter;
+	int nlo = nbutter;
+	int jhi = 0;
+	for (int ihi = 0; ihi < nhi - 1; ihi++) {
+		if (ihi > jhi) {
+			for (int n = 0; n < 2 * nbutter; n++) {
+				std::swap(X[2 * ihi * nlo + n], X[2 * jhi * nlo + n]);
+			}
+		}
+		int k = nhi >> 1;
+		while (k <= jhi) {
+			jhi -= k;
+			k >>= 1;
+		}
+		jhi += k;
+	}
+	for (int ihi = 0; ihi < nhi; ihi++) {
+		scramble_complex(X + 2 * ihi * nlo, nbutter);
+	}
+	scramble_complex(X, N);
 
 }
 
