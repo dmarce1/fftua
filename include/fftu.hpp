@@ -14,6 +14,9 @@
 
 #include "sfft.hpp"
 
+
+void fft_width(double* X, int N);
+
 void fft_twoforone_real(fft_simd4* X, int N);
 void fft_twoforone_real(double* X, int N);
 void fft_cooley_tukey(int N1, complex<fft_simd4>* X, int N);
