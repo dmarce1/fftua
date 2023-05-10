@@ -34,12 +34,12 @@ int reverse_bits_conj(int i, int N) {
 }
 
 template<class T>
-void scramble(T* x, int N) {
+void scramble(T* x, int N, int s = 1) {
 	int N1m = N - 1;
 	int j = 0;
 	for (int i = 0; i < N1m; i++) {
 		if (i > j) {
-			std::swap(x[i], x[j]);
+			std::swap(x[s * i], x[s * j]);
 		}
 		int k = N >> 1;
 		while (k <= j) {
@@ -117,67 +117,423 @@ int int_pow(int a, int b) {
 	return rc;
 }
 
+void fft_4step1(fft_simd4** __restrict__ xre, fft_simd4** __restrict__ xim, int N, int M) {
+	constexpr int N1 = 4;
+	const int N2 = N / N1;
+	const auto& W = twiddles(N);
+	fft_simd4 C1, C2, C3, S1, S2, S3;
+	int i0, i1, i2, i3;
+	int j1, j2, j3;
+	if (N == 1) {
+		return;
+	} else if (N == 2) {
+		i0 = 0;
+		i1 = i0 + 1;
+		auto* U0R = xre[i0];
+		auto* U0I = xim[i0];
+		auto* U1R = xre[i1];
+		auto* U1I = xim[i1];
+		for (int m = 0; m < M; m++) {
+			auto T0R = U0R[m];
+			auto T0I = U0I[m];
+			U0R[m] = T0R + U1R[m];
+			U0I[m] = T0I + U1I[m];
+			U1R[m] = T0R - U1R[m];
+			U1I[m] = T0I - U1I[m];
+		}
+		return;
+	}
+	for (int n1 = 0; n1 < N1; n1++) {
+		fft_4step1(xre + n1 * N2, xim + n1 * N2, N2, M);
+	}
+	const int chunk_size = std::min(M, 16);
+	for (int chunk = 0; chunk < M / chunk_size; chunk++) {
+		for (int k2 = 0; k2 < N2; k2++) {
+			i0 = k2;
+			i1 = i0 + N2;
+			i2 = i1 + N2;
+			i3 = i2 + N2;
+			j1 = k2;
+			j2 = 2 * j1;
+			j3 = 3 * j1;
+			C1 = W[j1].real();
+			C2 = W[j2].real();
+			C3 = W[j3].real();
+			S1 = W[j1].imag();
+			S2 = W[j2].imag();
+			S3 = W[j3].imag();
+			fft_simd4* __restrict__ U0R = xre[i0] + chunk * chunk_size;
+			fft_simd4* __restrict__ U1R = xre[i2] + chunk * chunk_size;
+			fft_simd4* __restrict__ U2R = xre[i1] + chunk * chunk_size;
+			fft_simd4* __restrict__ U3R = xre[i3] + chunk * chunk_size;
+			fft_simd4* __restrict__ U0I = xim[i0] + chunk * chunk_size;
+			fft_simd4* __restrict__ U1I = xim[i2] + chunk * chunk_size;
+			fft_simd4* __restrict__ U2I = xim[i1] + chunk * chunk_size;
+			fft_simd4* __restrict__ U3I = xim[i3] + chunk * chunk_size;
+			fft_simd4 T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
+			for (int m = 0; m < chunk_size; m++) {
+				T1R = U1R[m];
+				U1R[m] = T1R * C1 - U1I[m] * S1;
+				U1I[m] = T1R * S1 + U1I[m] * C1;
+			}
+			for (int m = 0; m < chunk_size; m++) {
+				T2R = U2R[m];
+				U2R[m] = T2R * C2 - U2I[m] * S2;
+				U2I[m] = T2R * S2 + U2I[m] * C2;
+			}
+			for (int m = 0; m < chunk_size; m++) {
+				auto T3R = U3R[m];
+				U3R[m] = T3R * C3 - U3I[m] * S3;
+				U3I[m] = T3R * S3 + U3I[m] * C3;
+			}
+			for (int m = 0; m < chunk_size; m++) {
+				T0R = U0R[m];
+				U0R[m] = T0R + U2R[m];
+				U2R[m] = T0R - U2R[m];
+			}
+			for (int m = 0; m < chunk_size; m++) {
+				T0I = U0I[m];
+				U0I[m] = T0I + U2I[m];
+				U2I[m] = T0I - U2I[m];
+			}
+			for (int m = 0; m < chunk_size; m++) {
+				T1R = U1R[m];
+				U1R[m] = T1R + U3R[m];
+				U3R[m] = T1R - U3R[m];
+			}
+			for (int m = 0; m < chunk_size; m++) {
+				T1I = U1I[m];
+				U1I[m] = T1I + U3I[m];
+				U3I[m] = T1I - U3I[m];
+			}
+			for (int m = 0; m < chunk_size; m++) {
+				T0R = U0R[m];
+				U0R[m] = T0R + U1R[m];
+				U1R[m] = T0R - U1R[m];
+			}
+			for (int m = 0; m < chunk_size; m++) {
+				T0I = U0I[m];
+				U0I[m] = T0I + U1I[m];
+				U1I[m] = T0I - U1I[m];
+			}
+			for (int m = 0; m < chunk_size; m++) {
+				T2R = U2R[m];
+				T2I = U2I[m];
+				T3R = U3R[m];
+				U2R[m] = T2R + U3I[m];
+				U2I[m] = T2I - T3R;
+				U3R[m] = T2R - U3I[m];
+				U3I[m] = T2I + T3R;
+			}
+		}
+	}
+}
+
+struct twiddle4 {
+	double cr1;
+	double cr2;
+	double cr3;
+	double ci1;
+	double ci2;
+	double ci3;
+	double cr1n;
+	double cr2n;
+	double cr3n;
+	double ci1n;
+	double ci2n;
+	double ci3n;
+};
+
+const std::vector<twiddle4>& twiddles4(int N) {
+	using entry_type = std::shared_ptr<std::vector<twiddle4>>;
+	static std::unordered_map<int, entry_type> cache;
+	auto iter = cache.find(N);
+	if (iter != cache.end()) {
+		return *(iter->second);
+	} else {
+		std::vector<twiddle4> W(round_up(N, SIMD_SIZE));
+		for (int n = 0; n < N; n++) {
+			auto c1 = cos(-2.0 * M_PI * n / N);
+			auto c2 = cos(-4.0 * M_PI * n / N);
+			auto c3 = cos(-6.0 * M_PI * n / N);
+			auto s1 = sin(-2.0 * M_PI * n / N);
+			auto s2 = sin(-4.0 * M_PI * n / N);
+			auto s3 = sin(-6.0 * M_PI * n / N);
+			W[n].cr1 = c1;
+			W[n].cr2 = c2;
+			W[n].cr3 = c3 / c1;
+			W[n].ci1 = s1 / c1;
+			W[n].ci2 = s2 / c2;
+			W[n].ci3 = s3 / c3;
+			W[n].cr1n = -c1;
+			W[n].cr2n = -c2;
+			W[n].cr3n = -c3 / c1;
+			W[n].ci1n = -s1 / c1;
+			W[n].ci2n = -s2 / c2;
+			W[n].ci3n = -s3 / c3;
+		}
+		cache[N] = std::make_shared<std::vector<twiddle4>>(std::move(W));
+		return *(cache[N]);
+	}
+}
+
+void fft_inplace(double* x, int N) {
+	constexpr int N1 = 2;
+	const auto& W = twiddles(N);
+	int NHI = 1;
+	int NLO = 1;
+	int NMID = N / (N1 * N1);
+	int N2 = N / N1;
+	while (NMID) {
+		for (int nhi = 0; nhi < NHI; nhi++) {
+			for (int nmid = 0; nmid < NMID; nmid++) {
+				for (int nlo = 0; nlo < NLO; nlo++) {
+					const int i0a = nlo + NLO * (0 + N1 * (nmid + NMID * (0 + N1 * nhi)));
+					const int i0b = nlo + NLO * (1 + N1 * (nmid + NMID * (0 + N1 * nhi)));
+					const int i1a = i0a + N2;
+					const int i1b = i0b + N2;
+					const auto& wa = W[mod(nlo * NHI * N1 * NMID, N)];
+					const auto& wb = W[mod(nlo * NHI * N1 * NMID, N)];
+					auto u0ra = x[2 * i0a];
+					auto u0ia = x[2 * i0a + 1];
+					auto u1ra = x[2 * i1a];
+					auto u1ia = x[2 * i1a + 1];
+					auto u0rb = x[2 * i0b];
+					auto u0ib = x[2 * i0b + 1];
+					auto u1rb = x[2 * i1b];
+					auto u1ib = x[2 * i1b + 1];
+					auto tmp = u1ra;
+					u1ra = tmp * wa.real() - u1ia * wa.imag();
+					u1ia = tmp * wa.imag() + u1ia * wa.real();
+					tmp = u1rb;
+					u1rb = tmp * wb.real() - u1ib * wb.imag();
+					u1ib = tmp * wb.imag() + u1ib * wb.real();
+					tmp = u0ra;
+					u0ra = tmp + u1ra;
+					u1ra = tmp - u1ra;
+					tmp = u0ia;
+					u0ia = tmp + u1ia;
+					u1ia = tmp - u1ia;
+					tmp = u0rb;
+					u0rb = tmp + u1rb;
+					u1rb = tmp - u1rb;
+					tmp = u0ib;
+					u0ib = tmp + u1ib;
+					u1ib = tmp - u1ib;
+					x[2 * i0a] = u0ra;
+					x[2 * i1a] = u0rb;
+					x[2 * i0b] = u1ra;
+					x[2 * i1b] = u1rb;
+					x[2 * i0a + 1] = u0ia;
+					x[2 * i1a + 1] = u0ib;
+					x[2 * i0b + 1] = u1ia;
+					x[2 * i1b + 1] = u1ib;
+				}
+			}
+		}
+		N2 /= N1;
+		NHI *= N1;
+		NLO *= N1;
+		NMID /= N1 * N1;
+	}
+	while (NLO < N) {
+		for (int nhi = 0; nhi < NHI; nhi++) {
+			for (int nlo = 0; nlo < NLO; nlo++) {
+				const int i0 = nlo + NLO * (0 + N1 * nhi);
+				const int i1 = i0 + N2;
+				const auto& w = W[nlo * NHI];
+				auto u0r = x[2 * i0];
+				auto u0i = x[2 * i0 + 1];
+				auto u1r = x[2 * i1];
+				auto u1i = x[2 * i1 + 1];
+				auto tmp = u1r;
+				u1r = tmp * w.real() - u1i * w.imag();
+				u1i = tmp * w.imag() + u1i * w.real();
+				tmp = u0r;
+				u0r += u1r;
+				u1r = tmp - u1r;
+				tmp = u0i;
+				u0i += u1i;
+				u1i = tmp - u1i;
+				x[2 * i0] = u0r;
+				x[2 * i1] = u1r;
+				x[2 * i0 + 1] = u0i;
+				x[2 * i1 + 1] = u1i;
+			}
+		}
+		N2 *= N1;
+		NHI /= N1;
+		NLO *= N1;
+	}
+	/*	int j = 0;
+	 for (int i = 0; i < N - 1; i++) {
+	 if (i > j) {
+	 std::swap(x[i], x[j]);
+	 }
+	 int k = N / 2;
+	 while (k <= j) {
+	 j -= k;
+	 k >>= 1;
+	 }
+	 j += k;
+	 }
+
+	 const auto& W = twiddles(N);
+	 int N2 = 1;
+	 int M = N / N2 / N1;
+	 int N1N2 = N1 * N2;
+	 while (N2 < N) {
+	 for (int n = 0; n < M; n++) {
+	 const int n0 = N1N2 * n;
+	 const int i0 = n0;
+	 const int i1 = n0 + N2;
+	 auto u0r = x[i0];
+	 auto u1r = x[i1];
+	 double tmp;
+	 tmp = u0r;
+	 u0r = tmp + u1r;
+	 u1r = tmp - u1r;
+	 x[i0] = u0r;
+	 x[i1] = u1r;
+	 if (N2 > 1) {
+	 const int i1 = n0 + 3 * N2 / 2;
+	 x[i1] = -x[i1];
+	 }
+	 for (int k = 1; k < N2 / 2; k++) {
+	 const int i0 = n0 + k;
+	 const int i1 = i0 + N2;
+	 const int i2 = n0 + N2 - k;
+	 const int i3 = i2 + N2;
+	 const auto& w = W[M * k];
+	 auto u0r = x[i0];
+	 auto u0i = x[i2];
+	 auto u1r = x[i1];
+	 auto u1i = x[i3];
+	 double tmp;
+	 tmp = u1r;
+	 u1r = tmp * w.real() - u1i * w.imag();
+	 u1i = tmp * w.imag() + u1i * w.real();
+	 tmp = u0r;
+	 u0r = tmp + u1r;
+	 u1r = tmp - u1r;
+	 tmp = u0i;
+	 u0i = tmp + u1i;
+	 u1i = tmp - u1i;
+	 x[i0] = u0r;
+	 x[i3] = u0i;
+	 x[i2] = u1r;
+	 x[i1] = -u1i;
+	 }
+	 }
+	 N2 *= N1;
+	 M /= N1;
+	 N1N2 *= N1;
+	 }*/
+
+}
+
+void fft_4step(double* X, int N) {
+	const auto& W = twiddles(N);
+	const int M = lround(sqrt(N));
+	static std::vector<fft_simd4*> xre_ptrs;
+	static std::vector<fft_simd4*> xim_ptrs;
+	static std::vector<double> xre;
+	static std::vector<double> xim;
+	xim_ptrs.resize(N);
+	xre_ptrs.resize(N);
+	xre.resize(N);
+	xim.resize(N);
+	for (int n = 0; n < N; n++) {
+		xre[n] = X[2 * n];
+		xim[n] = X[2 * n + 1];
+	}
+	for (int m1 = 0; m1 < M; m1++) {
+		scramble(xre.data() + m1, M, M);
+		scramble(xim.data() + m1, M, M);
+	}
+	for (int m1 = 0; m1 < M; m1++) {
+		xre_ptrs[m1] = ((fft_simd4*) (xre.data() + m1 * M));
+		xim_ptrs[m1] = ((fft_simd4*) (xim.data() + m1 * M));
+	}
+	fft_4step1(xre_ptrs.data(), xim_ptrs.data(), M, M / SIMD_SIZE);
+	for (int m1 = 0; m1 < M; m1++) {
+		for (int m2 = 0; m2 < M; m2++) {
+			const auto w = W[m1 * m2];
+			auto& re = xre[m1 * M + m2];
+			auto& im = xim[m1 * M + m2];
+			auto tmp = re;
+			re = tmp * w.real() - im * w.imag();
+			im = tmp * w.imag() + im * w.real();
+		}
+	}
+	for (int m1 = 0; m1 < M; m1++) {
+		scramble(xre.data() + m1 * M, M);
+		scramble(xim.data() + m1 * M, M);
+	}
+	for (int m1 = 0; m1 < M; m1++) {
+		for (int m2 = 0; m2 < M; m2++) {
+			const int i = m1 * M + m2;
+			const int j = m2 * M + m1;
+			if (i < j) {
+				std::swap(xre[i], xre[j]);
+				std::swap(xim[i], xim[j]);
+			}
+		}
+	}
+	fft_4step1(xre_ptrs.data(), xim_ptrs.data(), M, M / SIMD_SIZE);
+	for (int n = 0; n < N; n++) {
+		X[2 * n] = xre[n];
+		X[2 * n + 1] = xim[n];
+	}
+}
+
 void fft_width(double* X, int N) {
 	constexpr int N1 = 4;
 
-	int nhi = 1;
-	int nlo = N / N1;
 	const int npass = ilogb(N) / ilogb(N1);
 	const auto& W = twiddles(N);
-	for (int pass = 0; pass < npass; pass++) {
-		printf("pass = %i nhi = %i nlo = %i\n", pass, nhi, nlo);
-		for (int hi = 0; hi < nhi; hi++) {
-			for (int lo = 0; lo < nlo; lo++) {
-				const int ki = hi * nlo * N1 + lo;
-				const int ti = lo * nhi;
-				printf("pass = %i hi = %i lo = %i ki = %i ti = %i\n", pass, hi, lo, ki, ti);
-				double T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
-				double U0R, U0I, U1R, U1I, U2R, U2I, U3R, U3I;
-				double C1, C2, C3, S1, S2, S3;
-				int i0, i1, i2, i3, i4, i5, i6, i7;
-				int j1, j2, j3;
-				int D = nlo;
-				i0 = 2 * ki;
-				i4 = 2 * ki + 1;
-				i1 = i0 + 2 * D;
-				i2 = i1 + 2 * D;
-				i3 = i2 + 2 * D;
-				i5 = i4 + 2 * D;
-				i6 = i5 + 2 * D;
-				i7 = i6 + 2 * D;
-				U0R = X[i0];
-				U1R = X[i1];
-				U2R = X[i2];
-				U3R = X[i3];
-				U0I = X[i4];
-				U1I = X[i5];
-				U2I = X[i6];
-				U3I = X[i7];
-				j1 = ti;
-				j2 = 2 * j1;
-				j3 = 3 * j1;
-				C1 = W[j1].real();
-				C2 = W[j2].real();
-				C3 = W[j3].real();
-				S1 = W[j1].imag();
-				S2 = W[j2].imag();
-				S3 = W[j3].imag();
-				T0R = U0R + U2R;
-				T0I = U0I + U2I;
-				T2R = U0R - U2R;
-				T2I = U0I - U2I;
-				T1R = U1R + U3R;
-				T1I = U1I + U3I;
-				T3R = U1R - U3R;
-				T3I = U1I - U3I;
-				U0R = T0R + T1R;
-				U0I = T0I + T1I;
-				U1R = T2R + T3I;
-				U1I = T2I - T3R;
-				U2R = T0R - T1R;
-				U2I = T0I - T1I;
-				U3R = T2R - T3I;
-				U3I = T2I + T3R;
+
+	const auto butterfly = [X, &W](int ki, int ti, int D, bool dif) {
+		//	printf("pass = %i hi = %i lo = %i ki = %i ti = %i\n", pass, hi, lo, ki, ti);
+			double T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
+			double U0R, U0I, U1R, U1I, U2R, U2I, U3R, U3I;
+			double C1, C2, C3, S1, S2, S3;
+			int j1, j2, j3;
+			int i0, i1, i2, i3, i4, i5, i6, i7;
+			i0 = 2 * ki;
+			i4 = 2 * ki + 1;
+			i1 = i0 + 2 * D;
+			i2 = i1 + 2 * D;
+			i3 = i2 + 2 * D;
+			i5 = i4 + 2 * D;
+			i6 = i5 + 2 * D;
+			i7 = i6 + 2 * D;
+			if(!dif) {
+				std::swap(i2, i1);
+				std::swap(i5, i6);
+			}
+			U0R = X[i0];
+			U1R = X[i1];
+			U2R = X[i2];
+			U3R = X[i3];
+			U0I = X[i4];
+			U1I = X[i5];
+			U2I = X[i6];
+			U3I = X[i7];
+			if(!dif) {
+				std::swap(i2, i1);
+				std::swap(i5, i6);
+			}
+			j1 = ti;
+			j2 = 2 * j1;
+			j3 = 3 * j1;
+			C1 = W[j1].real();
+			C2 = W[j2].real();
+			C3 = W[j3].real();
+			S1 = W[j1].imag();
+			S2 = W[j2].imag();
+			S3 = W[j3].imag();
+			if(!dif) {
 				T1R = U1R;
 				T2R = U2R;
 				T3R = U3R;
@@ -187,26 +543,111 @@ void fft_width(double* X, int N) {
 				U1I = T1R * S1 + U1I * C1;
 				U2I = T2R * S2 + U2I * C2;
 				U3I = T3R * S3 + U3I * C3;
-				X[i0] = U0R;
-				X[i4] = U0I;
-				X[i1] = U1R;
-				X[i5] = U1I;
-				X[i2] = U2R;
-				X[i6] = U2I;
-				X[i3] = U3R;
-				X[i7] = U3I;
+			}
+			T0R = U0R + U2R;
+			T0I = U0I + U2I;
+			T2R = U0R - U2R;
+
+			T2I = U0I - U2I;
+			T1R = U1R + U3R;
+
+			T1I = U1I + U3I;
+			T3R = U1R - U3R;
+			T3I = U1I - U3I;
+
+			U0R = T0R + T1R;
+			U0I = T0I + T1I;
+			U1R = T2R + T3I;
+			U1I = T2I - T3R;
+			U2R = T0R - T1R;
+			U2I = T0I - T1I;
+
+			U3R = T2R - T3I;
+			U3I = T2I + T3R;
+
+			if(dif) {
+				T1R = U1R;
+				T2R = U2R;
+				T3R = U3R;
+				U1R = T1R * C1 - U1I * S1;
+				U2R = T2R * C2 - U2I * S2;
+				U3R = T3R * C3 - U3I * S3;
+				U1I = T1R * S1 + U1I * C1;
+				U2I = T2R * S2 + U2I * C2;
+				U3I = T3R * S3 + U3I * C3;
+			}
+			if(dif) {
+				std::swap(i2, i1);
+				std::swap(i5, i6);
+			}
+			X[i0] = U0R;
+			X[i4] = U0I;
+			X[i1] = U1R;
+			X[i5] = U1I;
+			X[i2] = U2R;
+			X[i6] = U2I;
+			X[i3] = U3R;
+			X[i7] = U3I;
+		};
+
+	int nhi = 1;
+	int nlo = N / N1;
+	int np = 0;
+	while (nlo > nhi / N1) {
+		printf("nhi = %i nlo = %i\n", nhi, nlo);
+		//		printf("pass = %i nhi = %i nlo = %i\n", pass, nhi, nlo);
+		for (int hi = 0; hi < nhi; hi++) {
+			for (int lo = 0; lo < nlo; lo++) {
+				const int ki = hi * nlo * N1 + lo;
+				const int ti = lo * nhi;
+				butterfly(ki, ti, nlo, true);
 			}
 		}
 		nhi *= N1;
 		nlo /= N1;
+		np++;
 	}
-	scramble_complex4(X, N);
+
+	const auto M = lround(sqrt(N));
+	for (int n1 = 0; n1 < M; n1++) {
+		for (int k2 = 0; k2 < M; k2++) {
+			const auto w = W[n1 * k2];
+			auto& re = X[2 * (n1 * M + k2)];
+			auto& im = X[2 * (n1 * M + k2) + 1];
+			auto tmp = re;
+			re = tmp * w.real() - im * w.imag();
+			im = tmp * w.imag() + im * w.real();
+		}
+	}
+	scramble_complex(X, N);
+	nlo = 1;
+	nhi = N / N1;
+	while (nlo < N1 * nhi) {
+		//	printf("nhi = %i nlo = %i\n", nhi, nlo);
+//		printf("pass = %i nhi = %i nlo = %i\n", pass, nhi, nlo);
+		for (int hi = 0; hi < nhi; hi++) {
+			for (int lo = 0; lo < nlo; lo++) {
+				const int ki = hi * nlo * N1 + lo;
+				const int ti = lo * nhi;
+				butterfly(ki, ti, nlo, false);
+			}
+		}
+		nhi /= N1;
+		nlo *= N1;
+		np++;
+	}
+//	printf("%i\n", np);
 }
 
-void fft_width2(double* X, int N) {
+#include <cstring>
+
+void fft_width2(double* X0, int N) {
 	constexpr int N1 = 4;
 	constexpr int cache_size = 64;
-
+	static std::vector<double> X1;
+	X1.resize((N * 2));
+	auto* X = X0;
+	auto* Y = X1.data();
 	int nepoch = ceil(log(N) / log(N1) / floor(log(cache_size) / log(N1)));
 	const int nlev = ilogb(N) / ilogb(N1);
 	while (nlev % nepoch != 0) {
@@ -321,40 +762,36 @@ void fft_width2(double* X, int N) {
 						for (int lo = 0; lo < nlo; lo++) {
 							const int i = n2 + nbutter * (lo + nlo * (n1 + nbutter * hi));
 							const int j = n1 + nbutter * (lo + nlo * (n2 + nbutter * hi));
-							if (i < j) {
-								std::swap(X[2 * i], X[2 * j]);
-								std::swap(X[2 * i + 1], X[2 * j + 1]);
-							}
+							Y[2 * i] = X[2 * j];
+							Y[2 * i + 1] = X[2 * j + 1];
 						}
 					}
 				}
 			}
+		} else {
+			int N2 = nbutter;
+			int N1 = nglo;
+//			printf( "%i %i %i\n", N, N1, N2);
+			for (int n2 = 0; n2 < N2; n2++) {
+				for (int n1 = 0; n1 < N1; n1++) {
+					const int i = n1 + N1 * n2;
+					const int j = n2 + N2 * n1;
+					//		printf( "%i %i %i %i %i %i %i\n", N, N1, N2, n1, n2, i, j);
+					Y[2 * i] = X[2 * j];
+					Y[2 * i + 1] = X[2 * j + 1];
+				}
+			}
+
 		}
+		std::swap(X, Y);
 		nghi /= nbutter;
 		nglo *= nbutter;
 		digit += npass;
 	}
-	int nhi = N / nbutter;
-	int nlo = nbutter;
-	int jhi = 0;
-	for (int ihi = 0; ihi < nhi - 1; ihi++) {
-		if (ihi > jhi) {
-			for (int n = 0; n < 2 * nbutter; n++) {
-				std::swap(X[2 * ihi * nlo + n], X[2 * jhi * nlo + n]);
-			}
-		}
-		int k = nhi >> 2;
-		while (3 * k <= jhi) {
-			jhi -= 3 * k;
-			k >>= 2;
-		}
-		jhi += k;
-	}
-	for (int ihi = 0; ihi < nhi; ihi++) {
-		scramble_complex4(X + 2 * ihi * nlo, nbutter);
-	}
 	scramble_complex4(X, N);
-
+	if (X != X0) {
+		std::memcpy(X, Y, sizeof(double) * N);
+	}
 }
 
 /*
