@@ -278,31 +278,47 @@ const std::vector<twiddle4>& twiddles4(int N) {
 }
 
 void fft_inplace(double* X, int N) {
-	constexpr int N1 = 2;
+	constexpr int N1 = 4;
+	constexpr int N1o2 = 2;
 	const auto& W = twiddles(N);
 	int NHI = 1;
 	int NLO = 1;
 	int NMID = N / (N1 * N1);
 	int N2 = N / N1;
-
 	std::array<std::array<double, 2 * N1>, N1> U;
-	std::array<double, N1> C;
-	std::array<double, N1> S;
+	std::array<double, 4 * N1> U8;
+	double C[2 * N1];
+	double S[2 * N1];
 
-	const auto butterfly = [](std::array<double, 2 * N1>& U, const std::array<double, N1>& C, const std::array<double, N1>& S) {
-		auto& u0r = U[0];
-		auto& u0i = U[1];
-		auto& u1r = U[2];
-		auto& u1i = U[3];
-		auto tmp = u1r;
-		u1r = tmp * C[1] - u1i * S[1];
-		u1i = tmp * S[1] + u1i * C[1];
-		tmp = u0r;
-		u0r += u1r;
-		u1r = tmp - u1r;
-		tmp = u0i;
-		u0i += u1i;
-		u1i = tmp - u1i;
+	const auto butterfly = [](std::array<double, 2 * N1>& U, const double* C, const double* S) {
+		for( int k = 1; k < N1; k++) {
+			auto& r = U[2 * k];
+			auto& i = U[2 * k + 1];
+			auto tmp = r;
+			r = tmp * C[k] - i * S[k];
+			i = tmp * S[k] + i * C[k];
+		}
+		sfft_complex<N1>(U.data());
+	};
+	const auto butterfly2 = [](std::array<double, 2 * N1>& U, const double* C, const double* S) {
+		for( int k = 1; k < N1o2; k++) {
+			auto& r = U[2 * k];
+			auto& i = U[2 * k + 1];
+			auto tmp = r;
+			r = tmp * C[k] - i * S[k];
+			i = tmp * S[k] + i * C[k];
+		}
+		sfft_complex<N1o2>(U.data());
+	};
+	const auto butterfly8 = [](std::array<double, 4 * N1>& U, const double* C, const double* S) {
+		for( int k = 1; k < 2 * N1; k++) {
+			auto& r = U[2 * k];
+			auto& i = U[2 * k + 1];
+			auto tmp = r;
+			r = tmp * C[k] - i * S[k];
+			i = tmp * S[k] + i * C[k];
+		}
+		sfft_complex<2 * N1>(U.data());
 	};
 
 	while (NMID) {
@@ -316,7 +332,7 @@ void fft_inplace(double* X, int N) {
 							const int i = nlo + NLO * (na + N1 * (nmid + NMID * (nb + N1 * nhi)));
 							U[na][2 * nb] = X[2 * i];
 							U[na][2 * nb + 1] = X[2 * i + 1];
-			//				printf("%i ", i);
+					//		printf("%i ", i);
 						}
 					//	printf("\n");
 					}
@@ -326,7 +342,7 @@ void fft_inplace(double* X, int N) {
 						const auto w = W[ti];
 						C[na] = w.real();
 						S[na] = w.imag();
-					//	printf("%i ", ti);
+						//	printf("%i ", ti);
 					}
 					//printf("\n");
 					for (int na = 0; na < N1; na++) {
@@ -347,11 +363,76 @@ void fft_inplace(double* X, int N) {
 		NLO *= N1;
 		NMID /= N1 * N1;
 	}
-	if( (ilogb(N) / ilogb(N1)) % 2 == 0 ) {
+	if (ilogb(N) % 4 == 0) {
 		NHI /= N1;
+	} else if (ilogb(N) % 4 == 1) {
+		NHI = NLO = 1 << (ilogb(N) / 2);
+	//	printf("2* -> NHI = %i NLO = %i\n", NHI, NLO);
+		for (int nhi = 0; nhi < NHI; nhi++) {
+			for (int nlo = 0; nlo < NLO; nlo++) {
+				//	printf("xi = ");
+				for (int na = 0; na < N1o2; na++) {
+					const int i = nlo + NLO * (na + N1o2 * nhi);
+					U[0][2 * na] = X[2 * i];
+					U[0][2 * na + 1] = X[2 * i + 1];
+					//	printf("%i ", i);
+				}
+				//		printf("\n");
+				//		printf("ti = ");
+				for (int na = 1; na < N1o2; na++) {
+					const int ti = na * nlo * NHI;
+					const auto w = W[ti];
+					C[na] = w.real();
+					S[na] = w.imag();
+					//		printf("%i ", ti);
+				}
+				//		printf("\n");
+				butterfly2(U[0], C, S);
+				for (int na = 0; na < N1o2; na++) {
+					const int i = nlo + NLO * (na + N1o2 * nhi);
+					X[2 * i] = U[0][2 * na];
+					X[2 * i + 1] = U[0][2 * na + 1];
+				}
+			}
+		}
+		NLO *= N1o2;
+		NHI = N / NLO / N1;
+	} else if (ilogb(N) % 4 == 2) {
+	} else if (ilogb(N) % 4 == 3) {
+		NLO = NHI = 1 << (ilogb(N) / 2 - 1);
+	//	printf("->>> NHI = %i %i NLO = %i\n", NHI, NLO);
+		for (int nhi = 0; nhi < NHI; nhi++) {
+			for (int nlo = 0; nlo < NLO; nlo++) {
+			//	printf("xi = ");
+				for (int na = 0; na < 2 * N1; na++) {
+					const int i = nlo + NLO * (na + 2 * N1 * nhi);
+					U8[2 * na] = X[2 * i];
+					U8[2 * na + 1] = X[2 * i + 1];
+				//	printf("%i ", i);
+				}
+				//printf("\n");
+				//printf("ti = ");
+				for (int na = 1; na < 2 * N1; na++) {
+					const int ti = na * nlo * NHI;
+					const auto w = W[ti];
+					C[na] = w.real();
+					S[na] = w.imag();
+				//	printf("%i ", ti);
+				}
+				//printf("\n");
+				butterfly8(U8, C, S);
+				for (int na = 0; na < 2 * N1; na++) {
+					const int i = nlo + NLO * (na + 2 * N1 * nhi);
+					X[2 * i] = U8[2 * na];
+					X[2 * i + 1] = U8[2 * na + 1];
+				}
+			}
+		}
+		NLO = 1 << (ilogb(N) / 2 + 2);
+		NHI = N / NLO / N1;
 	}
 	while (NLO < N) {
-		//printf("NHI = %i NLO = %i\n", NHI, NLO);
+	//	printf("NHI = %i NLO = %i\n", NHI, NLO);
 		for (int nhi = 0; nhi < NHI; nhi++) {
 			for (int nlo = 0; nlo < NLO; nlo++) {
 			//	printf("xi = ");
@@ -359,18 +440,18 @@ void fft_inplace(double* X, int N) {
 					const int i = nlo + NLO * (na + N1 * nhi);
 					U[0][2 * na] = X[2 * i];
 					U[0][2 * na + 1] = X[2 * i + 1];
-				//	printf("%i ", i);
+			//		printf("%i ", i);
 				}
-		//		printf("\n");
-		//		printf("ti = ");
+			//	printf("\n");
+			//	printf("ti = ");
 				for (int na = 1; na < N1; na++) {
 					const int ti = na * nlo * NHI;
-					const auto w = W[na * nlo * NHI];
+					const auto w = W[ti];
 					C[na] = w.real();
 					S[na] = w.imag();
-			//		printf("%i ", ti);
+				//	printf("%i ", ti);
 				}
-		//		printf("\n");
+			//	printf("\n");
 				butterfly(U[0], C, S);
 				for (int na = 0; na < N1; na++) {
 					const int i = nlo + NLO * (na + N1 * nhi);
