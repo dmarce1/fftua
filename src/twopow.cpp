@@ -277,57 +277,68 @@ const std::vector<twiddle4>& twiddles4(int N) {
 	}
 }
 
-void fft_inplace(double* x, int N) {
+void fft_inplace(double* X, int N) {
 	constexpr int N1 = 2;
 	const auto& W = twiddles(N);
 	int NHI = 1;
 	int NLO = 1;
 	int NMID = N / (N1 * N1);
 	int N2 = N / N1;
+
+	std::array<std::array<double, 2 * N1>, N1> U;
+	std::array<double, N1> C;
+	std::array<double, N1> S;
+
+	const auto butterfly = [](std::array<double, 2 * N1>& U, const std::array<double, N1>& C, const std::array<double, N1>& S) {
+		auto& u0r = U[0];
+		auto& u0i = U[1];
+		auto& u1r = U[2];
+		auto& u1i = U[3];
+		auto tmp = u1r;
+		u1r = tmp * C[1] - u1i * S[1];
+		u1i = tmp * S[1] + u1i * C[1];
+		tmp = u0r;
+		u0r += u1r;
+		u1r = tmp - u1r;
+		tmp = u0i;
+		u0i += u1i;
+		u1i = tmp - u1i;
+	};
+
 	while (NMID) {
+	//	printf("NHI = %i NMID = %i NLO = %i\n", NHI, NMID, NLO);
 		for (int nhi = 0; nhi < NHI; nhi++) {
 			for (int nmid = 0; nmid < NMID; nmid++) {
 				for (int nlo = 0; nlo < NLO; nlo++) {
-					const int i0a = nlo + NLO * (0 + N1 * (nmid + NMID * (0 + N1 * nhi)));
-					const int i0b = nlo + NLO * (1 + N1 * (nmid + NMID * (0 + N1 * nhi)));
-					const int i1a = i0a + N2;
-					const int i1b = i0b + N2;
-					const auto& wa = W[mod(nlo * NHI * N1 * NMID, N)];
-					const auto& wb = W[mod(nlo * NHI * N1 * NMID, N)];
-					auto u0ra = x[2 * i0a];
-					auto u0ia = x[2 * i0a + 1];
-					auto u1ra = x[2 * i1a];
-					auto u1ia = x[2 * i1a + 1];
-					auto u0rb = x[2 * i0b];
-					auto u0ib = x[2 * i0b + 1];
-					auto u1rb = x[2 * i1b];
-					auto u1ib = x[2 * i1b + 1];
-					auto tmp = u1ra;
-					u1ra = tmp * wa.real() - u1ia * wa.imag();
-					u1ia = tmp * wa.imag() + u1ia * wa.real();
-					tmp = u1rb;
-					u1rb = tmp * wb.real() - u1ib * wb.imag();
-					u1ib = tmp * wb.imag() + u1ib * wb.real();
-					tmp = u0ra;
-					u0ra = tmp + u1ra;
-					u1ra = tmp - u1ra;
-					tmp = u0ia;
-					u0ia = tmp + u1ia;
-					u1ia = tmp - u1ia;
-					tmp = u0rb;
-					u0rb = tmp + u1rb;
-					u1rb = tmp - u1rb;
-					tmp = u0ib;
-					u0ib = tmp + u1ib;
-					u1ib = tmp - u1ib;
-					x[2 * i0a] = u0ra;
-					x[2 * i1a] = u0rb;
-					x[2 * i0b] = u1ra;
-					x[2 * i1b] = u1rb;
-					x[2 * i0a + 1] = u0ia;
-					x[2 * i1a + 1] = u0ib;
-					x[2 * i0b + 1] = u1ia;
-					x[2 * i1b + 1] = u1ib;
+					for (int na = 0; na < N1; na++) {
+					//	printf("xi = ");
+						for (int nb = 0; nb < N1; nb++) {
+							const int i = nlo + NLO * (na + N1 * (nmid + NMID * (nb + N1 * nhi)));
+							U[na][2 * nb] = X[2 * i];
+							U[na][2 * nb + 1] = X[2 * i + 1];
+			//				printf("%i ", i);
+						}
+					//	printf("\n");
+					}
+					//printf("ti = ");
+					for (int na = 1; na < N1; na++) {
+						const auto ti = na * nlo * NHI * N1 * NMID;
+						const auto w = W[ti];
+						C[na] = w.real();
+						S[na] = w.imag();
+					//	printf("%i ", ti);
+					}
+					//printf("\n");
+					for (int na = 0; na < N1; na++) {
+						butterfly(U[na], C, S);
+					}
+					for (int na = 0; na < N1; na++) {
+						for (int nb = 0; nb < N1; nb++) {
+							const int i = nlo + NLO * (na + N1 * (nmid + NMID * (nb + N1 * nhi)));
+							X[2 * i] = U[nb][2 * na];
+							X[2 * i + 1] = U[nb][2 * na + 1];
+						}
+					}
 				}
 			}
 		}
@@ -336,100 +347,43 @@ void fft_inplace(double* x, int N) {
 		NLO *= N1;
 		NMID /= N1 * N1;
 	}
+	if( (ilogb(N) / ilogb(N1)) % 2 == 0 ) {
+		NHI /= N1;
+	}
 	while (NLO < N) {
+		//printf("NHI = %i NLO = %i\n", NHI, NLO);
 		for (int nhi = 0; nhi < NHI; nhi++) {
 			for (int nlo = 0; nlo < NLO; nlo++) {
-				const int i0 = nlo + NLO * (0 + N1 * nhi);
-				const int i1 = i0 + N2;
-				const auto& w = W[nlo * NHI];
-				auto u0r = x[2 * i0];
-				auto u0i = x[2 * i0 + 1];
-				auto u1r = x[2 * i1];
-				auto u1i = x[2 * i1 + 1];
-				auto tmp = u1r;
-				u1r = tmp * w.real() - u1i * w.imag();
-				u1i = tmp * w.imag() + u1i * w.real();
-				tmp = u0r;
-				u0r += u1r;
-				u1r = tmp - u1r;
-				tmp = u0i;
-				u0i += u1i;
-				u1i = tmp - u1i;
-				x[2 * i0] = u0r;
-				x[2 * i1] = u1r;
-				x[2 * i0 + 1] = u0i;
-				x[2 * i1 + 1] = u1i;
+			//	printf("xi = ");
+				for (int na = 0; na < N1; na++) {
+					const int i = nlo + NLO * (na + N1 * nhi);
+					U[0][2 * na] = X[2 * i];
+					U[0][2 * na + 1] = X[2 * i + 1];
+				//	printf("%i ", i);
+				}
+		//		printf("\n");
+		//		printf("ti = ");
+				for (int na = 1; na < N1; na++) {
+					const int ti = na * nlo * NHI;
+					const auto w = W[na * nlo * NHI];
+					C[na] = w.real();
+					S[na] = w.imag();
+			//		printf("%i ", ti);
+				}
+		//		printf("\n");
+				butterfly(U[0], C, S);
+				for (int na = 0; na < N1; na++) {
+					const int i = nlo + NLO * (na + N1 * nhi);
+					X[2 * i] = U[0][2 * na];
+					X[2 * i + 1] = U[0][2 * na + 1];
+				}
 			}
 		}
 		N2 *= N1;
 		NHI /= N1;
 		NLO *= N1;
 	}
-	/*	int j = 0;
-	 for (int i = 0; i < N - 1; i++) {
-	 if (i > j) {
-	 std::swap(x[i], x[j]);
-	 }
-	 int k = N / 2;
-	 while (k <= j) {
-	 j -= k;
-	 k >>= 1;
-	 }
-	 j += k;
-	 }
-
-	 const auto& W = twiddles(N);
-	 int N2 = 1;
-	 int M = N / N2 / N1;
-	 int N1N2 = N1 * N2;
-	 while (N2 < N) {
-	 for (int n = 0; n < M; n++) {
-	 const int n0 = N1N2 * n;
-	 const int i0 = n0;
-	 const int i1 = n0 + N2;
-	 auto u0r = x[i0];
-	 auto u1r = x[i1];
-	 double tmp;
-	 tmp = u0r;
-	 u0r = tmp + u1r;
-	 u1r = tmp - u1r;
-	 x[i0] = u0r;
-	 x[i1] = u1r;
-	 if (N2 > 1) {
-	 const int i1 = n0 + 3 * N2 / 2;
-	 x[i1] = -x[i1];
-	 }
-	 for (int k = 1; k < N2 / 2; k++) {
-	 const int i0 = n0 + k;
-	 const int i1 = i0 + N2;
-	 const int i2 = n0 + N2 - k;
-	 const int i3 = i2 + N2;
-	 const auto& w = W[M * k];
-	 auto u0r = x[i0];
-	 auto u0i = x[i2];
-	 auto u1r = x[i1];
-	 auto u1i = x[i3];
-	 double tmp;
-	 tmp = u1r;
-	 u1r = tmp * w.real() - u1i * w.imag();
-	 u1i = tmp * w.imag() + u1i * w.real();
-	 tmp = u0r;
-	 u0r = tmp + u1r;
-	 u1r = tmp - u1r;
-	 tmp = u0i;
-	 u0i = tmp + u1i;
-	 u1i = tmp - u1i;
-	 x[i0] = u0r;
-	 x[i3] = u0i;
-	 x[i2] = u1r;
-	 x[i1] = -u1i;
-	 }
-	 }
-	 N2 *= N1;
-	 M /= N1;
-	 N1N2 *= N1;
-	 }*/
-
+//	printf( "\n");
 }
 
 void fft_4step(double* X, int N) {
