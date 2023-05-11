@@ -230,7 +230,7 @@ void fft_4step1(fft_simd4** __restrict__ xre, fft_simd4** __restrict__ xim, int 
 }
 
 template<int N1, class T>
-void fft_inplace_part2(T* X, T* Y, const complex<double>* W, int N, int N2) {
+void fft_inplace_part2(T* X, const complex<double>* W, int N, int N2) {
 	const int NHI = N / (N1 * N2);
 	std::array<T, 2 * N1> u;
 	std::array<complex<double>, N1> w;
@@ -238,8 +238,8 @@ void fft_inplace_part2(T* X, T* Y, const complex<double>* W, int N, int N2) {
 		for (int n2 = 0; n2 < N2; n2++) {
 			for (int na = 0; na < N1; na++) {
 				const int i = n2 + N2 * (na + N1 * nhi);
-				u[2 * na] = X[i];
-				u[2 * na + 1] = Y[i];
+				u[2 * na] = X[2 * i];
+				u[2 * na + 1] = X[2 * i + 1];
 			}
 			for (int na = 1; na < N1; na++) {
 				const auto ti = na * n2 * NHI;
@@ -255,14 +255,15 @@ void fft_inplace_part2(T* X, T* Y, const complex<double>* W, int N, int N2) {
 			sfft_complex<N1>(u.data());
 			for (int na = 0; na < N1; na++) {
 				const int i = n2 + N2 * (na + N1 * nhi);
-				X[i] = u[2 * na];
-				Y[i] = u[2 * na + 1];
+				X[2 * i] = u[2 * na];
+				X[2 * i + 1] = u[2 * na + 1];
 			}
 		}
 	}
 }
 
-void fft_inplace1(double* X, double* Y, int N) {
+template<class T>
+void fft_inplace(T* X, int N) {
 	constexpr int N0 = 2;
 	constexpr int N1 = 4;
 	constexpr int N1o2 = 2;
@@ -270,7 +271,7 @@ void fft_inplace1(double* X, double* Y, int N) {
 	int NHI = 1;
 	int N2 = 1;
 	int NMID = N / (N1 * N1);
-	std::array<std::array<double, 2 * N1>, N1> u;
+	std::array<std::array<T, 2 * N1>, N1> u;
 	std::array<complex<double>, N1> w;
 
 	while (NMID) {
@@ -280,8 +281,8 @@ void fft_inplace1(double* X, double* Y, int N) {
 					for (int na = 0; na < N1; na++) {
 						for (int nb = 0; nb < N1; nb++) {
 							const int i = n2 + N2 * (na + N1 * (nmid + NMID * (nb + N1 * nhi)));
-							u[na][2 * nb] = X[i];
-							u[na][2 * nb + 1] = Y[i];
+							u[na][2 * nb] = X[2 * i];
+							u[na][2 * nb + 1] = X[2 * i + 1];
 						}
 					}
 					for (int na = 1; na < N1; na++) {
@@ -301,8 +302,8 @@ void fft_inplace1(double* X, double* Y, int N) {
 					for (int na = 0; na < N1; na++) {
 						for (int nb = 0; nb < N1; nb++) {
 							const int i = n2 + N2 * (nb + N1 * (nmid + NMID * (na + N1 * nhi)));
-							X[i] = u[na][2 * nb];
-							Y[i] = u[na][2 * nb + 1];
+							X[2 * i] = u[na][2 * nb];
+							X[2 * i + 1] = u[na][2 * nb + 1];
 						}
 					}
 				}
@@ -314,32 +315,21 @@ void fft_inplace1(double* X, double* Y, int N) {
 	}
 	if (ilogb(N) % 4 == 1) {
 		N2 = 1 << (ilogb(N) / 2);
-		fft_inplace_part2<N1 / N0, double>(X, Y, W.data(), N, N2);
+		fft_inplace_part2<N1 / N0, T>(X, W.data(), N, N2);
 		N2 *= N1o2;
 	} else if (ilogb(N) % 4 == 3) {
 		N2 = 1 << (ilogb(N) / 2 - 1);
-		fft_inplace_part2<N1 * N0, double>(X, Y, W.data(), N, N2);
+		fft_inplace_part2<N1 * N0, T>(X, W.data(), N, N2);
 		N2 = 1 << (ilogb(N) / 2 + 2);
 	}
 	while (N2 < N) {
-		fft_inplace_part2<N1, double>(X, Y, W.data(), N, N2);
+		fft_inplace_part2<N1, T>(X, W.data(), N, N2);
 		N2 *= N1;
 	}
 }
 
 void fft_inplace(double* X, int N) {
-	static std::vector<double> xre, xim;
-	xre.resize(N);
-	xim.resize(N);
-	for (int n = 0; n < N; n++) {
-		xre[n] = X[2 * n];
-		xim[n] = X[2 * n + 1];
-	}
-	fft_inplace1(xre.data(), xim.data(), N);
-	for (int n = 0; n < N; n++) {
-		X[2 * n] = xre[n];
-		X[2 * n + 1] = xim[n];
-	}
+	fft_inplace<double>(X, N);
 }
 
 void fft_width(double* X, int N) {
