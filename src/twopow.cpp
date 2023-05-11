@@ -2,6 +2,109 @@
 #include "util.hpp"
 #include <memory>
 
+template<int N1, class T>
+void apply_butterfly(T* x, int N, int bb, int cb, int tbb, int tbe) {
+	constexpr int NC = 2;
+	complex<double> w1;
+	complex<double> w0;
+	const double theta = 2.0 * M_PI / (1 << (tbe - tbb)) / N1;
+	w0.real() = cos(theta);
+	w0.imag() = -sin(theta);
+	std::array<double, 2 * N1> u;
+	const int bsz = 1 << bb;
+	const int csz = 1 << cb;
+	int cmask = 0;
+	int tmask = ((1 << tbe) - 1) & ~((1 << tbb) - 1);
+	cmask |= (1 << cb);
+	for (int n1 = 0; n1 < ilogb(N1); n1++) {
+		cmask |= (1 << (bb + n1));
+	}
+	int last_twi = 0xFFFFFFFF;
+	for (int n = 0; n < N; n++) {
+		if (n & cmask) {
+			continue;
+		}
+		const int twi = (n & tmask) >> tbb;
+		if (twi != last_twi) {
+			if (twi != 0) {
+				w1 *= w0;
+			} else {
+				w1.real() = 1.0;
+				w1.imag() = 0.0;
+			}
+		}
+		for (int bi = 0; bi < N1; bi++) {
+			for (int ci = 0; ci < NC; ci++) {
+				u[2 * bi + ci] = x[n + bi * bsz + ci * csz];
+			}
+		}
+		complex<double> t = w1;
+		for (int bi = 1; bi < N1; bi++) {
+			auto& re = u[2 * bi + 0];
+			auto& im = u[2 * bi + 1];
+			auto tmp = re;
+			re = tmp * t.real() - im * t.imag();
+			im = tmp * t.imag() + im * t.real();
+			if (bi != N1 - 1) {
+				t *= w0;
+			}
+		}
+		sfft_complex<N1>(u.data());
+		for (int bi = 0; bi < N1; bi++) {
+			for (int ci = 0; ci < NC; ci++) {
+				x[n + bi * bsz + ci * csz] = u[2 * bi + ci];
+			}
+		}
+		last_twi = twi;
+	}
+}
+
+template<class T>
+void apply_transposition(T* x, int N, int tb1, int tb2, int tnb) {
+	int cmask = N - 1;
+	int tsz = 1 << tnb;
+	int d1 = 1 << tb1;
+	int d2 = 1 << tb2;
+	for (int n = 0; n < tnb; n++) {
+		cmask &= ~(1 << (tb1 + n));
+		cmask &= ~(1 << (tb2 + n));
+	}
+	cmask = ~cmask;
+	for (int n = 0; n < N; n++) {
+		if (n & cmask) {
+			continue;
+		}
+		for (int n1 = 0; n1 < tsz; n1++) {
+			for (int n2 = n1 + 1; n2 < tsz; n2++) {
+				const int i = n + n1 * d1 + n2 * d2;
+				const int j = n + n2 * d1 + n1 * d2;
+				std::swap(x[i], x[j]);
+			}
+		}
+	}
+}
+
+void fft_inplace(double* x, int N) {
+	constexpr int N1 = 2;
+	int lobit = 1;
+	int hibit = ilogb(N);
+
+	while (hibit > lobit) {
+//		printf("phase 1 - hibit = %i lobit = %i\n", hibit, lobit);
+		apply_butterfly<N1>(x, 2 * N, hibit, 0, 1, lobit);
+		apply_transposition(x, 2 * N, lobit, hibit, 1);
+		lobit++;
+		hibit--;
+	}
+	hibit = ilogb(N);
+	while (lobit <= hibit) {
+	//	printf("phase 2 - hibit = %i lobit = %i\n", hibit, lobit);
+		apply_butterfly<N1>(x, 2 * N, lobit, 0, 1, lobit);
+		lobit++;
+	}
+
+}
+
 int reverse_bits(int i, int N) {
 	const auto w = ilogb(N);
 	int j = 0;
@@ -229,21 +332,30 @@ void fft_4step1(fft_simd4** __restrict__ xre, fft_simd4** __restrict__ xim, int 
 	}
 }
 
-template<int N1, class T>
-void fft_inplace_part2(T* X, const complex<double>* W, int N, int N2) {
-	const int NHI = N / (N1 * N2);
-	std::array<T, 2 * N1> u;
-	std::array<complex<double>, N1> w;
+template<int N1>
+void fft_inplace_part2(double* X, const complex<double>* W, int N, int N2) {
+	constexpr int NCMPLX = 2;
+	const int NHI = NCMPLX * N / (N1 * N2);
+	std::array<fft_simd4, NCMPLX * N1> u;
+	std::array<complex<fft_simd4>, N1> w;
+	fft_simd4* Z = (fft_simd4*) X;
+	int N2oSIMD = N2 / (NCMPLX * SIMD_SIZE);
+	printf("3. N2 = %i N1 = %i NHI = %i\n", N2, N1, NHI);
 	for (int nhi = 0; nhi < NHI; nhi++) {
-		for (int n2 = 0; n2 < N2; n2++) {
+		for (int n2 = 0; n2 < N2oSIMD; n2++) {
 			for (int na = 0; na < N1; na++) {
-				const int i = n2 + N2 * (na + N1 * nhi);
-				u[2 * na] = X[2 * i];
-				u[2 * na + 1] = X[2 * i + 1];
+				const int i = n2 + N2oSIMD * (na + N1 * nhi);
+				u[2 * na] = Z[2 * i];
+				u[2 * na + 1] = Z[2 * i + 1];
+				printf("%i ", i);
 			}
+			printf("\n");
 			for (int na = 1; na < N1; na++) {
-				const auto ti = na * n2 * NHI;
-				w[na] = W[ti];
+				for (int ti = 0; ti < SIMD_SIZE; ti++) {
+					const auto wi = na * (SIMD_SIZE * n2 + ti) * NHI;
+					w[na].real()[ti] = W[wi].real();
+					w[na].imag()[ti] = W[wi].imag();
+				}
 			}
 			for (int k = 1; k < N1; k++) {
 				auto& r = u[2 * k];
@@ -254,40 +366,101 @@ void fft_inplace_part2(T* X, const complex<double>* W, int N, int N2) {
 			}
 			sfft_complex<N1>(u.data());
 			for (int na = 0; na < N1; na++) {
-				const int i = n2 + N2 * (na + N1 * nhi);
-				X[2 * i] = u[2 * na];
-				X[2 * i + 1] = u[2 * na + 1];
+				const int i = n2 + N2oSIMD * (na + N1 * nhi);
+				Z[2 * i] = u[2 * na];
+				Z[2 * i + 1] = u[2 * na + 1];
 			}
 		}
 	}
 }
 
-template<class T>
-void fft_inplace(T* X, int N) {
+void fft_inplace_transpose(double* X, int nhi, int n2, int nmid, int n1, int nlo) {
+	for (int ihi = 0; ihi < nhi; ihi++) {
+		for (int i2 = 0; i2 < n2; i2++) {
+			for (int imid = 0; imid < nmid; imid++) {
+				for (int i1 = i2 + 1; i1 < n1; i1++) {
+					const int k = nlo * (i1 + n1 * (imid + nmid * (i2 + n2 * ihi)));
+					const int j = nlo * (i2 + n2 * (imid + nmid * (i1 + n1 * ihi)));
+					for (int ilo = 0; ilo < nlo; ilo++) {
+						std::swap(X[k + ilo], X[j + ilo]);
+					}
+				}
+			}
+		}
+	}
+}
+
+void fft_inplace2(double* X, int N) {
 	constexpr int N0 = 2;
 	constexpr int N1 = 4;
 	constexpr int N1o2 = 2;
+	constexpr int NCMPLX = 2;
 	const auto& W = twiddles(N);
-	int NHI = 1;
-	int N2 = 1;
-	int NMID = N / (N1 * N1);
-	std::array<std::array<T, 2 * N1>, N1> u;
-	std::array<complex<double>, N1> w;
-
-	while (NMID) {
+	int NHI;
+	int N2;
+	int NMID;
+	std::array<std::array<fft_simd4, NCMPLX * N1>, N1> u;
+	std::array<complex<fft_simd4>, N1> w;
+	fft_simd4* Z = (fft_simd4*) X;
+	fft_inplace_transpose(X, 1, NCMPLX, 1, NCMPLX, N / 4);
+	fft_inplace_transpose(X, NCMPLX, NCMPLX, 1, NCMPLX, N / 8);
+	fft_inplace_transpose(X, 1, SIMD_SIZE, NCMPLX, SIMD_SIZE, N / (NCMPLX * SIMD_SIZE * SIMD_SIZE));
+	N2 = NCMPLX * SIMD_SIZE;
+	NHI = 1;
+	NMID = (NCMPLX * N) / (N1 * N1 * N2 * NHI);
+	int N2oSIMD = N2 / (NCMPLX * SIMD_SIZE);
+	if (NMID) {
+		printf("1. N2 = %i NMID = %i NHI = %i\n", N2, NMID, NHI);
 		for (int nhi = 0; nhi < NHI; nhi++) {
 			for (int nmid = 0; nmid < NMID; nmid++) {
-				for (int n2 = 0; n2 < N2; n2++) {
+				for (int n2 = 0; n2 < N2oSIMD; n2++) {
 					for (int na = 0; na < N1; na++) {
 						for (int nb = 0; nb < N1; nb++) {
-							const int i = n2 + N2 * (na + N1 * (nmid + NMID * (nb + N1 * nhi)));
-							u[na][2 * nb] = X[2 * i];
-							u[na][2 * nb + 1] = X[2 * i + 1];
+							const int i = n2 + N2oSIMD * (na + N1 * (nmid + NMID * (nb + N1 * nhi)));
+							u[na][2 * nb] = Z[2 * i];
+							u[na][2 * nb + 1] = Z[2 * i + 1];
+							printf("%i\n", i);
+						}
+					}
+					printf("\n");
+					for (int na = 0; na < N1; na++) {
+						sfft_complex<N1>(u[na].data());
+					}
+					for (int na = 0; na < N1; na++) {
+						for (int nb = 0; nb < N1; nb++) {
+							const int i = n2 + N2oSIMD * (nb + N1 * (nmid + NMID * (na + N1 * nhi)));
+							Z[2 * i] = u[na][2 * nb];
+							Z[2 * i + 1] = u[na][2 * nb + 1];
+						}
+					}
+				}
+			}
+		}
+	}
+	N2 = NCMPLX * SIMD_SIZE;
+	NHI = N1;
+	NMID = (NCMPLX * N) / (N1 * N1 * N2 * NHI);
+	while (NMID) {
+		printf("2. N2 = %i NMID = %i NHI = %i\n", N2, NMID, NHI);
+		int N2oSIMD = N2 / SIMD_SIZE;
+		for (int nhi = 0; nhi < NHI; nhi++) {
+			for (int nmid = 0; nmid < NMID; nmid++) {
+				for (int n2 = 0; n2 < N2oSIMD; n2++) {
+					for (int na = 0; na < N1; na++) {
+						for (int nb = 0; nb < N1; nb++) {
+							const int i = n2 + N2oSIMD * (na + N1 * (nmid + NMID * (nb + N1 * nhi)));
+							u[na][2 * nb] = Z[2 * i];
+							u[na][2 * nb + 1] = Z[2 * i + 1];
 						}
 					}
 					for (int na = 1; na < N1; na++) {
-						const auto ti = na * n2 * NHI * N1 * NMID;
-						w[na] = W[ti];
+						for (int ti = 0; ti < SIMD_SIZE; ti++) {
+							const auto wi = na * (SIMD_SIZE * n2 + ti) * NHI * N1 * NMID;
+							printf("%i ", wi);
+							w[na].real()[ti] = W[wi].real();
+							w[na].imag()[ti] = W[wi].imag();
+						}
+						printf("\n");
 					}
 					for (int na = 0; na < N1; na++) {
 						for (int k = 1; k < N1; k++) {
@@ -301,9 +474,9 @@ void fft_inplace(T* X, int N) {
 					}
 					for (int na = 0; na < N1; na++) {
 						for (int nb = 0; nb < N1; nb++) {
-							const int i = n2 + N2 * (nb + N1 * (nmid + NMID * (na + N1 * nhi)));
-							X[2 * i] = u[na][2 * nb];
-							X[2 * i + 1] = u[na][2 * nb + 1];
+							const int i = n2 + N2oSIMD * (nb + N1 * (nmid + NMID * (na + N1 * nhi)));
+							Z[2 * i] = u[na][2 * nb];
+							Z[2 * i + 1] = u[na][2 * nb + 1];
 						}
 					}
 				}
@@ -313,23 +486,24 @@ void fft_inplace(T* X, int N) {
 		N2 *= N1;
 		NMID /= N1 * N1;
 	}
+	fft_inplace_transpose(X, 1, SIMD_SIZE, 1, SIMD_SIZE, N / 8);
 	if (ilogb(N) % 4 == 1) {
+		printf("a...\n");
 		N2 = 1 << (ilogb(N) / 2);
-		fft_inplace_part2<N1 / N0, T>(X, W.data(), N, N2);
+		fft_inplace_part2<N1 / N0>(X, W.data(), N, N2);
 		N2 *= N1o2;
 	} else if (ilogb(N) % 4 == 3) {
+		printf("b...\n");
 		N2 = 1 << (ilogb(N) / 2 - 1);
-		fft_inplace_part2<N1 * N0, T>(X, W.data(), N, N2);
+		fft_inplace_part2<N1 * N0>(X, W.data(), N, N2);
 		N2 = 1 << (ilogb(N) / 2 + 2);
 	}
 	while (N2 < N) {
-		fft_inplace_part2<N1, T>(X, W.data(), N, N2);
+		fft_inplace_part2<N1>(X, W.data(), N, N2);
 		N2 *= N1;
 	}
-}
-
-void fft_inplace(double* X, int N) {
-	fft_inplace<double>(X, N);
+	fft_inplace_transpose(X, NCMPLX, NCMPLX, 1, NCMPLX, N / (NCMPLX * NCMPLX * NCMPLX));
+	fft_inplace_transpose(X, 1, NCMPLX, 1, NCMPLX, N / (NCMPLX * NCMPLX));
 }
 
 void fft_width(double* X, int N) {
