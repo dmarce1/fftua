@@ -5,12 +5,12 @@
 template<int N1, class T>
 void apply_butterfly(T* x, int N, int bb, int cb, int tbb, int tbe) {
 	constexpr int NC = 2;
-	complex<double> w1;
-	complex<double> w0;
+	complex<T> w1;
+	complex<T> w0;
 	const double theta = 2.0 * M_PI / (1 << (tbe - tbb)) / N1;
 	w0.real() = cos(theta);
 	w0.imag() = -sin(theta);
-	std::array<double, 2 * N1> u;
+	std::array<T, 2 * N1> u;
 	const int bsz = 1 << bb;
 	const int csz = 1 << cb;
 	int cmask = 0;
@@ -46,7 +46,7 @@ void apply_butterfly(T* x, int N, int bb, int cb, int tbb, int tbe) {
 			re = tmp * t.real() - im * t.imag();
 			im = tmp * t.imag() + im * t.real();
 			if (bi != N1 - 1) {
-				t *= w0;
+				t *= w1;
 			}
 		}
 		sfft_complex<N1>(u.data());
@@ -84,23 +84,97 @@ void apply_transposition(T* x, int N, int tb1, int tb2, int tnb) {
 	}
 }
 
-void fft_inplace(double* x, int N) {
-	constexpr int N1 = 2;
-	int lobit = 1;
-	int hibit = ilogb(N);
-
-	while (hibit > lobit) {
-//		printf("phase 1 - hibit = %i lobit = %i\n", hibit, lobit);
-		apply_butterfly<N1>(x, 2 * N, hibit, 0, 1, lobit);
-		apply_transposition(x, 2 * N, lobit, hibit, 1);
-		lobit++;
-		hibit--;
+template<int N1, class T>
+void apply_butterfly_and_transpose(T* x, int N, int bb, int cb, int tbb, int tbe, int trb) {
+	constexpr int NC = 2;
+	complex<T> w1;
+	complex<T> w0;
+	const double theta = 2.0 * M_PI / (1 << (tbe - tbb)) / N1;
+	w0.real() = cos(theta);
+	w0.imag() = -sin(theta);
+	std::array<std::array<T, 2 * N1>, N1> u;
+	std::array<complex<T>, N1> tw;
+	const int bsz = 1 << bb;
+	const int tsz = 1 << trb;
+	const int csz = 1 << cb;
+	int cmask = 0;
+	int tmask = ((1 << tbe) - 1) & ~((1 << tbb) - 1);
+	cmask |= (1 << cb);
+	for (int n1 = 0; n1 < ilogb(N1); n1++) {
+		cmask |= (1 << (bb + n1));
+		cmask |= (1 << (trb + n1));
 	}
-	hibit = ilogb(N);
-	while (lobit <= hibit) {
-	//	printf("phase 2 - hibit = %i lobit = %i\n", hibit, lobit);
-		apply_butterfly<N1>(x, 2 * N, lobit, 0, 1, lobit);
-		lobit++;
+	int last_twi = 0xFFFFFFFF;
+	for (int n = 0; n < N; n++) {
+		if (n & cmask) {
+			continue;
+		}
+		const int twi = (n & tmask) >> tbb;
+		if (twi != last_twi) {
+			if (twi != 0) {
+				w1 *= w0;
+			} else {
+				w1.real() = 1.0;
+				w1.imag() = 0.0;
+			}
+		}
+		tw[1] = w1;
+		for (int k1 = 1; k1 < N1 - 1; k1++) {
+			tw[k1 + 1] = tw[k1] * w1;
+		}
+		for (int tri = 0; tri < N1; tri++) {
+			for (int bi = 0; bi < N1; bi++) {
+				for (int ci = 0; ci < NC; ci++) {
+					const int i = n + bi * bsz + tri * tsz + ci * csz;
+					u[tri][2 * bi + ci] = x[i];
+				}
+			}
+		}
+		for (int tri = 0; tri < N1; tri++) {
+			for (int bi = 1; bi < N1; bi++) {
+				auto& re = u[tri][2 * bi + 0];
+				auto& im = u[tri][2 * bi + 1];
+				auto tmp = re;
+				re = tmp * tw[bi].real() - im * tw[bi].imag();
+				im = tmp * tw[bi].imag() + im * tw[bi].real();
+			}
+			sfft_complex<N1>(u[tri].data());
+		}
+		for (int tri = 0; tri < N1; tri++) {
+			for (int bi = 0; bi < N1; bi++) {
+				for (int ci = 0; ci < NC; ci++) {
+					x[n + tri * bsz + bi * tsz + ci * csz] = u[tri][2 * bi + ci];
+				}
+			}
+		}
+		last_twi = twi;
+	}
+}
+
+void fft_inplace(double* x, int N) {
+	constexpr int N1 = 4;
+	int lobit = 1;
+	int hibit = ilogb(N) - ilogb(N1) + 1;
+//	printf("N = %i hibit = %i lobit = %i\n", N, hibit, lobit);
+	while (hibit >= lobit + ilogb(N1)) {
+//		printf("phase 1 - hibit = %i lobit = %i\n", hibit, lobit);
+		apply_butterfly_and_transpose<N1, double>(x, 2 * N, hibit, 0, 1, lobit, lobit);
+		lobit += ilogb(N1);
+		hibit -= ilogb(N1);
+	}
+	if (hibit - lobit == 1) {
+//		printf("phase 1.8\n");
+		apply_butterfly<N1 * 2, double>(x, 2 * N, lobit, 0, 1, lobit);
+		lobit += 3;
+	} else if (hibit - lobit == -1) {
+	//	printf("phase 1.2\n");
+		apply_butterfly<N1 / 2, double>(x, 2 * N, lobit, 0, 1, lobit);
+		lobit += 1;
+	}
+	while (lobit <= ilogb(N) - ilogb(N1) + 1) {
+	//	printf("phase 2 - lobit = %i\n", lobit);
+		apply_butterfly<N1, double>(x, 2 * N, lobit, 0, 1, lobit);
+		lobit += ilogb(N1);
 	}
 
 }
