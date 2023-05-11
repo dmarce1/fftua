@@ -4,10 +4,14 @@
 
 template<int N1, class T>
 void apply_butterfly(T* x, int N, int bb, int cb, int tbb, int tbe) {
+//	printf( "N = %i bb = %i cb = %i tbb = %i tbe = %i \n", N, bb, cb, tbb, tbe);
 	constexpr int NC = 2;
 	complex<T> w1;
 	complex<T> w0;
-	const double theta = 2.0 * M_PI / (1 << (tbe - tbb)) / N1;
+	double theta = 2.0 * M_PI / (1 << (tbe - tbb)) / N1;
+	if (tbe >= cb && cb >= tbb) {
+		theta *= 2.0;
+	}
 	w0.real() = cos(theta);
 	w0.imag() = -sin(theta);
 	std::array<T, 2 * N1> u;
@@ -60,16 +64,16 @@ void apply_butterfly(T* x, int N, int bb, int cb, int tbb, int tbe) {
 }
 
 template<class T>
-void apply_transposition(T* x, int N, int tb1, int tb2, int tnb) {
+void apply_transpose(T* x, int N, int tb1, int tb2, int tnb) {
 	int cmask = N - 1;
 	int tsz = 1 << tnb;
 	int d1 = 1 << tb1;
 	int d2 = 1 << tb2;
+	cmask = 0;
 	for (int n = 0; n < tnb; n++) {
-		cmask &= ~(1 << (tb1 + n));
-		cmask &= ~(1 << (tb2 + n));
+		cmask |= (1 << (tb1 + n));
+		cmask |= (1 << (tb2 + n));
 	}
-	cmask = ~cmask;
 	for (int n = 0; n < N; n++) {
 		if (n & cmask) {
 			continue;
@@ -86,10 +90,14 @@ void apply_transposition(T* x, int N, int tb1, int tb2, int tnb) {
 
 template<int N1, class T>
 void apply_butterfly_and_transpose(T* x, int N, int bb, int cb, int tbb, int tbe, int trb) {
+//	printf( "N = %i bb = %i cb = %i tbb = %i tbe = %i trb = %i\n", N, bb, cb, tbb, tbe, trb);
 	constexpr int NC = 2;
 	complex<T> w1;
 	complex<T> w0;
-	const double theta = 2.0 * M_PI / (1 << (tbe - tbb)) / N1;
+	double theta = 2.0 * M_PI / (1 << (tbe - tbb)) / N1;
+	if (tbe >= cb && cb >= tbb) {
+		theta *= 2.0;
+	}
 	w0.real() = cos(theta);
 	w0.imag() = -sin(theta);
 	std::array<std::array<T, 2 * N1>, N1> u;
@@ -152,28 +160,41 @@ void apply_butterfly_and_transpose(T* x, int N, int bb, int cb, int tbb, int tbe
 }
 
 void fft_inplace(double* x, int N) {
+	if (N <= SFFT_NMAX) {
+		sfft_complex(x, N);
+		return;
+	}
 	constexpr int N1 = 4;
 	const int highest_bit = ilogb(N) - ilogb(N1) + 1;
 	int lobit = 1;
 	int hibit = highest_bit;
+
+	apply_transpose<double>(x, 2 * N, 0, 1, 1);
+	apply_transpose<double>(x, 2 * N, 1, 2, 1);
+	apply_transpose<double>(x, 2 * N, 0, 3, 2);
+	apply_butterfly_and_transpose<N1, double>(x, 2 * N, hibit, 2, 3, 3, 3);
+	apply_transpose<double>(x, 2 * N, 0, 3, 2);
+	lobit += ilogb(N1);
+	hibit -= ilogb(N1);
 	while (hibit > lobit + ilogb(N1) - 1) {
-		apply_butterfly_and_transpose<N1, double>(x, 2 * N, hibit, 0, 1, lobit, lobit);
+		apply_butterfly_and_transpose<N1, double>(x, 2 * N, hibit, 2, 0, lobit, lobit);
 		lobit += ilogb(N1);
 		hibit -= ilogb(N1);
 	}
 	if (hibit - lobit == 1) {
-		apply_butterfly<N1 * 2, double>(x, 2 * N, lobit, 0, 1, lobit);
+		apply_butterfly<N1 * 2, double>(x, 2 * N, lobit, 2, 0, lobit);
 		lobit += 3;
 	}
 	if (hibit - lobit == -1) {
-		apply_butterfly<N1 / 2, double>(x, 2 * N, lobit, 0, 1, lobit);
+		apply_butterfly<N1 / 2, double>(x, 2 * N, lobit, 2, 0, lobit);
 		lobit += 1;
 	}
 	while (lobit <= highest_bit) {
-		apply_butterfly<N1, double>(x, 2 * N, lobit, 0, 1, lobit);
+		apply_butterfly<N1, double>(x, 2 * N, lobit, 2, 0, lobit);
 		lobit += ilogb(N1);
 	}
-
+	apply_transpose<double>(x, 2 * N, 1, 2, 1);
+	apply_transpose<double>(x, 2 * N, 0, 1, 1);
 }
 
 int reverse_bits(int i, int N) {
