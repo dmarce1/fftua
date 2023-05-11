@@ -153,26 +153,23 @@ void apply_butterfly_and_transpose(T* x, int N, int bb, int cb, int tbb, int tbe
 
 void fft_inplace(double* x, int N) {
 	constexpr int N1 = 4;
+	const int highest_bit = ilogb(N) - ilogb(N1) + 1;
 	int lobit = 1;
-	int hibit = ilogb(N) - ilogb(N1) + 1;
-//	printf("N = %i hibit = %i lobit = %i\n", N, hibit, lobit);
-	while (hibit >= lobit + ilogb(N1)) {
-//		printf("phase 1 - hibit = %i lobit = %i\n", hibit, lobit);
+	int hibit = highest_bit;
+	while (hibit > lobit + ilogb(N1) - 1) {
 		apply_butterfly_and_transpose<N1, double>(x, 2 * N, hibit, 0, 1, lobit, lobit);
 		lobit += ilogb(N1);
 		hibit -= ilogb(N1);
 	}
 	if (hibit - lobit == 1) {
-//		printf("phase 1.8\n");
 		apply_butterfly<N1 * 2, double>(x, 2 * N, lobit, 0, 1, lobit);
 		lobit += 3;
-	} else if (hibit - lobit == -1) {
-	//	printf("phase 1.2\n");
+	}
+	if (hibit - lobit == -1) {
 		apply_butterfly<N1 / 2, double>(x, 2 * N, lobit, 0, 1, lobit);
 		lobit += 1;
 	}
-	while (lobit <= ilogb(N) - ilogb(N1) + 1) {
-	//	printf("phase 2 - lobit = %i\n", lobit);
+	while (lobit <= highest_bit) {
 		apply_butterfly<N1, double>(x, 2 * N, lobit, 0, 1, lobit);
 		lobit += ilogb(N1);
 	}
