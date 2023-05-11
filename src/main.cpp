@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 2; N <= 1024*1024*1024; N *= 2) {
+	for (int N = 4; N <= 1024*1024*1024; N *= 2) {
 		auto pfac = prime_factorization(N);
 		/*	{
 			double avg_err = 0.0;
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 2; i++) {
+			for (int i = 0; i < 51; i++) {
 				std::vector<complex<double>> X(N);
 				std::vector<complex<double>> Y(N);
 				for (int n = 0; n < N; n++) {
