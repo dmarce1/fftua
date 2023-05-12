@@ -543,7 +543,7 @@ double fftw_real(std::vector<complex<double>>& xout, const std::vector<double>& 
 	if (plans.find(N) == plans.end()) {
 		in[N] = (double*) malloc(sizeof(double) * N);
 		out[N] = (fftw_complex*) malloc(sizeof(fftw_complex) * (N / 2 + 1));
-		plans[N] = fftw_plan_dft_r2c_1d(N, in[N], out[N], FFTW_MEASURE);
+		plans[N] = fftw_plan_dft_r2c_1d(N, in[N], out[N], FFTW_MEASURE | FFTW_NO_SIMD);
 	}
 	auto* i = in[N];
 	auto* o = out[N];
