@@ -551,23 +551,23 @@ void apply_butterfly_and_transpose_real(T* x, int N, int bb, int tbb, int tbe, i
 					sfft_skew<N1>(u[ti].data());
 					for (int n1 = 0; n1 < N1 / 2; n1++) {
 						const int i0 = Mk2 + ti * dn1 + n1 * dnt;
-						const int i1 = Mk2 + ti * dn1 + (N1 - ti - 1) * dnt;
+						const int i1 = Mk2 + ti * dn1 + (N1 - n1 - 1) * dnt;
 						x[i0] = u[ti][n1];
 						x[i1] = u[ti][N1 - n1 - 1];
 					}
 				}
 			}
-		} else if (k2 < N / 2) {
+		} else if (k2 < N2 / 2) {
 			for (int ti = 0; ti < N1; ti++) {
-				printf("1: ");
+			//	printf("1: ");
 				for (int n1 = 0; n1 < N1; n1++) {
 					const int i0 = Mk2 + n1 * dn1 + ti * dnt;
 					const int i1 = mask_neg(Mk2 + n1 * dn1 + ti * dnt, k2mask);
-					printf("%i (%i %i) ", n1, i0, i1);
+				//	printf("%i (%i %i) ", n1, i0, i1);
 					u[ti][2 * n1] = x[i0];
 					u[ti][2 * n1 + 1] = x[i1];
 				}
-				printf("\n");
+				//printf("\n");
 			}
 			for (int ti = 0; ti < N1; ti++) {
 				for (int n1 = 1; n1 < N1; n1++) {
@@ -579,11 +579,11 @@ void apply_butterfly_and_transpose_real(T* x, int N, int bb, int tbb, int tbe, i
 					im = tmp * t.imag() + im * t.real();
 				}
 				sfft_complex<N1>(u[ti].data());
-				printf("2: ");
+			//	printf("2: ");
 				for (int n1 = 0; n1 < N1; n1++) {
 					const int i0 = Mk2 + n1 * dnt + ti * dn1;
 					const int i1 = mask_neg(Mk2 + ti * dn1 + n1 * dnt, trmask | k2mask);
-					printf("%i (%i %i) ", n1, i0, i1);
+				//	printf("%i (%i %i) ", n1, i0, i1);
 					//	printf("(%i, %i) = (%e %e) | ", i0, i1, u[ti][2 * n1], u[ti][2 * n1 + 1]);
 					if (i0 < i1) {
 						x[i0] = u[ti][2 * n1];
@@ -593,7 +593,7 @@ void apply_butterfly_and_transpose_real(T* x, int N, int bb, int tbb, int tbe, i
 						x[i0] = -u[ti][2 * n1 + 1];
 					}
 				}
-				printf("\n");
+			//	printf("\n");
 				//printf("\n");
 			}
 		}
