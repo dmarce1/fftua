@@ -404,6 +404,47 @@
 
  */
 
+#include <cstring>
+
+template<class T, int N>
+class write_buffer {
+	std::array<T, N> buf;
+	T* last_store;
+	T* ptr;
+public:
+	write_buffer() {
+		ptr = nullptr;
+	}
+	void flush() {
+		if (ptr) {
+			int cnt = last_store - ptr + 1;
+			if (cnt == N) {
+				std::memcpy(ptr, buf.data(), N * sizeof(T));
+			} else {
+				for (int i = 0; i < cnt; i++) {
+					ptr[i] = buf[i];
+				}
+			}
+			ptr = nullptr;
+		}
+	}
+	void store(T* addr, T val) {
+		if (ptr == nullptr) {
+			ptr = addr;
+			last_store = addr;
+			buf[0] = val;
+		} else {
+			if (addr - last_store != 1 || last_store - ptr == N - 1) {
+				flush();
+				store(addr, val);
+			} else {
+				buf[addr - ptr] = val;
+				last_store = addr;
+			}
+		}
+	}
+};
+
 inline int mask_inc(int index, int mask) {
 	index |= ~mask;
 	index++;
@@ -415,7 +456,20 @@ inline int mask_neg(int index, int mask) {
 	return mask_inc(~(index & mask), mask) | (index & ~mask);
 }
 
+
 #include <cstring>
+
+template<class T>
+void shuffle(T* xin, T* xout, int N, int NLO) {
+	const int NHI = N / NLO;
+	for (int ihi = 0; ihi < NHI; ihi++) {
+		for (int ilo = 0; ilo < NLO; ilo++) {
+			const int i = ilo + NLO * ihi;
+			const int j = ihi + NHI * ilo;
+			xout[j] = xin[i];
+		}
+	}
+}
 
 template<class T>
 void apply_transpose(T* x, int N, int lobit, int hibit, int tnb) {
@@ -462,7 +516,7 @@ void apply_transpose(T* x, int N, int lobit, int hibit, int tnb) {
 }
 
 template<int N1, class T>
-void apply_first_butterfly_real(T* x, int N, int bb, int tbb, int tbe) {
+void apply_first_butterfly_real(T* x, int N, int bb) {
 	//printf("N = %i bb = %i tbb = %i tbe = %i \n", N, bb, tbb, tbe);
 	std::array<fft_simd4, 2 * N1> u;
 	int dn1 = 1 << (bb - ilogb(N1));
@@ -660,18 +714,14 @@ void apply_butterfly_and_transpose_real(T* x, int N, int bb, int tbb, int tbe, i
 
 void fft_inplace_real(double* x, int N) {
 	constexpr int N1 = 4;
+	constexpr int wbit = ilogb(N1);
 	const int highest_bit = ilogb(N) - ilogb(N1);
 	int lobit = 0;
 	int hibit = highest_bit;
-
-	apply_first_butterfly_real<N1, double>(x, N, hibit, 0, lobit);
-	apply_transpose<double>(x, N, 0, hibit, ilogb(N1));
-	lobit += ilogb(N1);
-	hibit -= ilogb(N1);
 	while (hibit > lobit + ilogb(N1) - 1) {
 		apply_butterfly_and_transpose_real<N1, double>(x, N, hibit, 0, lobit, lobit);
-		lobit += ilogb(N1);
-		hibit -= ilogb(N1);
+		lobit += wbit;
+		hibit -= wbit;
 	}
 	if (hibit - lobit == +1) {
 		apply_butterfly_real<2 * N1, double>(x, N, lobit, 0, lobit);
@@ -683,7 +733,7 @@ void fft_inplace_real(double* x, int N) {
 	}
 	while (lobit <= highest_bit) {
 		apply_butterfly_real<N1, double>(x, N, lobit, 0, lobit);
-		lobit += ilogb(N1);
+		lobit += wbit;
 	}
 }
 
