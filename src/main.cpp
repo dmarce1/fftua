@@ -79,7 +79,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 16; N <= 1024*1024*1024; N *= 2) {
+	for (int N = 64; N <= 1024*1024*1024; N *= 2) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;

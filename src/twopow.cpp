@@ -415,6 +415,86 @@ inline int mask_neg(int index, int mask) {
 	return mask_inc(~(index & mask), mask) | (index & ~mask);
 }
 
+#include <cstring>
+
+template<class T>
+void apply_transpose(T* x, int N, int lobit, int hibit, int tnb) {
+	int n1 = 1 << tnb;
+	const int& n2 = n1;
+	int d1 = 1 << lobit;
+	int d2 = 1 << hibit;
+	int nhi = N / d2 / n1;
+	int nmid = d2 / d1 / n1;
+	int nlo = d1;
+	constexpr int nchunk = 32;
+	if (nlo < nchunk) {
+		for (int ihi = 0; ihi < nhi; ihi++) {
+			for (int i1 = 0; i1 < n1; i1++) {
+				for (int imid = 0; imid < nmid; imid++) {
+					for (int i2 = i1 + 1; i2 < n2; i2++) {
+						for (int ilo = 0; ilo < nlo; ilo++) {
+							const int i = ilo + nlo * (i1 + n1 * (imid + nmid * (i2 + n2 * ihi)));
+							const int j = ilo + nlo * (i2 + n1 * (imid + nmid * (i1 + n2 * ihi)));
+							std::swap(x[i], x[j]);
+						}
+					}
+				}
+			}
+		}
+	} else {
+		std::array<T, nchunk> buffer;
+		for (int ihi = 0; ihi < nhi; ihi++) {
+			for (int i1 = 0; i1 < n1; i1++) {
+				for (int imid = 0; imid < nmid; imid++) {
+					for (int i2 = i1 + 1; i2 < n2; i2++) {
+						for (int ilo = 0; ilo < nlo; ilo += nchunk) {
+							const int i = ilo + nlo * (i1 + n1 * (imid + nmid * (i2 + n2 * ihi)));
+							const int j = ilo + nlo * (i2 + n1 * (imid + nmid * (i1 + n2 * ihi)));
+							std::memcpy(buffer.begin(), x + i, sizeof(T) * nchunk);
+							std::memcpy(x + i, x + j, sizeof(T) * nchunk);
+							std::memcpy(x + j, buffer.begin(), sizeof(T) * nchunk);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+template<int N1, class T>
+void apply_first_butterfly_real(T* x, int N, int bb, int tbb, int tbe) {
+	//printf("N = %i bb = %i tbb = %i tbe = %i \n", N, bb, tbb, tbe);
+	std::array<fft_simd4, 2 * N1> u;
+	int dn1 = 1 << (bb - ilogb(N1));
+	int Mmask = 0;
+	for (int n1 = 0; n1 < ilogb(N1); n1++) {
+		Mmask |= (1 << (bb + n1));
+	}
+	Mmask = ~Mmask;
+	Mmask >>= ilogb(N1);
+	N >>= ilogb(N1);
+	int M = 0;
+	auto* z = (fft_simd4*) x;
+	do {
+		for (int n1 = 0; n1 < N1; n1++) {
+			const int i = M + n1 * dn1;
+			u[n1] = z[i];
+		}
+		sfft_real<N1>(u.data());
+		int i0 = M;
+		z[i0] = u[0];
+		for (int n1 = 1; n1 < N1 / 2; n1++) {
+			const int i0 = M + n1 * dn1;
+			const int i1 = M + (N1 - n1) * dn1;
+			z[i0] = u[n1];
+			z[i1] = u[N1 - n1];
+		}
+		i0 = M + (N1 / 2) * dn1;
+		z[i0] = u[N1 / 2];
+		M = mask_inc(M, Mmask);
+	} while (M < N);
+}
+
 template<int N1, class T>
 void apply_butterfly_real(T* x, int N, int bb, int tbb, int tbe) {
 	//printf("N = %i bb = %i tbb = %i tbe = %i \n", N, bb, tbb, tbe);
@@ -432,49 +512,38 @@ void apply_butterfly_real(T* x, int N, int bb, int tbb, int tbe) {
 	do {
 		const int k2 = (Mk2 & k2mask) >> tbb;
 		if (k2 == 0 || k2 == N2 / 2) {
-			//printf("R: ");
 			for (int n1 = 0; n1 < N1; n1++) {
 				const int i = Mk2 + n1 * dn1;
 				u[n1] = x[i];
-				//printf("%i = %e | ", i, u[n1]);
 			}
-			///	printf("\n");
 			if (k2 == 0) {
 				sfft_real<N1>(u.data());
 				int i0 = Mk2;
-				//	printf("%i = %e | ", i0, u[0]);
 				x[i0] = u[0];
 				for (int n1 = 1; n1 < N1 / 2; n1++) {
 					const int i0 = Mk2 + n1 * dn1;
 					const int i1 = Mk2 + (N1 - n1) * dn1;
-					//printf("(%i, %i) = (%e %e) | ", i0, i1, u[n1], u[N1 - n1]);
 					x[i0] = u[n1];
 					x[i1] = u[N1 - n1];
 				}
 				i0 = Mk2 + (N1 / 2) * dn1;
-				//	printf("%i = %e | ", i0, u[N1 / 2]);
 				x[i0] = u[N1 / 2];
-				//printf("\n");
 			} else {
 				sfft_skew<N1>(u.data());
 				for (int n1 = 0; n1 < N1 / 2; n1++) {
 					const int i0 = Mk2 + n1 * dn1;
 					const int i1 = Mk2 + (N1 - n1 - 1) * dn1;
-					//		printf("(%i, %i) = (%e %e) | ", i0, i1, u[n1], u[N1 - n1]);
 					x[i0] = u[n1];
 					x[i1] = u[N1 - n1 - 1];
 				}
 			}
 		} else if (k2 < N2 / 2) {
-			//printf("R: ");
 			for (int n1 = 0; n1 < N1; n1++) {
 				const int i0 = Mk2 + n1 * dn1;
 				const int i1 = mask_neg(Mk2 + n1 * dn1, k2mask);
 				u[2 * n1] = x[i0];
 				u[2 * n1 + 1] = x[i1];
-				//	printf("(%i, %i) = (%e %e) | ", i0, i1, u[2 * n1], u[2 * n1 + 1]);
 			}
-			//	printf("\n");
 			for (int n1 = 1; n1 < N1; n1++) {
 				const auto& t = W[n1 * k2];
 				auto& re = u[2 * n1 + 0];
@@ -484,22 +553,18 @@ void apply_butterfly_real(T* x, int N, int bb, int tbb, int tbe) {
 				im = tmp * t.imag() + im * t.real();
 			}
 			sfft_complex<N1>(u.data());
-			//printf("W: ");
 			for (int n1 = 0; n1 < N1 / 2; n1++) {
 				const int i0 = Mk2 + n1 * dn1;
 				const int i1 = mask_neg(Mk2 + n1 * dn1, ~Mk2mask | k2mask);
-				//	printf("(%i, %i) = (%e %e) | ", i0, i1, u[2 * n1], u[2 * n1 + 1]);
 				x[i0] = u[2 * n1];
 				x[i1] = u[2 * n1 + 1];
 			}
 			for (int n1 = N1 / 2; n1 < N1; n1++) {
 				const int i1 = Mk2 + n1 * dn1;
 				const int i0 = mask_neg(Mk2 + n1 * dn1, ~Mk2mask | k2mask);
-				//	printf("(%i, %i) = (%e %e) | ", i0, i1, u[2 * n1], u[2 * n1 + 1]);
 				x[i0] = u[2 * n1];
 				x[i1] = -u[2 * n1 + 1];
 			}
-			//		printf("\n");
 		}
 		Mk2 = mask_inc(Mk2, Mk2mask);
 	} while (Mk2 < N);
@@ -559,15 +624,12 @@ void apply_butterfly_and_transpose_real(T* x, int N, int bb, int tbb, int tbe, i
 			}
 		} else if (k2 < N2 / 2) {
 			for (int ti = 0; ti < N1; ti++) {
-			//	printf("1: ");
 				for (int n1 = 0; n1 < N1; n1++) {
 					const int i0 = Mk2 + n1 * dn1 + ti * dnt;
 					const int i1 = mask_neg(Mk2 + n1 * dn1 + ti * dnt, k2mask);
-				//	printf("%i (%i %i) ", n1, i0, i1);
 					u[ti][2 * n1] = x[i0];
 					u[ti][2 * n1 + 1] = x[i1];
 				}
-				//printf("\n");
 			}
 			for (int ti = 0; ti < N1; ti++) {
 				for (int n1 = 1; n1 < N1; n1++) {
@@ -579,12 +641,9 @@ void apply_butterfly_and_transpose_real(T* x, int N, int bb, int tbb, int tbe, i
 					im = tmp * t.imag() + im * t.real();
 				}
 				sfft_complex<N1>(u[ti].data());
-			//	printf("2: ");
 				for (int n1 = 0; n1 < N1; n1++) {
 					const int i0 = Mk2 + n1 * dnt + ti * dn1;
 					const int i1 = mask_neg(Mk2 + ti * dn1 + n1 * dnt, trmask | k2mask);
-				//	printf("%i (%i %i) ", n1, i0, i1);
-					//	printf("(%i, %i) = (%e %e) | ", i0, i1, u[ti][2 * n1], u[ti][2 * n1 + 1]);
 					if (i0 < i1) {
 						x[i0] = u[ti][2 * n1];
 						x[i1] = u[ti][2 * n1 + 1];
@@ -593,37 +652,10 @@ void apply_butterfly_and_transpose_real(T* x, int N, int bb, int tbb, int tbe, i
 						x[i0] = -u[ti][2 * n1 + 1];
 					}
 				}
-			//	printf("\n");
-				//printf("\n");
 			}
 		}
 		Mk2 = mask_inc(Mk2, Mk2mask);
 	} while (Mk2 < N);
-}
-
-template<class T>
-void apply_transpose(T* x, int N, int tb1, int tb2, int tnb) {
-	int cmask = N - 1;
-	int tsz = 1 << tnb;
-	int d1 = 1 << tb1;
-	int d2 = 1 << tb2;
-	cmask = 0;
-	for (int n = 0; n < tnb; n++) {
-		cmask |= (1 << (tb1 + n));
-		cmask |= (1 << (tb2 + n));
-	}
-	for (int n = 0; n < N; n++) {
-		if (n & cmask) {
-			continue;
-		}
-		for (int n1 = 0; n1 < tsz; n1++) {
-			for (int n2 = n1 + 1; n2 < tsz; n2++) {
-				const int i = n + n1 * d1 + n2 * d2;
-				const int j = n + n2 * d1 + n1 * d2;
-				std::swap(x[i], x[j]);
-			}
-		}
-	}
 }
 
 void fft_inplace_real(double* x, int N) {
@@ -631,9 +663,13 @@ void fft_inplace_real(double* x, int N) {
 	const int highest_bit = ilogb(N) - ilogb(N1);
 	int lobit = 0;
 	int hibit = highest_bit;
+
+	apply_first_butterfly_real<N1, double>(x, N, hibit, 0, lobit);
+	apply_transpose<double>(x, N, 0, hibit, ilogb(N1));
+	lobit += ilogb(N1);
+	hibit -= ilogb(N1);
 	while (hibit > lobit + ilogb(N1) - 1) {
 		apply_butterfly_and_transpose_real<N1, double>(x, N, hibit, 0, lobit, lobit);
-//		apply_transpose<double>(x, N, hibit, lobit, ilogb(N1));
 		lobit += ilogb(N1);
 		hibit -= ilogb(N1);
 	}
