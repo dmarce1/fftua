@@ -717,11 +717,8 @@ void fft_inplace_real(double* x, int N) {
 	std::array<std::array<double, 2 * N1>, N1> u;
 	N2 = NHI = 1;
 	NMID = N / (NHI * N2 * N1 * N1);
-	constexpr int wbit = ilogb(N1);
-	const int highest_bit = ilogb(N) - ilogb(N1);
-	int lobit = 0;
-	int hibit = highest_bit;
 	while (NMID) {
+		//	printf("Loop 0 N2 = %i NHI = %i\n", N2, NHI);
 		TWHI = N / (N1 * N2);
 		for (int ihi = 0; ihi < NHI; ihi++) {
 			for (int imid = 0; imid < NMID; imid++) {
@@ -850,279 +847,94 @@ void fft_inplace_real(double* x, int N) {
 		NHI *= N1;
 		N2 *= N1;
 		NMID = N / (NHI * N2 * N1 * N1);
-		lobit += wbit;
-		hibit -= wbit;
 	}
-	if (hibit - lobit == +1) {
-		TWHI = N / (N1 * 2 * N2);
-		NHI = TWHI;
+	if (NHI * N2 == N / 8) {
+		NMID = N1 / 2;
+		TWHI = N / (N1 / 2 * N2);
+		//	printf("Loop 1 N2 = %i NHI = %i\n", N2, NHI);
 		for (int ihi = 0; ihi < NHI; ihi++) {
-			const int i0 = N2 * N1 * ihi * 2;
-			const int i1 = i0 + N2;
-			const int i2 = i1 + N2;
-			const int i3 = i2 + N2;
-			const int i4 = i3 + N2;
-			const int i5 = i4 + N2;
-			const int i6 = i5 + N2;
-			const int i7 = i6 + N2;
-			auto U0R = x[i0];
-			auto U1R = x[i1];
-			auto U2R = x[i2];
-			auto U3R = x[i3];
-			auto U4R = x[i4];
-			auto U5R = x[i5];
-			auto U6R = x[i6];
-			auto U7R = x[i7];
-			double T0, T1, T2;
-			const double c0 = 7.07106781186547573e-01;
-			T0 = U0R + U4R;
-			U0R -= U4R;
-			U4R = U2R + U6R;
-			U2R -= U6R;
-			U6R = T0 + U4R;
-			T1 = U2R;
-			x[i2] = T0 - U4R;
-			T0 = U1R + U5R;
-			U1R -= U5R;
-			U4R = U7R + U3R;
-			U7R -= U3R;
-			U3R = T0 - U4R;
-			T0 += U4R;
-			U4R = U0R;
-			x[i0] = U6R + T0;
-			U5R = U6R;
-			x[i6] = -U3R;
-			U3R = U4R;
-			x[i4] = U5R - T0;
-			U7R *= c0;
-			U1R *= c0;
-			T0 = U1R + U7R;
-			U5R = U1R;
-			x[i1] = U3R + T0;
-			U7R -= U5R;
-			U5R = U7R;
-			x[i7] = U5R - T1;
-			T2 = U3R;
-			x[i3] = T2 - T0;
-			T0 = U5R;
-			x[i5] = T0 + T1;
-
-		}
-		for (int ihi = 0; ihi < NHI; ihi++) {
-			const int i0 = N2 / 2 + N2 * N1 * ihi * 2;
-			const int i1 = i0 + N2;
-			const int i2 = i1 + N2;
-			const int i3 = i2 + N2;
-			const int i4 = i3 + N2;
-			const int i5 = i4 + N2;
-			const int i6 = i5 + N2;
-			const int i7 = i6 + N2;
-			auto U0R = x[i0];
-			auto U1R = x[i1];
-			auto U2R = x[i2];
-			auto U3R = x[i3];
-			auto U4R = x[i4];
-			auto U5R = x[i5];
-			auto U6R = x[i6];
-			auto U7R = x[i7];
-			double T0, T1, T2;
-			const double c0 = 3.82683432365089782e-01;
-			const double c1 = 9.23879532511286738e-01;
-			const double c2 = 7.07106781186547573e-01;
-			T0 = U5R * c0;
-			T1 = U1R * c1;
-			T1 -= T0;
-			U5R *= c1;
-			U1R *= c0;
-			U1R += U5R;
-			U6R *= c2;
-			U2R *= c2;
-			T0 = U2R - U6R;
-			U2R += U6R;
-			U5R = U7R * c1;
-			U6R = U3R * c0;
-			U6R -= U5R;
-			U7R *= c0;
-			U3R *= c1;
-			U3R += U7R;
-			U5R = U0R + T0;
-			U7R = U4R + U2R;
-			U0R -= T0;
-			U2R -= U4R;
-			T0 = T1 + U6R;
-			U4R = U1R + U3R;
-			T1 -= U6R;
-			U3R -= U1R;
-			U1R = U0R;
-			U0R = U5R + T0;
-			U6R = U7R + U4R;
-			T2 = U7R;
-			U7R = -U6R;
-			U6R = U3R;
-			U3R = U5R - T0;
-			U4R -= T2;
-			T0 = U2R;
-			U2R = U1R + U6R;
-			U5R = T0 - T1;
-			T2 = U1R;
-			U1R = T2 - U6R;
-			T1 += T0;
-			U6R = -T1;
-			T0 = U4R;
-			U4R = -T0;
-		}
-		for (int ihi = 0; ihi < NHI; ihi++) {
+			for (int imid = 0; imid < NMID; imid++) {
+				for (int n0 = 0; n0 < N1 / 2; n0++) {
+					for (int n1 = 0; n1 < N1 / 2; n1++) {
+						const int i0 = N2 * (n0 + (N1 / 2) * (imid + NMID * (n1 + (N1 / 2) * ihi)));
+						u[n0][n1] = x[i0];
+					}
+				}
+				for (int n0 = 0; n0 < (N1 / 2); n0++) {
+					const int i0 = N2 * ((N1 / 2) * (imid + NMID * (n0 + (N1 / 2) * ihi)));
+					const int i1 = i0 + N2;
+					const auto& u0 = u[n0];
+					auto U0R = u0[0];
+					auto U1R = u0[1];
+					x[i0] = U0R + U1R;
+					x[i1] = U0R - U1R;
+				}
+			}
+			if (N2 >= (N1 / 2)) {
+				for (int imid = 0; imid < NMID; imid++) {
+					for (int n0 = 0; n0 < (N1 / 2); n0++) {
+						for (int n1 = 0; n1 < (N1 / 2); n1++) {
+							const int i0 = N2 / 2 + N2 * (n0 + (N1 / 2) * (imid + NMID * (n1 + (N1 / 2) * ihi)));
+							u[n0][n1] = x[i0];
+						}
+					}
+					for (int n0 = 0; n0 < (N1 / 2); n0++) {
+						const int i0 = N2 / 2 + N2 * ((N1 / 2) * (imid + NMID * (n0 + (N1 / 2) * ihi)));
+						const int i1 = i0 + N2;
+						const auto& u0 = u[n0];
+						auto U0R = u0[0];
+						auto U1R = u0[1];
+						x[i0] = U0R;
+						x[i1] = -U1R;
+					}
+				}
+			}
 			for (int k2 = 1; k2 < N2 / 2; k2++) {
-				double T0, T1, T2;
-				const double c0 = 7.07106781186547573e-01;
-				const int i0 = k2 + N2 * N1 * ihi * 2;
-				const int i1 = i0 + N2;
-				const int i2 = i1 + N2;
-				const int i3 = i2 + N2;
-				const int i4 = i3 + N2;
-				const int i5 = i4 + N2;
-				const int i6 = i5 + N2;
-				const int i7 = i6 + N2;
-				const int i8 = i0 + N2 - 2 * k2;
-				const int i9 = i8 + N2;
-				const int i10 = i9 + N2;
-				const int i11 = i10 + N2;
-				const int i12 = i11 + N2;
-				const int i13 = i12 + N2;
-				const int i14 = i13 + N2;
-				const int i15 = i14 + N2;
-				const int j1 = k2 * TWHI;
-				const int j2 = 2 * j1;
-				const int j3 = 3 * j1;
-				const int j4 = 4 * j1;
-				const int j5 = 5 * j1;
-				const int j6 = 6 * j1;
-				const int j7 = 7 * j1;
-				const auto C1 = w[j1].real();
-				const auto C2 = w[j2].real();
-				const auto C3 = w[j3].real();
-				const auto C4 = w[j4].real();
-				const auto C5 = w[j5].real();
-				const auto C6 = w[j6].real();
-				const auto C7 = w[j7].real();
-				const auto S1 = w[j1].imag();
-				const auto S2 = w[j2].imag();
-				const auto S3 = w[j3].imag();
-				const auto S4 = w[j4].imag();
-				const auto S5 = w[j5].imag();
-				const auto S6 = w[j6].imag();
-				const auto S7 = w[j7].imag();
-				auto U0R = x[i0];
-				auto U1R = x[i1];
-				auto U2R = x[i2];
-				auto U3R = x[i3];
-				auto U4R = x[i4];
-				auto U5R = x[i5];
-				auto U6R = x[i6];
-				auto U7R = x[i7];
-				auto U0I = x[i8];
-				auto U1I = x[i9];
-				auto U2I = x[i10];
-				auto U3I = x[i11];
-				auto U4I = x[i12];
-				auto U5I = x[i13];
-				auto U6I = x[i14];
-				auto U7I = x[i15];
-				const double T1R = U1R;
-				const double T2R = U2R;
-				const double T3R = U3R;
-				const double T4R = U4R;
-				const double T5R = U5R;
-				const double T6R = U6R;
-				const double T7R = U7R;
-				U1R = T1R * C1 - U1I * S1;
-				U2R = T2R * C2 - U2I * S2;
-				U3R = T3R * C3 - U3I * S3;
-				U4R = T4R * C4 - U4I * S4;
-				U5R = T5R * C5 - U5I * S5;
-				U6R = T6R * C6 - U6I * S6;
-				U7R = T7R * C7 - U7I * S7;
-				U1I = T1R * S1 + U1I * C1;
-				U2I = T2R * S2 + U2I * C2;
-				U3I = T3R * S3 + U3I * C3;
-				U4I = T4R * S4 + U4I * C4;
-				U5I = T5R * S5 + U5I * C5;
-				U6I = T6R * S6 + U6I * C6;
-				U7I = T7R * S7 + U7I * C7;
-				T0 = U0R + U4R;
-				T1 = U0I + U4I;
-				U0R -= U4R;
-				U0I -= U4I;
-				U4R = U2R + U6R;
-				U4I = U2I + U6I;
-				U2R -= U6R;
-				U2I -= U6I;
-				U6R = T0 + U4R;
-				U6I = T1 + U4I;
-				T0 -= U4R;
-				T1 -= U4I;
-				U4R = U0R + U2I;
-				U4I = U0I - U2R;
-				U0R -= U2I;
-				U2R += U0I;
-				U0I = U1R + U5R;
-				U2I = U1I + U5I;
-				U1R -= U5R;
-				U1I -= U5I;
-				U5R = U3R + U7R;
-				U5I = U3I + U7I;
-				U3R -= U7R;
-				U3I -= U7I;
-				U7R = U0I + U5R;
-				U7I = U2I + U5I;
-				U0I -= U5R;
-				U2I -= U5I;
-				U5R = U1R + U3I;
-				U5I = U1I - U3R;
-				U1R -= U3I;
-				U3R += U1I;
-				U5R *= c0;
-				U5I *= c0;
-				U1I = U5I + U5R;
-				U5I -= U5R;
-				U1R *= c0;
-				U3R *= c0;
-				U5R = U3R - U1R;
-				U1R += U3R;
-				U3R = U0R;
-				x[i0] = U6R + U7R;
-				U3I = U0I;
-				x[i15] = U6I + U7I;
-				T2 = U4R;
-				x[i4] = U6R - U7R;
-				U6R = U4I;
-				x[i11] = U6I - U7I;
-				U6I = U1R;
-				x[i2] = T2 + U1I;
-				U7R = U1I;
-				x[i14] = U6R + U5I;
-				U7I = U5R;
-				x[i5] = T2 - U7R;
-				T2 = U5I;
-				x[i10] = U6R - T2;
-				T2 = U2R;
-				x[i3] = T0 + U2I;
-				U6R = U2I;
-				x[i13] = T1 - U3I;
-				U7R = U6R;
-				x[i6] = T0 - U7R;
-				T0 = U6I;
-				x[i9] = U3I + T1;
-				T1 = U3R;
-				x[i3] = T1 + U7I;
-				x[i12] = T2 - T0;
-				x[i7] = T1 - U7I;
-				x[i8] = T0 + T2;
+				const int j = k2 * TWHI;
+				const auto C = w[j].real();
+				const auto S = w[j].imag();
+				for (int imid = 0; imid < NMID; imid++) {
+					for (int n0 = 0; n0 < (N1 / 2); n0++) {
+						for (int n1 = 0; n1 < (N1 / 2); n1++) {
+							int i0 = k2 + N2 * (n0 + (N1 / 2) * (imid + NMID * (n1 + (N1 / 2) * ihi)));
+							int i1 = N2 - k2 + N2 * (n0 + (N1 / 2) * (imid + NMID * (n1 + (N1 / 2) * ihi)));
+							u[n0][2 * n1] = x[i0];
+							u[n0][2 * n1 + 1] = x[i1];
+						}
+					}
+					for (int n0 = 0; n0 < (N1 / 2); n0++) {
+						const int i0 = k2 + N2 * ((N1 / 2) * (imid + NMID * (n0 + (N1 / 2) * ihi)));
+						const int i1 = i0 + N2;
+						const int i2 = i0 + N2 - 2 * k2;
+						const int i3 = i2 + N2;
+						const auto& u0 = u[n0];
+						auto U0R = u0[0];
+						auto U0I = u0[1];
+						auto U1R = u0[2];
+						auto U1I = u0[3];
+						auto T = U1R;
+						U1R = T * C - U1I * S;
+						U1I = T * S + U1I * C;
+						x[i0] = U0R + U1R;
+						x[i3] = U0I + U1I;
+						x[i2] = U0R - U1R;
+						x[i1] = -U0I + U1I;
+					}
+				}
 			}
 		}
-		N2 *= N1 / 2;
-	}
-	if (hibit - lobit == -1) {
+		N2 *= (N1 / 2);
+		NHI = N / N2 / (N1 / 2) / (N1 / 2);
+		for (int ihi = 0; ihi < NHI; ihi++) {
+			const int i = N2 * (1 + (N1 / 2) * ((N1 / 2) * ihi));
+			const int j = N2 * (N1 / 2) * (1 + (N1 / 2) * ihi);
+			for (int ilo = 0; ilo < N2; ilo++) {
+				std::swap(x[i + ilo], x[j + ilo]);
+			}
+
+		}
+	} else if (NHI * N2 == N / 2) {
+		//	printf("Loop 2 N2 = %i\n", N2);
 		TWHI = N / (N1 / 2 * N2);
 		NHI = TWHI;
 		for (int ihi = 0; ihi < NHI; ihi++) {
@@ -1162,6 +974,7 @@ void fft_inplace_real(double* x, int N) {
 		N2 *= N1 / 2;
 	}
 	while (N2 * N1 <= N) {
+		//printf("Loop 3 N2 = %i\n", N2);
 		TWHI = N / (N1 * N2);
 		NHI = TWHI;
 		for (int ihi = 0; ihi < NHI; ihi++) {
@@ -1258,8 +1071,6 @@ void fft_inplace_real(double* x, int N) {
 			}
 		}
 		N2 *= N1;
-		lobit += wbit;
-		hibit -= wbit;
 	}
 }
 
