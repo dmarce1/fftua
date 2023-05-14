@@ -737,7 +737,7 @@ void fft_inplace_real(double* x, int N) {
 					const int i1 = i0 + N2;
 					const int i2 = i1 + N2;
 					const int i3 = i2 + N2;
-					auto& u0 = u[n0];
+					const auto& u0 = u[n0];
 					auto U0R = u0[0];
 					auto U1R = u0[1];
 					auto U2R = u0[2];
@@ -761,13 +761,22 @@ void fft_inplace_real(double* x, int N) {
 						}
 					}
 					for (int n0 = 0; n0 < N1; n0++) {
-						sfft_skew<N1>(u[n0].data());
-						for (int n1 = 0; n1 < N1 / 2; n1++) {
-							int i0 = N2 / 2 + N2 * (n1 + N1 * (imid + NMID * (n0 + N1 * ihi)));
-							int i1 = N2 / 2 + N2 * ((N1 - n1 - 1) + N1 * (imid + NMID * (n0 + N1 * ihi)));
-							x[i0] = u[n0][n1];
-							x[i1] = u[n0][N1 - n1 - 1];
-						}
+						double T1, T2;
+						const int i0 = N2 / 2 + N2 * (N1 * (imid + NMID * (n0 + N1 * ihi)));
+						const int i1 = i0 + N2;
+						const int i2 = i1 + N2;
+						const int i3 = i2 + N2;
+						const auto& u0 = u[n0];
+						auto U0R = u0[0];
+						auto U1R = u0[1];
+						auto U2R = u0[2];
+						auto U3R = u0[3];
+						T1 = M_SQRT1_2 * (U1R - U3R);
+						T2 = M_SQRT1_2 * (U1R + U3R);
+						x[i0] = U0R + T1;
+						x[i3] = -U2R - T2;
+						x[i1] = U0R - T1;
+						x[i2] = -T2 + U2R;
 					}
 				}
 			}
@@ -800,7 +809,7 @@ void fft_inplace_real(double* x, int N) {
 						const int i5 = i4 + N2;
 						const int i6 = i5 + N2;
 						const int i7 = i6 + N2;
-						auto& u0 = u[n0];
+						const auto& u0 = u[n0];
 						auto U0R = u0[0];
 						auto U0I = u0[1];
 						auto U1R = u0[2];
@@ -878,17 +887,21 @@ void fft_inplace_real(double* x, int N) {
 		}
 		if (N2 >= N1) {
 			for (int ihi = 0; ihi < NHI; ihi++) {
-				for (int n1 = 0; n1 < N1; n1++) {
-					const int i0 = N2 / 2 + N2 * (n1 + N1 * ihi);
-					u[0][n1] = x[i0];
-				}
-				sfft_skew<N1>(u[0].data());
-				for (int n1 = 0; n1 < N1 / 2; n1++) {
-					int i0 = N2 / 2 + N2 * (n1 + N1 * ihi);
-					int i1 = N2 / 2 + N2 * ((N1 - n1 - 1) + N1 * ihi);
-					x[i0] = u[0][n1];
-					x[i1] = u[0][N1 - n1 - 1];
-				}
+				double T1, T2;
+				const int i0 = N2 / 2 + N2 * N1 * ihi;
+				const int i1 = i0 + N2;
+				const int i2 = i1 + N2;
+				const int i3 = i2 + N2;
+				auto U0R = x[i0];
+				auto U1R = x[i1];
+				auto U2R = x[i2];
+				auto U3R = x[i3];
+				T1 = M_SQRT1_2 * (U1R - U3R);
+				T2 = M_SQRT1_2 * (U1R + U3R);
+				x[i0] = U0R + T1;
+				x[i3] = -U2R - T2;
+				x[i1] = U0R - T1;
+				x[i2] = -T2 + U2R;
 			}
 		}
 		for (int ihi = 0; ihi < NHI; ihi++) {
