@@ -732,17 +732,24 @@ void fft_inplace_real(double* x, int N) {
 					}
 				}
 				for (int n0 = 0; n0 < N1; n0++) {
-					sfft_real<N1>(u[n0].data());
-					int i0 = N2 * (N1 * (imid + NMID * (n0 + N1 * ihi)));
-					x[i0] = u[n0][0];
-					for (int n1 = 1; n1 < N1 / 2; n1++) {
-						int i0 = N2 * (n1 + N1 * (imid + NMID * (n0 + N1 * ihi)));
-						int i1 = N2 * ((N1 - n1) + N1 * (imid + NMID * (n0 + N1 * ihi)));
-						x[i0] = u[n0][n1];
-						x[i1] = u[n0][N1 - n1];
-					}
-					i0 = N2 * ((N1 / 2) + N1 * (imid + NMID * (n0 + N1 * ihi)));
-					x[i0] = u[n0][N1 / 2];
+					double T0R, T1R, T2R, T3R;
+					const int i0 = N2 * (N1 * (imid + NMID * (n0 + N1 * ihi)));
+					const int i1 = i0 + N2;
+					const int i2 = i1 + N2;
+					const int i3 = i2 + N2;
+					auto& u0 = u[n0];
+					auto U0R = u0[0];
+					auto U1R = u0[1];
+					auto U2R = u0[2];
+					auto U3R = u0[3];
+					T0R = U0R + U2R;
+					T2R = U0R - U2R;
+					T1R = U1R + U3R;
+					T3R = U1R - U3R;
+					x[i0] = T0R + T1R;
+					x[i1] = T2R;
+					x[i3] = -T3R;
+					x[i2] = T0R - T1R;
 				}
 			}
 			if (N2 >= N1) {
@@ -765,6 +772,15 @@ void fft_inplace_real(double* x, int N) {
 				}
 			}
 			for (int k2 = 1; k2 < N2 / 2; k2++) {
+				const int j1 = k2 * TWHI;
+				const int j2 = 2 * j1;
+				const int j3 = 3 * j1;
+				const auto C1 = w[j1].real();
+				const auto C2 = w[j2].real();
+				const auto C3 = w[j3].real();
+				const auto S1 = w[j1].imag();
+				const auto S2 = w[j2].imag();
+				const auto S3 = w[j3].imag();
 				for (int imid = 0; imid < NMID; imid++) {
 					for (int n0 = 0; n0 < N1; n0++) {
 						for (int n1 = 0; n1 < N1; n1++) {
@@ -784,9 +800,6 @@ void fft_inplace_real(double* x, int N) {
 						const int i5 = i4 + N2;
 						const int i6 = i5 + N2;
 						const int i7 = i6 + N2;
-						const int j1 = k2 * TWHI;
-						const int j2 = 2 * j1;
-						const int j3 = 3 * j1;
 						auto& u0 = u[n0];
 						auto U0R = u0[0];
 						auto U0I = u0[1];
@@ -796,12 +809,6 @@ void fft_inplace_real(double* x, int N) {
 						auto U2I = u0[5];
 						auto U3R = u0[6];
 						auto U3I = u0[7];
-						const auto C1 = w[j1].real();
-						const auto C2 = w[j2].real();
-						const auto C3 = w[j3].real();
-						const auto S1 = w[j1].imag();
-						const auto S2 = w[j2].imag();
-						const auto S3 = w[j3].imag();
 						T1R = U1R;
 						T2R = U2R;
 						T3R = U3R;
@@ -837,10 +844,6 @@ void fft_inplace_real(double* x, int N) {
 		lobit += wbit;
 		hibit -= wbit;
 	}
-
-	//while (hibit > lobit + ilogb(N1) - 1) {
-	//	apply_butterfly_and_transpose_real<N1, double>(x, N, hibit, 0, lobit, lobit);
-//	}
 	if (hibit - lobit == +1) {
 		apply_butterfly_real<2 * N1, double>(x, N, lobit, 0, lobit);
 		lobit += 3;
@@ -855,21 +858,23 @@ void fft_inplace_real(double* x, int N) {
 		TWHI = N / (N1 * N2);
 		NHI = TWHI;
 		for (int ihi = 0; ihi < NHI; ihi++) {
-			for (int n1 = 0; n1 < N1; n1++) {
-				const int i0 = N2 * (n1 + N1 * ihi);
-				u[0][n1] = x[i0];
-			}
-			sfft_real<N1>(u[0].data());
-			int i0 = N2 * (N1 * ihi);
-			x[i0] = u[0][0];
-			for (int n1 = 1; n1 < N1 / 2; n1++) {
-				const int i0 = N2 * (n1 + N1 * ihi);
-				const int i1 = N2 * ((N1 - n1) + N1 * ihi);
-				x[i0] = u[0][n1];
-				x[i1] = u[0][N1 - n1];
-			}
-			i0 = N2 * ((N1 / 2) + N1 * ihi);
-			x[i0] = u[0][N1 / 2];
+			double T0R, T1R, T2R, T3R;
+			const int i0 = N2 * N1 * ihi;
+			const int i1 = i0 + N2;
+			const int i2 = i1 + N2;
+			const int i3 = i2 + N2;
+			auto U0R = x[i0];
+			auto U1R = x[i1];
+			auto U2R = x[i2];
+			auto U3R = x[i3];
+			T0R = U0R + U2R;
+			T2R = U0R - U2R;
+			T1R = U1R + U3R;
+			T3R = U1R - U3R;
+			x[i0] = T0R + T1R;
+			x[i1] = T2R;
+			x[i3] = -T3R;
+			x[i2] = T0R - T1R;
 		}
 		if (N2 >= N1) {
 			for (int ihi = 0; ihi < NHI; ihi++) {
