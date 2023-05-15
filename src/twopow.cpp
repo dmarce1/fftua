@@ -1165,129 +1165,154 @@ void fft_inplace_real(double* x, int N) {
 	const auto& w = twiddles(N);
 
 	const auto butterfly_and_transpose4 = [&]() {
-		for (int ihi = 0; ihi < NHI; ihi++) {
+		const auto k2hi = [N2](int k2) {
+			return k2 >> 2;
+		};
+		const auto k2lo = [N2](int k2) {
+			return k2 & 0x3;
+//			return ((lo & 1) << 1) | (lo >> 1);
+		};
+
+		const int NHIN1 = NHI / N1;
+		const int N2N1 = N2 / N1;
+		for (int ihi = 0; ihi < NHIN1; ihi++) {
 			for (int imid = 0; imid < NMID; imid++) {
 				std::array<std::array<double, 2 * N1>, N1> u;
-				for (int n0 = 0; n0 < N1; n0++) {
-					for (int n1 = 0; n1 < N1; n1++) {
-						const int i0 = N2 * (n0 + N1 * (imid + NMID * (n1 + N1 * ihi)));
-						u[n0][n1] = x[i0];
-					}
-				}
-				for (int n0 = 0; n0 < N1; n0++) {
-					double T0R, T1R, T2R, T3R;
-					const int i0 = N2 * (N1 * (imid + NMID * (n0 + N1 * ihi)));
-					const int i1 = i0 + N2;
-					const int i2 = i1 + N2;
-					const int i3 = i2 + N2;
-					const auto& u0 = u[n0];
-					auto U0R = u0[0];
-					auto U1R = u0[1];
-					auto U2R = u0[2];
-					auto U3R = u0[3];
-					T0R = U0R + U2R;
-					T2R = U0R - U2R;
-					T1R = U1R + U3R;
-					T3R = U1R - U3R;
-					x[i0] = T0R + T1R;
-					x[i1] = T2R;
-					x[i3] = -T3R;
-					x[i2] = T0R - T1R;
-				}
-			}
-			if (N2 >= N1) {
-				std::array<std::array<double, 2 * N1>, N1> u;
-				for (int imid = 0; imid < NMID; imid++) {
+				for(int ilo = 0; ilo < N1; ilo++) {
+					const int khi0 = k2hi(0);
+					const int klo0 = k2lo(0);
 					for (int n0 = 0; n0 < N1; n0++) {
 						for (int n1 = 0; n1 < N1; n1++) {
-							const int i0 = N2 / 2 + N2 * (n0 + N1 * (imid + NMID * (n1 + N1 * ihi)));
+							const int i0 = ilo + N1 * (khi0 + N2N1 * (n0 + N1 * (imid + NMID * (n1 + N1 * (ihi + NHIN1 * klo0)))));
 							u[n0][n1] = x[i0];
 						}
 					}
 					for (int n0 = 0; n0 < N1; n0++) {
-						double T1, T2;
-						const int i0 = N2 / 2 + N2 * (N1 * (imid + NMID * (n0 + N1 * ihi)));
-						const int i1 = i0 + N2;
-						const int i2 = i1 + N2;
-						const int i3 = i2 + N2;
+						double T0R, T1R, T2R, T3R;
+						const int i0 = ilo + N1 * (khi0 + N2N1 * (0 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
+						const int i1 = ilo + N1 * (khi0 + N2N1 * (1 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
+						const int i2 = ilo + N1 * (khi0 + N2N1 * (2 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
+						const int i3 = ilo + N1 * (khi0 + N2N1 * (3 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
 						const auto& u0 = u[n0];
 						auto U0R = u0[0];
 						auto U1R = u0[1];
 						auto U2R = u0[2];
 						auto U3R = u0[3];
-						T1 = M_SQRT1_2 * (U1R - U3R);
-						T2 = M_SQRT1_2 * (U1R + U3R);
-						x[i0] = U0R + T1;
-						x[i3] = -U2R - T2;
-						x[i1] = U0R - T1;
-						x[i2] = -T2 + U2R;
+						T0R = U0R + U2R;
+						T2R = U0R - U2R;
+						T1R = U1R + U3R;
+						T3R = U1R - U3R;
+						x[i0] = T0R + T1R;
+						x[i1] = T2R;
+						x[i3] = -T3R;
+						x[i2] = T0R - T1R;
+					}
+				}
+			}
+			if (N2 >= N1) {
+				const int khi0 = k2hi(N2/2);
+				const int klo0 = k2lo(N2/2);
+				std::array<std::array<double, 2 * N1>, N1> u;
+				for (int imid = 0; imid < NMID; imid++) {
+					for(int ilo = 0; ilo < N1; ilo++) {
+						for (int n0 = 0; n0 < N1; n0++) {
+							for (int n1 = 0; n1 < N1; n1++) {
+								const int i0 = ilo + N1 * (khi0 + N2N1 * (n0 + N1 * (imid + NMID * (n1 + N1 * (ihi + NHIN1 * klo0)))));
+								u[n0][n1] = x[i0];
+							}
+						}
+						for (int n0 = 0; n0 < N1; n0++) {
+							double T1, T2;
+							const int i0 = ilo + N1 * (khi0 + N2N1 * (0 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
+							const int i1 = ilo + N1 * (khi0 + N2N1 * (1 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
+							const int i2 = ilo + N1 * (khi0 + N2N1 * (2 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
+							const int i3 = ilo + N1 * (khi0 + N2N1 * (3 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
+							const auto& u0 = u[n0];
+							auto U0R = u0[0];
+							auto U1R = u0[1];
+							auto U2R = u0[2];
+							auto U3R = u0[3];
+							T1 = M_SQRT1_2 * (U1R - U3R);
+							T2 = M_SQRT1_2 * (U1R + U3R);
+							x[i0] = U0R + T1;
+							x[i3] = -U2R - T2;
+							x[i1] = U0R - T1;
+							x[i2] = -T2 + U2R;
+						}
 					}
 				}
 			}
 			for (int k2 = 1; k2 < N2 / 2; k2++) {
-				std::array<std::array<double, 2 * N1>, N1> u;
-				const int j1 = k2 * TWHI;
-				const int j2 = 2 * j1;
-				const int j3 = 3 * j1;
-				const double C1 = w[j1].real();
-				const double C2 = w[j2].real();
-				const double C3 = w[j3].real();
-				const double S1 = w[j1].imag();
-				const double S2 = w[j2].imag();
-				const double S3 = w[j3].imag();
-				for (int imid = 0; imid < NMID; imid++) {
-					for (int n0 = 0; n0 < N1; n0++) {
-						for (int n1 = 0; n1 < N1; n1++) {
-							int i0 = k2 + N2 * (n0 + N1 * (imid + NMID * (n1 + N1 * ihi)));
-							int i1 = N2 - k2 + N2 * (n0 + N1 * (imid + NMID * (n1 + N1 * ihi)));
-							u[n0][2 * n1] = x[i0];
-							u[n0][2 * n1 + 1] = x[i1];
+				const int khi0 = k2hi(k2);
+				const int klo0 = k2lo(k2);
+				const int khi1 = k2hi(N2 - k2);
+				const int klo1 = k2lo(N2 - k2);
+				for(int ilo = 0; ilo < N1; ilo++) {
+					std::array<std::array<double, 2 * N1>, N1> u;
+					const int j1 = k2 * TWHI;
+					const int j2 = 2 * j1;
+					const int j3 = 3 * j1;
+					const double C1 = w[j1].real();
+					const double C2 = w[j2].real();
+					const double C3 = w[j3].real();
+					const double S1 = w[j1].imag();
+					const double S2 = w[j2].imag();
+					const double S3 = w[j3].imag();
+					for (int imid = 0; imid < NMID; imid++) {
+						for (int n0 = 0; n0 < N1; n0++) {
+							for (int n1 = 0; n1 < N1; n1++) {
+								const int i0 = ilo + N1 * (khi0 + N2N1 * (n0 + N1 * (imid + NMID * (n1 + N1 * (ihi + NHIN1 * klo0)))));
+								const int i1 = ilo + N1 * (khi1 + N2N1 * (n0 + N1 * (imid + NMID * (n1 + N1 * (ihi + NHIN1 * klo1)))));
+								u[n0][2 * n1] = x[i0];
+								u[n0][2 * n1 + 1] = x[i1];
+							}
 						}
-					}
-					for (int n0 = 0; n0 < N1; n0++) {
-						double T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
-						const int i0 = k2 + N2 * (N1 * (imid + NMID * (n0 + N1 * ihi)));
-						const int i1 = i0 + N2;
-						const int i2 = i1 + N2;
-						const int i3 = i2 + N2;
-						const int i4 = i0 + N2 - 2 * k2;
-						const int i5 = i4 + N2;
-						const int i6 = i5 + N2;
-						const int i7 = i6 + N2;
-						const auto& u0 = u[n0];
-						double U0R = u0[0];
-						double U0I = u0[1];
-						double U1R = u0[2];
-						double U1I = u0[3];
-						double U2R = u0[4];
-						double U2I = u0[5];
-						double U3R = u0[6];
-						double U3I = u0[7];
-						T1R = U1R;
-						T2R = U2R;
-						T3R = U3R;
-						U1R = T1R * C1 - U1I * S1;
-						U2R = T2R * C2 - U2I * S2;
-						U3R = T3R * C3 - U3I * S3;
-						U1I = T1R * S1 + U1I * C1;
-						U2I = T2R * S2 + U2I * C2;
-						U3I = T3R * S3 + U3I * C3;
-						T0R = U0R + U2R;
-						T2R = U0R - U2R;
-						T0I = U0I + U2I;
-						T2I = U0I - U2I;
-						T1R = U1R + U3R;
-						T3R = U1R - U3R;
-						T1I = U1I + U3I;
-						T3I = U1I - U3I;
-						x[i0] = T0R + T1R;
-						x[i7] = T0I + T1I;
-						x[i1] = T2R + T3I;
-						x[i6] = T2I - T3R;
-						x[i5] = T0R - T1R;
-						x[i2] = -T0I + T1I;
-						x[i4] = T2R - T3I;
-						x[i3] = -T2I - T3R;
+						for (int n0 = 0; n0 < N1; n0++) {
+							double T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
+							const int i0 = ilo + N1 * (khi0 + N2N1 * (0 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
+							const int i1 = ilo + N1 * (khi0 + N2N1 * (1 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
+							const int i2 = ilo + N1 * (khi0 + N2N1 * (2 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
+							const int i3 = ilo + N1 * (khi0 + N2N1 * (3 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
+							const int i4 = ilo + N1 * (khi1 + N2N1 * (0 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo1)))));
+							const int i5 = ilo + N1 * (khi1 + N2N1 * (1 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo1)))));
+							const int i6 = ilo + N1 * (khi1 + N2N1 * (2 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo1)))));
+							const int i7 = ilo + N1 * (khi1 + N2N1 * (3 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo1)))));
+	//						printf( "%i, %i : %i, %i | %i %i %i %i %i %i %i %i\n", khi0, klo0, klo1, klo1, i0, i1, i2, i3, i4, i5, i6, i7);
+							const auto& u0 = u[n0];
+							double U0R = u0[0];
+							double U0I = u0[1];
+							double U1R = u0[2];
+							double U1I = u0[3];
+							double U2R = u0[4];
+							double U2I = u0[5];
+							double U3R = u0[6];
+							double U3I = u0[7];
+							T1R = U1R;
+							T2R = U2R;
+							T3R = U3R;
+							U1R = T1R * C1 - U1I * S1;
+							U2R = T2R * C2 - U2I * S2;
+							U3R = T3R * C3 - U3I * S3;
+							U1I = T1R * S1 + U1I * C1;
+							U2I = T2R * S2 + U2I * C2;
+							U3I = T3R * S3 + U3I * C3;
+							T0R = U0R + U2R;
+							T2R = U0R - U2R;
+							T0I = U0I + U2I;
+							T2I = U0I - U2I;
+							T1R = U1R + U3R;
+							T3R = U1R - U3R;
+							T1I = U1I + U3I;
+							T3I = U1I - U3I;
+							x[i0] = T0R + T1R;
+							x[i7] = T0I + T1I;
+							x[i1] = T2R + T3I;
+							x[i6] = T2I - T3R;
+							x[i5] = T0R - T1R;
+							x[i2] = -T0I + T1I;
+							x[i4] = T2R - T3I;
+							x[i3] = -T2I - T3R;
+						}
 					}
 				}
 			}
@@ -1527,16 +1552,6 @@ void fft_inplace_real(double* x, int N) {
 	N2 = NHI = 1;
 	TWHI = N / (N1 * N2);
 	trivial_butterfly4();
-	NMID = N / (N1 * N1);
-	for (int n0 = 0; n0 < NMID; n0++) {
-		for (int n1 = 0; n1 < N1; n1++) {
-			for (int n2 = n1 + 1; n2 < N1; n2++) {
-				const int i = n2 + N1 * (n0 + NMID * n1);
-				const int j = n1 + N1 * (n0 + NMID * n2);
-				std::swap(x[i], x[j]);
-			}
-		}
-	}
 	NHI *= N1;
 	N2 *= N1;
 	NMID = N / (NHI * N2 * N1 * N1);
@@ -1548,6 +1563,17 @@ void fft_inplace_real(double* x, int N) {
 		N2 *= N1;
 		NMID = N / (NHI * N2 * N1 * N1);
 	}
+	NMID = N / (N1 * N1);
+	for (int n0 = 0; n0 < NMID; n0++) {
+		for (int n1 = 0; n1 < N1; n1++) {
+			for (int n2 = n1 + 1; n2 < N1; n2++) {
+				const int i = n2 + N1 * (n0 + NMID * n1);
+				const int j = n1 + N1 * (n0 + NMID * n2);
+				std::swap(x[i], x[j]);
+			}
+		}
+	}
+	NMID = N / (NHI * N2 * N1 * N1);
 	if (NHI * N2 == N / 8) {
 		NMID = N1 / 2;
 		TWHI = N / (N1 / 2 * N2);
