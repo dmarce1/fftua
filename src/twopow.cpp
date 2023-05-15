@@ -1224,7 +1224,7 @@ void fft_inplace_real(double* x, int N) {
 					}
 				}
 			}
-			for (int k2 = 0; k2 < N2 / 2; k2++) {
+			for (int k2 = 1; k2 < N2 / 2; k2++) {
 				std::array<std::array<double, 2 * N1>, N1> u;
 				const int j1 = k2 * TWHI;
 				const int j2 = 2 * j1;
