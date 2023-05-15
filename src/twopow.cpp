@@ -1163,15 +1163,13 @@ void fft_inplace_real(double* x, int N) {
 	constexpr int N1 = 4;
 	int NHI, NMID, N2, TWHI;
 	const auto& w = twiddles(N);
-
+	const auto k2hi = [](int k2) {
+		return k2 >> 2;
+	};
+	const auto k2lo = [](int k2) {
+		return k2 & 0x3;
+	};
 	const auto butterfly_and_transpose4 = [&]() {
-		const auto k2hi = [N2](int k2) {
-			return k2 >> 2;
-		};
-		const auto k2lo = [N2](int k2) {
-			return k2 & 0x3;
-//			return ((lo & 1) << 1) | (lo >> 1);
-		};
 
 		const int NHIN1 = NHI / N1;
 		const int N2N1 = N2 / N1;
@@ -1190,9 +1188,9 @@ void fft_inplace_real(double* x, int N) {
 					for (int n0 = 0; n0 < N1; n0++) {
 						double T0R, T1R, T2R, T3R;
 						const int i0 = ilo + N1 * (khi0 + N2N1 * (0 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
-						const int i1 = ilo + N1 * (khi0 + N2N1 * (1 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
-						const int i2 = ilo + N1 * (khi0 + N2N1 * (2 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
-						const int i3 = ilo + N1 * (khi0 + N2N1 * (3 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
+						const int i1 = i0 + N2;
+						const int i2 = i1 + N2;
+						const int i3 = i2 + N2;
 						const auto& u0 = u[n0];
 						auto U0R = u0[0];
 						auto U1R = u0[1];
@@ -1224,9 +1222,9 @@ void fft_inplace_real(double* x, int N) {
 						for (int n0 = 0; n0 < N1; n0++) {
 							double T1, T2;
 							const int i0 = ilo + N1 * (khi0 + N2N1 * (0 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
-							const int i1 = ilo + N1 * (khi0 + N2N1 * (1 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
-							const int i2 = ilo + N1 * (khi0 + N2N1 * (2 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
-							const int i3 = ilo + N1 * (khi0 + N2N1 * (3 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
+							const int i1 = i0 + N2;
+							const int i2 = i1 + N2;
+							const int i3 = i2 + N2;
 							const auto& u0 = u[n0];
 							auto U0R = u0[0];
 							auto U1R = u0[1];
@@ -1243,22 +1241,22 @@ void fft_inplace_real(double* x, int N) {
 				}
 			}
 			for (int k2 = 1; k2 < N2 / 2; k2++) {
+				const int j1 = k2 * TWHI;
+				const int j2 = 2 * j1;
+				const int j3 = 3 * j1;
+				const double C1 = w[j1].real();
+				const double C2 = w[j2].real();
+				const double C3 = w[j3].real();
+				const double S1 = w[j1].imag();
+				const double S2 = w[j2].imag();
+				const double S3 = w[j3].imag();
 				const int khi0 = k2hi(k2);
 				const int klo0 = k2lo(k2);
 				const int khi1 = k2hi(N2 - k2);
 				const int klo1 = k2lo(N2 - k2);
-				for(int ilo = 0; ilo < N1; ilo++) {
-					std::array<std::array<double, 2 * N1>, N1> u;
-					const int j1 = k2 * TWHI;
-					const int j2 = 2 * j1;
-					const int j3 = 3 * j1;
-					const double C1 = w[j1].real();
-					const double C2 = w[j2].real();
-					const double C3 = w[j3].real();
-					const double S1 = w[j1].imag();
-					const double S2 = w[j2].imag();
-					const double S3 = w[j3].imag();
-					for (int imid = 0; imid < NMID; imid++) {
+				std::array<std::array<double, 2 * N1>, N1> u;
+				for (int imid = 0; imid < NMID; imid++) {
+					for(int ilo = 0; ilo < N1; ilo++) {
 						for (int n0 = 0; n0 < N1; n0++) {
 							for (int n1 = 0; n1 < N1; n1++) {
 								const int i0 = ilo + N1 * (khi0 + N2N1 * (n0 + N1 * (imid + NMID * (n1 + N1 * (ihi + NHIN1 * klo0)))));
@@ -1270,14 +1268,13 @@ void fft_inplace_real(double* x, int N) {
 						for (int n0 = 0; n0 < N1; n0++) {
 							double T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
 							const int i0 = ilo + N1 * (khi0 + N2N1 * (0 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
-							const int i1 = ilo + N1 * (khi0 + N2N1 * (1 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
-							const int i2 = ilo + N1 * (khi0 + N2N1 * (2 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
-							const int i3 = ilo + N1 * (khi0 + N2N1 * (3 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo0)))));
 							const int i4 = ilo + N1 * (khi1 + N2N1 * (0 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo1)))));
-							const int i5 = ilo + N1 * (khi1 + N2N1 * (1 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo1)))));
-							const int i6 = ilo + N1 * (khi1 + N2N1 * (2 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo1)))));
-							const int i7 = ilo + N1 * (khi1 + N2N1 * (3 + N1 * (imid + NMID * (n0 + N1 * (ihi + NHIN1 * klo1)))));
-	//						printf( "%i, %i : %i, %i | %i %i %i %i %i %i %i %i\n", khi0, klo0, klo1, klo1, i0, i1, i2, i3, i4, i5, i6, i7);
+							const int i1 = i0 + N2;
+							const int i2 = i1 + N2;
+							const int i3 = i2 + N2;
+							const int i5 = i4 + N2;
+							const int i6 = i5 + N2;
+							const int i7 = i6 + N2;
 							const auto& u0 = u[n0];
 							double U0R = u0[0];
 							double U0I = u0[1];
@@ -1320,81 +1317,97 @@ void fft_inplace_real(double* x, int N) {
 	};
 
 	const auto butterfly_and_transpose2 = [&]() {
+		const int NHIN1 = NHI / N1;
+		const int N2N1 = N2 / N1;
 		std::array<std::array<double, N1>, N1 / 2> u;
-		for (int ihi = 0; ihi < NHI; ihi++) {
+		for (int ihi = 0; ihi < NHIN1; ihi++) {
 			for (int imid = 0; imid < NMID; imid++) {
-				for (int n0 = 0; n0 < N1 / 2; n0++) {
-					for (int n1 = 0; n1 < N1 / 2; n1++) {
-						const int i0 = N2 * (n0 + (N1 / 2) * (imid + NMID * (n1 + (N1 / 2) * ihi)));
-						u[n0][n1] = x[i0];
-					}
-				}
-				for (int n0 = 0; n0 < (N1 / 2); n0++) {
-					const int i0 = N2 * ((N1 / 2) * (imid + NMID * (n0 + (N1 / 2) * ihi)));
-					const int i1 = i0 + N2;
-					const auto& u0 = u[n0];
-					auto U0R = u0[0];
-					auto U1R = u0[1];
-					x[i0] = U0R + U1R;
-					x[i1] = U0R - U1R;
-				}
-			}
-			if (N2 >= (N1 / 2)) {
-				for (int imid = 0; imid < NMID; imid++) {
-					for (int n0 = 0; n0 < (N1 / 2); n0++) {
-						for (int n1 = 0; n1 < (N1 / 2); n1++) {
-							const int i0 = N2 / 2 + N2 * (n0 + (N1 / 2) * (imid + NMID * (n1 + (N1 / 2) * ihi)));
+				for(int ilo = 0; ilo < N1; ilo++) {
+					const int khi0 = k2hi(0);
+					const int klo0 = k2lo(0);
+					for (int n0 = 0; n0 < N1 / 2; n0++) {
+						for (int n1 = 0; n1 < N1 / 2; n1++) {
+							const int i0 = ilo + N1 * (khi0 + N2N1 * (n0 + (N1/2) * (imid + NMID * (n1 + (N1/2) * (ihi + NHIN1 * klo0)))));
 							u[n0][n1] = x[i0];
 						}
 					}
 					for (int n0 = 0; n0 < (N1 / 2); n0++) {
-						const int i0 = N2 / 2 + N2 * ((N1 / 2) * (imid + NMID * (n0 + (N1 / 2) * ihi)));
+						const int i0 = ilo + N1 * (khi0 + N2N1 * ((N1/2) * (imid + NMID * (n0 + (N1/2) * (ihi + NHIN1 * klo0)))));
 						const int i1 = i0 + N2;
 						const auto& u0 = u[n0];
 						auto U0R = u0[0];
 						auto U1R = u0[1];
-						x[i0] = U0R;
-						x[i1] = -U1R;
+						x[i0] = U0R + U1R;
+						x[i1] = U0R - U1R;
+					}
+				}
+			}
+			if (N2 >= (N1 / 2)) {
+				const int khi0 = k2hi(N2/2);
+				const int klo0 = k2lo(N2/2);
+				for (int imid = 0; imid < NMID; imid++) {
+					for(int ilo = 0; ilo < N1; ilo++) {
+						for (int n0 = 0; n0 < (N1 / 2); n0++) {
+							for (int n1 = 0; n1 < (N1 / 2); n1++) {
+								const int i0 = ilo + N1 * (khi0 + N2N1 * (n0 + (N1/2) * (imid + NMID * (n1 + (N1/2) * (ihi + NHIN1 * klo0)))));
+								u[n0][n1] = x[i0];
+							}
+						}
+						for (int n0 = 0; n0 < (N1 / 2); n0++) {
+							const int i0 = ilo + N1 * (khi0 + N2N1 * ((N1/2) * (imid + NMID * (n0 + (N1/2) * (ihi + NHIN1 * klo0)))));
+							const int i1 = i0 + N2;
+							const auto& u0 = u[n0];
+							auto U0R = u0[0];
+							auto U1R = u0[1];
+							x[i0] = U0R;
+							x[i1] = -U1R;
+						}
 					}
 				}
 			}
 			for (int k2 = 1; k2 < N2 / 2; k2++) {
+				const int khi0 = k2hi(k2);
+				const int klo0 = k2lo(k2);
+				const int khi1 = k2hi(N2 - k2);
+				const int klo1 = k2lo(N2 - k2);
 				const int j = k2 * TWHI;
 				const auto C = w[j].real();
 				const auto S = w[j].imag();
 				for (int imid = 0; imid < NMID; imid++) {
-					for (int n0 = 0; n0 < (N1 / 2); n0++) {
-						for (int n1 = 0; n1 < (N1 / 2); n1++) {
-							int i0 = k2 + N2 * (n0 + (N1 / 2) * (imid + NMID * (n1 + (N1 / 2) * ihi)));
-							int i1 = N2 - k2 + N2 * (n0 + (N1 / 2) * (imid + NMID * (n1 + (N1 / 2) * ihi)));
-							u[n0][2 * n1] = x[i0];
-							u[n0][2 * n1 + 1] = x[i1];
+					for(int ilo = 0; ilo < N1; ilo++) {
+						for (int n0 = 0; n0 < (N1 / 2); n0++) {
+							for (int n1 = 0; n1 < (N1 / 2); n1++) {
+								const int i0 = ilo + N1 * (khi0 + N2N1 * (n0 + (N1/2) * (imid + NMID * (n1 + (N1/2) * (ihi + NHIN1 * klo0)))));
+								const int i1 = ilo + N1 * (khi1 + N2N1 * (n0 + (N1/2) * (imid + NMID * (n1 + (N1/2) * (ihi + NHIN1 * klo1)))));
+								u[n0][2 * n1] = x[i0];
+								u[n0][2 * n1 + 1] = x[i1];
+							}
 						}
-					}
-					for (int n0 = 0; n0 < (N1 / 2); n0++) {
-						const int i0 = k2 + N2 * ((N1 / 2) * (imid + NMID * (n0 + (N1 / 2) * ihi)));
-						const int i1 = i0 + N2;
-						const int i2 = i0 + N2 - 2 * k2;
-						const int i3 = i2 + N2;
-						const auto& u0 = u[n0];
-						auto U0R = u0[0];
-						auto U0I = u0[1];
-						auto U1R = u0[2];
-						auto U1I = u0[3];
-						auto T = U1R;
-						U1R = T * C - U1I * S;
-						U1I = T * S + U1I * C;
-						x[i0] = U0R + U1R;
-						x[i3] = U0I + U1I;
-						x[i2] = U0R - U1R;
-						x[i1] = -U0I + U1I;
+						for (int n0 = 0; n0 < (N1 / 2); n0++) {
+							const int i0 = ilo + N1 * (khi0 + N2N1 * ((N1/2) * (imid + NMID * (n0 + (N1/2) * (ihi + NHIN1 * klo0)))));
+							const int i2 = ilo + N1 * (khi1 + N2N1 * ((N1/2) * (imid + NMID * (n0 + (N1/2) * (ihi + NHIN1 * klo1)))));
+							const int i1 = i0 + N2;
+							const int i3 = i2 + N2;
+							const auto& u0 = u[n0];
+							auto U0R = u0[0];
+							auto U0I = u0[1];
+							auto U1R = u0[2];
+							auto U1I = u0[3];
+							auto T = U1R;
+							U1R = T * C - U1I * S;
+							U1I = T * S + U1I * C;
+							x[i0] = U0R + U1R;
+							x[i3] = U0I + U1I;
+							x[i2] = U0R - U1R;
+							x[i1] = -U0I + U1I;
+						}
 					}
 				}
 			}
 		}
 	};
 
-	const auto butterfly4 = [&]() {
+	const auto butterfly4_final = [&]() {
 		for (int ihi = 0; ihi < NHI; ihi++) {
 			double T0R, T1R, T2R, T3R;
 			const int i0 = N2 * N1 * ihi;
@@ -1490,6 +1503,118 @@ void fft_inplace_real(double* x, int N) {
 		}
 	};
 
+	const auto butterfly4 = [&]() {
+		const int NHIN1 = NHI / N1;
+		const int N2N1 = N2 / N1;
+		for (int ihi = 0; ihi < NHIN1; ihi++) {
+			const int khi0 = k2hi(0);
+			const int klo0 = k2lo(0);
+			for(int ilo = 0; ilo < N1; ilo++) {
+				double T0R, T1R, T2R, T3R;
+				const int i0 = ilo + N1 * (khi0 + N2N1 * (0 + N1 * (ihi + NHIN1 * klo0)));
+				const int i1 = i0 + N2;
+				const int i2 = i1 + N2;
+				const int i3 = i2 + N2;
+				auto U0R = x[i0];
+				auto U1R = x[i1];
+				auto U2R = x[i2];
+				auto U3R = x[i3];
+				T0R = U0R + U2R;
+				T2R = U0R - U2R;
+				T1R = U1R + U3R;
+				T3R = U1R - U3R;
+				x[i0] = T0R + T1R;
+				x[i1] = T2R;
+				x[i3] = -T3R;
+				x[i2] = T0R - T1R;
+			}
+		}
+		if (N2 >= N1) {
+			const int khi0 = k2hi(N2/2);
+			const int klo0 = k2lo(N2/2);
+			for (int ihi = 0; ihi < NHIN1; ihi++) {
+				for(int ilo = 0; ilo < N1; ilo++) {
+					double T1, T2;
+					const int i0 = ilo + N1 * (khi0 + N2N1 * (0 + N1 * (ihi + NHIN1 * klo0)));
+					const int i1 = i0 + N2;
+					const int i2 = i1 + N2;
+					const int i3 = i2 + N2;
+					auto U0R = x[i0];
+					auto U1R = x[i1];
+					auto U2R = x[i2];
+					auto U3R = x[i3];
+					T1 = M_SQRT1_2 * (U1R - U3R);
+					T2 = M_SQRT1_2 * (U1R + U3R);
+					x[i0] = U0R + T1;
+					x[i3] = -U2R - T2;
+					x[i1] = U0R - T1;
+					x[i2] = -T2 + U2R;
+				}
+			}
+		}
+		for (int ihi = 0; ihi < NHIN1; ihi++) {
+			for (int k2 = 1; k2 < N2 / 2; k2++) {
+				const int khi0 = k2hi(k2);
+				const int klo0 = k2lo(k2);
+				const int khi1 = k2hi(N2 - k2);
+				const int klo1 = k2lo(N2 - k2);
+				const int j1 = k2 * TWHI;
+				const int j2 = 2 * j1;
+				const int j3 = 3 * j1;
+				const auto C1 = w[j1].real();
+				const auto C2 = w[j2].real();
+				const auto C3 = w[j3].real();
+				const auto S1 = w[j1].imag();
+				const auto S2 = w[j2].imag();
+				const auto S3 = w[j3].imag();
+				for(int ilo = 0; ilo < N1; ilo++) {
+					double T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
+					const int i0 = ilo + N1 * (khi0 + N2N1 * (0 + N1 * (ihi + NHIN1 * klo0)));
+					const int i4 = ilo + N1 * (khi1 + N2N1 * (0 + N1 * (ihi + NHIN1 * klo1)));
+					const int i1 = i0 + N2;
+					const int i2 = i1 + N2;
+					const int i3 = i2 + N2;
+					const int i5 = i4 + N2;
+					const int i6 = i5 + N2;
+					const int i7 = i6 + N2;
+					auto U0R = x[i0];
+					auto U1R = x[i1];
+					auto U2R = x[i2];
+					auto U3R = x[i3];
+					auto U0I = x[i4];
+					auto U1I = x[i5];
+					auto U2I = x[i6];
+					auto U3I = x[i7];
+					T1R = U1R;
+					T2R = U2R;
+					T3R = U3R;
+					U1R = T1R * C1 - U1I * S1;
+					U2R = T2R * C2 - U2I * S2;
+					U3R = T3R * C3 - U3I * S3;
+					U1I = T1R * S1 + U1I * C1;
+					U2I = T2R * S2 + U2I * C2;
+					U3I = T3R * S3 + U3I * C3;
+					T0R = U0R + U2R;
+					T2R = U0R - U2R;
+					T0I = U0I + U2I;
+					T2I = U0I - U2I;
+					T1R = U1R + U3R;
+					T3R = U1R - U3R;
+					T1I = U1I + U3I;
+					T3I = U1I - U3I;
+					x[i0] = T0R + T1R;
+					x[i7] = T0I + T1I;
+					x[i1] = T2R + T3I;
+					x[i6] = T2I - T3R;
+					x[i5] = T0R - T1R;
+					x[i2] = -T0I + T1I;
+					x[i4] = T2R - T3I;
+					x[i3] = -T2I - T3R;
+				}
+			}
+		}
+	};
+
 	const auto trivial_butterfly4 = [&]() {
 		int M = N / N1;
 		for (int i0 = 0; i0 < M; i0++) {
@@ -1513,38 +1638,54 @@ void fft_inplace_real(double* x, int N) {
 	};
 
 	const auto butterfly2 = [&]() {
-		for (int ihi = 0; ihi < NHI; ihi++) {
-			const int i0 = N2 * N1 * ihi / 2;
-			const int i1 = i0 + N2;
-			auto U0R = x[i0];
-			auto U1R = x[i1];
-			x[i0] = U0R + U1R;
-			x[i1] = U0R - U1R;
-		}
-		for (int ihi = 0; ihi < NHI; ihi++) {
-			const int i1 = 3 * N2 / 2 + N2 * N1 * ihi / 2;
-			x[i1] = -x[i1];
-		}
-		for (int ihi = 0; ihi < NHI; ihi++) {
-			for (int k2 = 1; k2 < N2 / 2; k2++) {
-				const int i0 = k2 + N2 * N1 * ihi / 2;
+		const int NHIN1 = NHI / N1;
+		const int N2N1 = N2 / N1;
+		for (int ihi = 0; ihi < NHIN1; ihi++) {
+			for( int ilo = 0; ilo < N1; ilo++) {
+				const int khi0 = k2hi(0);
+				const int klo0 = k2lo(0);
+				const int i0 = ilo + N1 * (khi0 + N2N1 * ((N1/2) * (ihi + NHIN1 * klo0)));
 				const int i1 = i0 + N2;
-				const int i2 = i0 + N2 - 2 * k2;
-				const int i3 = i2 + N2;
-				const int j = k2 * TWHI;
 				auto U0R = x[i0];
-				auto U0I = x[i2];
 				auto U1R = x[i1];
-				auto U1I = x[i3];
+				x[i0] = U0R + U1R;
+				x[i1] = U0R - U1R;
+			}
+		}
+		for (int ihi = 0; ihi < NHIN1; ihi++) {
+			for( int ilo = 0; ilo < N1; ilo++) {
+				const int khi0 = k2hi(N2/2);
+				const int klo0 = k2lo(N2/2);
+				const int i1 = ilo + N1 * (khi0 + N2N1 * ((N1/2) * (ihi + NHIN1 * klo0))) + N2;
+				x[i1] = -x[i1];
+			}
+		}
+		for (int ihi = 0; ihi < NHIN1; ihi++) {
+			for (int k2 = 1; k2 < N2 / 2; k2++) {
+				const int khi0 = k2hi(k2);
+				const int klo0 = k2lo(k2);
+				const int khi1 = k2hi(N2 - k2);
+				const int klo1 = k2lo(N2 - k2);
+				const int j = k2 * TWHI;
 				const auto C = w[j].real();
 				const auto S = w[j].imag();
-				auto T = U1R;
-				U1R = T * C - U1I * S;
-				U1I = T * S + U1I * C;
-				x[i0] = U0R + U1R;
-				x[i3] = U0I + U1I;
-				x[i2] = U0R - U1R;
-				x[i1] = -U0I + U1I;
+				for( int ilo = 0; ilo < N1; ilo++) {
+					const int i0 = ilo + N1 * (khi0 + N2N1 * ((N1/2) * (ihi + NHIN1 * klo0)));
+					const int i2 = ilo + N1 * (khi1 + N2N1 * ((N1/2) * (ihi + NHIN1 * klo1)));
+					const int i1 = i0 + N2;
+					const int i3 = i2 + N2;
+					auto U0R = x[i0];
+					auto U0I = x[i2];
+					auto U1R = x[i1];
+					auto U1I = x[i3];
+					auto T = U1R;
+					U1R = T * C - U1I * S;
+					U1I = T * S + U1I * C;
+					x[i0] = U0R + U1R;
+					x[i3] = U0I + U1I;
+					x[i2] = U0R - U1R;
+					x[i1] = -U0I + U1I;
+				}
 			}
 		}
 	};
@@ -1555,23 +1696,12 @@ void fft_inplace_real(double* x, int N) {
 	NHI *= N1;
 	N2 *= N1;
 	NMID = N / (NHI * N2 * N1 * N1);
-
 	while (NMID) {
 		TWHI = N / (N1 * N2);
 		butterfly_and_transpose4();
 		NHI *= N1;
 		N2 *= N1;
 		NMID = N / (NHI * N2 * N1 * N1);
-	}
-	NMID = N / (N1 * N1);
-	for (int n0 = 0; n0 < NMID; n0++) {
-		for (int n1 = 0; n1 < N1; n1++) {
-			for (int n2 = n1 + 1; n2 < N1; n2++) {
-				const int i = n2 + N1 * (n0 + NMID * n1);
-				const int j = n1 + N1 * (n0 + NMID * n2);
-				std::swap(x[i], x[j]);
-			}
-		}
 	}
 	NMID = N / (NHI * N2 * N1 * N1);
 	if (NHI * N2 == N / 8) {
@@ -1587,18 +1717,33 @@ void fft_inplace_real(double* x, int N) {
 				std::swap(x[i + ilo], x[j + ilo]);
 			}
 		}
-	} else if (NHI * N2 == N / 2) {
-		TWHI = N / (N1 / 2 * N2);
-		NHI = TWHI;
-		butterfly2();
-		N2 *= N1 / 2;
+	} else {
+		if (NHI * N2 == N / 2) {
+			TWHI = N / (N1 / 2 * N2);
+			NHI = TWHI;
+			butterfly2();
+			N2 *= N1 / 2;
+		}
 	}
-	while (N2 * N1 <= N) {
+	while (N2 * N1 <= N / N1) {
 		TWHI = N / (N1 * N2);
 		NHI = TWHI;
 		butterfly4();
 		N2 *= N1;
 	}
+	NMID = N / (N1 * N1);
+	for (int n0 = 0; n0 < NMID; n0++) {
+		for (int n1 = 0; n1 < N1; n1++) {
+			for (int n2 = n1 + 1; n2 < N1; n2++) {
+				const int i = n2 + N1 * (n0 + NMID * n1);
+				const int j = n1 + N1 * (n0 + NMID * n2);
+				std::swap(x[i], x[j]);
+			}
+		}
+	}
+	TWHI = N / (N1 * N2);
+	NHI = TWHI;
+	butterfly4_final();
 }
 
 template<int N1, class T>
