@@ -839,6 +839,19 @@ void fft_inplace_real(double* x, int N) {
 	int N2 = 1;
 	int M = N / (N1 * N2);
 	const auto& W = twiddles(N);
+	if (ilogb(N) % 2 == 1) {
+		const int No2 = N / 2;
+		for (int m = 0; m < No2; m++) {
+			const int i0 = m;
+			const int i1 = i0 + No2;
+			const auto U0R = x[i0];
+			const auto U1R = x[i1];
+			x[i0] = U0R + U1R;
+			x[i1] = U0R - U1R;
+		}
+		N2 = 2;
+		M = N / (N1 * N2);
+	}
 	while (N2 < N / N1) {
 		int _2k = 0, _1k = 0;
 		for (int k2 = 0; k2 < N2; k2++) {
@@ -952,10 +965,9 @@ void fft_inplace_real(double* x, int N) {
 		M = N / (N1 * N2);
 	}
 	scramble(x, N);
-	N2 = N / N1;
 	{
 		double T0R, T1R, T2R, T3R;
-		const int i0 = 0;
+		constexpr int i0 = 0;
 		const int i1 = i0 + N2;
 		const int i2 = i1 + N2;
 		const int i3 = i2 + N2;
