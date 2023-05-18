@@ -167,8 +167,8 @@ std::vector<fft_method> possible_ffts_real(int N) {
 	if (pfac.begin()->first <= SFFT_NMAX) {
 		for (m.R = 2; m.R <= std::min(SFFT_NMAX, N); m.R++) {
 			if (N % m.R == 0) {
-			//	m.type = FFT_CONJ;
-			//	ffts.push_back(m);
+				m.type = FFT_CONJ;
+				ffts.push_back(m);
 				m.type = FFT_CT;
 				ffts.push_back(m);
 			}
