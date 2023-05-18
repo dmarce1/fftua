@@ -1163,9 +1163,26 @@ inline __m256& dble2m256(double* x) {
 	return *((__m256*) x);
 }
 
+const std::vector<complex<__m256d >>& twiddles4(int N) {
+	using entry_type = std::shared_ptr<std::vector<complex<__m256d>>>;
+	static std::unordered_map<int, entry_type> cache;
+	auto iter = cache.find(N);
+	if (iter != cache.end()) {
+		return *(iter->second);
+	} else {
+		std::vector<complex<__m256d>> W(round_up(N, SIMD_SIZE));
+		for (int n = 0; n < N; n++) {
+			W[n].real() = _mm256_set1_pd(cos(-2.0 * M_PI * n / N));
+			W[n].imag() = _mm256_set1_pd(sin(-2.0 * M_PI * n / N));
+		}
+		cache[N] = std::make_shared<std::vector<complex<__m256d>>>(std::move(W));
+		return *(cache[N]);
+	}
+}
+
 void fft_inplace_real(double* x, int N) {
 	constexpr int N1 = 4;
-	int NHI, NMID, N2, TWHI, KLO, KHI;
+	int NHI, NMID, N2, TWHI;
 	const auto& w = twiddles(N);
 	const auto& cos1 = cosines1(N);
 	const auto& cos2 = cosines2(N);
@@ -1584,15 +1601,15 @@ void fft_inplace_real(double* x, int N) {
 		}
 		for (int ihi = 0; ihi < NHIN1; ihi++) {
 			for( int klo = 0; klo < N1; klo++) {
-				for (int khi = 0; khi < N2N1 / 2; khi++) {
+				for (int khi = 0; khi < N2N1; khi++) {
 					const int k2 = (khi << 2) | klo;
-					if( k2 == 0 ) {
-						continue;
-					}
 					const int& khi0 = khi;
 					const int& klo0 = klo;
 					const int khi1 = k2hi(N2 - k2);
 					const int klo1 = k2lo(N2 - k2);
+					if( k2 == 0 || k2 >= N2 / 2) {
+						continue;
+					}
 					const int j1 = k2 * TWHI;
 					const int j2 = 2 * j1;
 					const int j3 = 3 * j1;
@@ -1661,9 +1678,26 @@ void fft_inplace_real(double* x, int N) {
 
 	const auto butterfly4_final = [&]() {
 		tm6.start();
-		for (int ihi = 0; ihi < NHI; ihi++) {
-			double T0R, T1R, T2R, T3R;
-			const int i0 = N2 * N1 * ihi;
+		double T0R, T1R, T2R, T3R;
+		const int i0 = 0;
+		const int i1 = i0 + N2;
+		const int i2 = i1 + N2;
+		const int i3 = i2 + N2;
+		auto U0R = x[i0];
+		auto U1R = x[i1];
+		auto U2R = x[i2];
+		auto U3R = x[i3];
+		T0R = U0R + U2R;
+		T2R = U0R - U2R;
+		T1R = U1R + U3R;
+		T3R = U1R - U3R;
+		x[i0] = T0R + T1R;
+		x[i1] = T2R;
+		x[i3] = -T3R;
+		x[i2] = T0R - T1R;
+		if (N2 >= N1) {
+			double T1, T2;
+			const int i0 = N2 / 2;
 			const int i1 = i0 + N2;
 			const int i2 = i1 + N2;
 			const int i3 = i2 + N2;
@@ -1671,157 +1705,134 @@ void fft_inplace_real(double* x, int N) {
 			auto U1R = x[i1];
 			auto U2R = x[i2];
 			auto U3R = x[i3];
+			T1 = M_SQRT1_2 * (U1R - U3R);
+			T2 = M_SQRT1_2 * (U1R + U3R);
+			x[i0] = U0R + T1;
+			x[i3] = -U2R - T2;
+			x[i1] = U0R - T1;
+			x[i2] = -T2 + U2R;
+		}
+		for (int k2 = 1; k2 < std::min(SIMD_SIZE, N2 / 2); k2++) {
+			double T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
+			const int i0 = k2;
+			const int i1 = i0 + N2;
+			const int i2 = i1 + N2;
+			const int i3 = i2 + N2;
+			const int i4 = i0 + N2 - 2 * k2;
+			const int i5 = i4 + N2;
+			const int i6 = i5 + N2;
+			const int i7 = i6 + N2;
+			const int j1 = k2 * TWHI;
+			const int j2 = 2 * j1;
+			const int j3 = 3 * j1;
+			auto U0R = x[i0];
+			auto U1R = x[i1];
+			auto U2R = x[i2];
+			auto U3R = x[i3];
+			auto U0I = x[i4];
+			auto U1I = x[i5];
+			auto U2I = x[i6];
+			auto U3I = x[i7];
+			const auto C1 = w[j1].real();
+			const auto C2 = w[j2].real();
+			const auto C3 = w[j3].real();
+			const auto S1 = w[j1].imag();
+			const auto S2 = w[j2].imag();
+			const auto S3 = w[j3].imag();
+			T1R = U1R;
+			T2R = U2R;
+			T3R = U3R;
+			U1R = T1R * C1 - U1I * S1;
+			U2R = T2R * C2 - U2I * S2;
+			U3R = T3R * C3 - U3I * S3;
+			U1I = T1R * S1 + U1I * C1;
+			U2I = T2R * S2 + U2I * C2;
+			U3I = T3R * S3 + U3I * C3;
 			T0R = U0R + U2R;
 			T2R = U0R - U2R;
+			T0I = U0I + U2I;
+			T2I = U0I - U2I;
 			T1R = U1R + U3R;
 			T3R = U1R - U3R;
+			T1I = U1I + U3I;
+			T3I = U1I - U3I;
 			x[i0] = T0R + T1R;
-			x[i1] = T2R;
-			x[i3] = -T3R;
-			x[i2] = T0R - T1R;
+			x[i7] = T0I + T1I;
+			x[i1] = T2R + T3I;
+			x[i6] = T2I - T3R;
+			x[i5] = T0R - T1R;
+			x[i2] = -T0I + T1I;
+			x[i4] = T2R - T3I;
+			x[i3] = -T2I - T3R;
 		}
-		if (N2 >= N1) {
-			for (int ihi = 0; ihi < NHI; ihi++) {
-				double T1, T2;
-				const int i0 = N2 / 2 + N2 * N1 * ihi;
-				const int i1 = i0 + N2;
-				const int i2 = i1 + N2;
-				const int i3 = i2 + N2;
-				auto U0R = x[i0];
-				auto U1R = x[i1];
-				auto U2R = x[i2];
-				auto U3R = x[i3];
-				T1 = M_SQRT1_2 * (U1R - U3R);
-				T2 = M_SQRT1_2 * (U1R + U3R);
-				x[i0] = U0R + T1;
-				x[i3] = -U2R - T2;
-				x[i1] = U0R - T1;
-				x[i2] = -T2 + U2R;
-			}
-		}
-		for (int ihi = 0; ihi < NHI; ihi++) {
-			for (int k2 = 1; k2 < std::min(SIMD_SIZE,N2 / 2); k2++) {
-				double T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
-				const int i0 = k2 + N2 * N1 * ihi;
-				const int i1 = i0 + N2;
-				const int i2 = i1 + N2;
-				const int i3 = i2 + N2;
-				const int i4 = i0 + N2 - 2 * k2;
-				const int i5 = i4 + N2;
-				const int i6 = i5 + N2;
-				const int i7 = i6 + N2;
-				const int j1 = k2 * TWHI;
-				const int j2 = 2 * j1;
-				const int j3 = 3 * j1;
-				auto U0R = x[i0];
-				auto U1R = x[i1];
-				auto U2R = x[i2];
-				auto U3R = x[i3];
-				auto U0I = x[i4];
-				auto U1I = x[i5];
-				auto U2I = x[i6];
-				auto U3I = x[i7];
-				const auto C1 = w[j1].real();
-				const auto C2 = w[j2].real();
-				const auto C3 = w[j3].real();
-				const auto S1 = w[j1].imag();
-				const auto S2 = w[j2].imag();
-				const auto S3 = w[j3].imag();
-				T1R = U1R;
-				T2R = U2R;
-				T3R = U3R;
-				U1R = T1R * C1 - U1I * S1;
-				U2R = T2R * C2 - U2I * S2;
-				U3R = T3R * C3 - U3I * S3;
-				U1I = T1R * S1 + U1I * C1;
-				U2I = T2R * S2 + U2I * C2;
-				U3I = T3R * S3 + U3I * C3;
-				T0R = U0R + U2R;
-				T2R = U0R - U2R;
-				T0I = U0I + U2I;
-				T2I = U0I - U2I;
-				T1R = U1R + U3R;
-				T3R = U1R - U3R;
-				T1I = U1I + U3I;
-				T3I = U1I - U3I;
-				x[i0] = T0R + T1R;
-				x[i7] = T0I + T1I;
-				x[i1] = T2R + T3I;
-				x[i6] = T2I - T3R;
-				x[i5] = T0R - T1R;
-				x[i2] = -T0I + T1I;
-				x[i4] = T2R - T3I;
-				x[i3] = -T2I - T3R;
-			}
-			constexpr unsigned int P = (3 << 0) | (2 << 2) | (1 << 4) | (0 << 6);
-			for (int k2 = SIMD_SIZE; k2 < N2 / 2; k2 += SIMD_SIZE) {
-				__m256d T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
-				double* xi0 = x + k2 + N2 * N1 * ihi;
-				double* xi1 = xi0 + N2;
-				double* xi2 = xi1 + N2;
-				double* xi3 = xi2 + N2;
-				double* xi4 = xi0 + N2 - 2 * k2 - SIMD_SIZE + 1;
-				double* xi5 = xi4 + N2;
-				double* xi6 = xi5 + N2;
-				double* xi7 = xi6 + N2;
-				const int j = k2 * TWHI / SIMD_SIZE;
-				const auto C1 = cos1[j];
-				const auto S1 = sin1[j];
-				const auto C2 = cos2[j];
-				const auto S2 = sin2[j];
-				const auto C3 = cos3[j];
-				const auto S3 = sin3[j];
-				__m256d U0R = _mm256_load_pd(xi0);
-				__m256d U0I = _mm256_loadu_pd(xi4);
-				__m256d U1R = _mm256_load_pd(xi1);
-				__m256d U1I = _mm256_loadu_pd(xi5);
-				__m256d U2R = _mm256_load_pd(xi2);
-				__m256d U2I = _mm256_loadu_pd(xi6);
-				__m256d U3R = _mm256_load_pd(xi3);
-				__m256d U3I = _mm256_loadu_pd(xi7);
-				U0I = _mm256_permute4x64_pd(U0I, P);
-				U1I = _mm256_permute4x64_pd(U1I, P);
-				U2I = _mm256_permute4x64_pd(U2I, P);
-				U3I = _mm256_permute4x64_pd(U3I, P);
-				T1R = U1R;
-				T0R = _mm256_fmsub_pd(S2, U2I, U0R);
-				T0R = _mm256_fmsub_pd(C2, U2R, T0R);
-				T0I = _mm256_fmadd_pd(C2, U2I, U0I);
-				T0I = _mm256_fmadd_pd(S2, U2R, T0I);
-				T2R = _mm256_fmsub_pd(TWO, U0R, T0R);
-				T2I = _mm256_fmsub_pd(TWO, U0I, T0I);
-				T1I = _mm256_mul_pd(U1I, S1);
-				U1R = _mm256_fmsub_pd(T1R, C1, T1I);
-				T1I = _mm256_mul_pd(U1I, C1);
-				U1I = _mm256_fmadd_pd(T1R, S1, T1I);
-				T1R = _mm256_fmsub_pd(S3, U3I, U1R);
-				T1R = _mm256_fmsub_pd(C3, U3R, T1R);
-				T1I = _mm256_fmadd_pd(C3, U3I, U1I);
-				T1I = _mm256_fmadd_pd(S3, U3R, T1I);
-				T3R = _mm256_fmsub_pd(TWO, U1R, T1R);
-				T3I = _mm256_fmsub_pd(TWO, U1I, T1I);
-				T3R = _mm256_sub_pd(Z0, T3R);
-				U0R = _mm256_add_pd(T0R, T1R);
-				U0I = _mm256_add_pd(T0I, T1I);
-				U1R = _mm256_add_pd(T2R, T3I);
-				U1I = _mm256_add_pd(T2I, T3R);
-				U2R = _mm256_sub_pd(T0R, T1R);
-				U2I = _mm256_sub_pd(T1I, T0I);
-				U3R = _mm256_sub_pd(T2R, T3I);
-				U3I = _mm256_sub_pd(T3R, T2I);
-				U0I = _mm256_permute4x64_pd(U0I, P);
-				U1I = _mm256_permute4x64_pd(U1I, P);
-				U2R = _mm256_permute4x64_pd(U2R, P);
-				U3R = _mm256_permute4x64_pd(U3R, P);
-				_mm256_store_pd(xi0, U0R);
-				_mm256_storeu_pd(xi7, U0I);
-				_mm256_store_pd(xi1, U1R);
-				_mm256_storeu_pd(xi6, U1I);
-				_mm256_storeu_pd(xi5, U2R);
-				_mm256_store_pd(xi2, U2I);
-				_mm256_storeu_pd(xi4, U3R);
-				_mm256_store_pd(xi3, U3I);
-			}
+		constexpr unsigned int P = (3 << 0) | (2 << 2) | (1 << 4) | (0 << 6);
+		for (int k2 = SIMD_SIZE; k2 < N2 / 2; k2 += SIMD_SIZE) {
+			__m256d T0R, T0I, T1R, T1I, T2R, T2I, T3R, T3I;
+			double* xi0 = x + k2;
+			double* xi1 = xi0 + N2;
+			double* xi2 = xi1 + N2;
+			double* xi3 = xi2 + N2;
+			double* xi4 = xi0 + N2 - 2 * k2 - SIMD_SIZE + 1;
+			double* xi5 = xi4 + N2;
+			double* xi6 = xi5 + N2;
+			double* xi7 = xi6 + N2;
+			const int j = k2 * TWHI / SIMD_SIZE;
+			const auto C1 = cos1[j];
+			const auto S1 = sin1[j];
+			const auto C2 = cos2[j];
+			const auto S2 = sin2[j];
+			const auto C3 = cos3[j];
+			const auto S3 = sin3[j];
+			__m256d U0R = _mm256_load_pd(xi0);
+			__m256d U0I = _mm256_loadu_pd(xi4);
+			__m256d U1R = _mm256_load_pd(xi1);
+			__m256d U1I = _mm256_loadu_pd(xi5);
+			__m256d U2R = _mm256_load_pd(xi2);
+			__m256d U2I = _mm256_loadu_pd(xi6);
+			__m256d U3R = _mm256_load_pd(xi3);
+			__m256d U3I = _mm256_loadu_pd(xi7);
+			U0I = _mm256_permute4x64_pd(U0I, P);
+			U1I = _mm256_permute4x64_pd(U1I, P);
+			U2I = _mm256_permute4x64_pd(U2I, P);
+			U3I = _mm256_permute4x64_pd(U3I, P);
+			T1R = U1R;
+			T0R = _mm256_fmsub_pd(S2, U2I, U0R);
+			T0R = _mm256_fmsub_pd(C2, U2R, T0R);
+			T0I = _mm256_fmadd_pd(C2, U2I, U0I);
+			T0I = _mm256_fmadd_pd(S2, U2R, T0I);
+			T2R = _mm256_fmsub_pd(TWO, U0R, T0R);
+			T2I = _mm256_fmsub_pd(TWO, U0I, T0I);
+			T1I = _mm256_mul_pd(U1I, S1);
+			U1R = _mm256_fmsub_pd(T1R, C1, T1I);
+			T1I = _mm256_mul_pd(U1I, C1);
+			U1I = _mm256_fmadd_pd(T1R, S1, T1I);
+			T1R = _mm256_fmsub_pd(S3, U3I, U1R);
+			T1R = _mm256_fmsub_pd(C3, U3R, T1R);
+			T1I = _mm256_fmadd_pd(C3, U3I, U1I);
+			T1I = _mm256_fmadd_pd(S3, U3R, T1I);
+			T3R = _mm256_fmsub_pd(TWO, U1R, T1R);
+			T3I = _mm256_fmsub_pd(TWO, U1I, T1I);
+			T3R = _mm256_sub_pd(Z0, T3R);
+			U0R = _mm256_add_pd(T0R, T1R);
+			U0I = _mm256_add_pd(T0I, T1I);
+			U1R = _mm256_add_pd(T2R, T3I);
+			U1I = _mm256_add_pd(T2I, T3R);
+			U2R = _mm256_sub_pd(T0R, T1R);
+			U2I = _mm256_sub_pd(T1I, T0I);
+			U3R = _mm256_sub_pd(T2R, T3I);
+			U3I = _mm256_sub_pd(T3R, T2I);
+			U0I = _mm256_permute4x64_pd(U0I, P);
+			U1I = _mm256_permute4x64_pd(U1I, P);
+			U2R = _mm256_permute4x64_pd(U2R, P);
+			U3R = _mm256_permute4x64_pd(U3R, P);
+			_mm256_store_pd(xi0, U0R);
+			_mm256_storeu_pd(xi7, U0I);
+			_mm256_store_pd(xi1, U1R);
+			_mm256_storeu_pd(xi6, U1I);
+			_mm256_storeu_pd(xi5, U2R);
+			_mm256_store_pd(xi2, U2I);
+			_mm256_storeu_pd(xi4, U3R);
+			_mm256_store_pd(xi3, U3I);
 		}
 		tm6.stop();
 	};
@@ -1886,6 +1897,7 @@ void fft_inplace_real(double* x, int N) {
 	butterfly4_final();
 //	printf("1: %e 2: %e 3: %e 4: %e 5: %e 6: %e 7: %e 8: %e\n", tm1.read(), tm2.read(), tm3.read(), tm4.read(), tm5.read(), tm6.read(), tm7.read(), tm8.read());
 }
+
 
 template<int N1, class T>
 void apply_butterfly(T* x, int N, int bb, int cb, int tbb, int tbe) {

@@ -70,6 +70,9 @@ void fft_2pow_complex(double* x, int N);
 void fft_4step(double* X, int N);
 void fft_inplace(double* x, int N);
 void fft_inplace_real(double* x, int N);
+void fft_odd_real(double* x, int N);
+void fft_complex(double* x, double* y, int N);
+void fft_6_real(double* x, int N);
 
 int main(int argc, char **argv) {
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -79,13 +82,13 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 64; N <= 1024*1024*1024; N *= 2) {
+	for (int N = 16; N <= 1024 * 1024 * 1024; N *= 2) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 21; i++) {
+			for (int i = 0; i < 2; i++) {
 				std::vector<double> x(N);
 				std::vector<double> y(N);
 				std::vector<complex<double>> X(N / 2 + 1);
@@ -93,21 +96,20 @@ int main(int argc, char **argv) {
 				for (int n = 0; n < N; n++) {
 					x[n] = (y[n] = rand1());
 				}
-				//x[0] = y[0] = 1.0;
-			//	x[2] = y[2] = 1.0;
+				//				x[1] = y[1] = 1.0;
 				if (i == 0) {
 					fftw_real(Y, y);
-					fft_inplace_real(x.data(), N);
+					fft_6_real(x.data(), N);
 				} else {
-
 					auto b = fftw_real(Y, y);
 					timer tm;
 					tm.start();
-					fft_inplace_real(x.data(), N);
+					fft_6_real(x.data(), N);
 					tm.stop();
 					X[0].real() = x[0];
 					X[0].imag() = 0.0;
-					for (int n = 1; n < N - n; n++) {
+					X[N / 2].real() = X[N / 2].imag() = 0.0;
+					for (int n = 0; n < N - n; n++) {
 						X[n].real() = x[n];
 						X[n].imag() = x[N - n];
 					}
@@ -124,11 +126,11 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-			//			printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+						printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
-		//	abort();
+			abort();
 			std::string f;
 			for (auto i = pfac.begin(); i != pfac.end(); i++) {
 				f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
@@ -147,23 +149,39 @@ int main(int argc, char **argv) {
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 51; i++) {
+			for (int i = 0; i < 2; i++) {
 				std::vector<complex<double>> X(N);
+				std::vector<double> y(N);
+				std::vector<double> x(N);
 				std::vector<complex<double>> Y(N);
 				for (int n = 0; n < N; n++) {
 					X[n].real() = (Y[n].real() = rand1());
 					X[n].imag() = (Y[n].imag() = rand1());
 				}
-			//	X[0].real() = (Y[1].real() = 1);
-			//	X[0].imag() = (Y[0].imag() = 0);
 				if (i == 0) {
 					fftw(Y);
-					fft_inplace((double*)X.data(), N);
+					for (int n = 0; n < N; n++) {
+						x[n] = X[n].real();
+						y[n] = X[n].imag();
+					}
+					//fft_complex(x.data(), y.data(), N);
+					for (int n = 0; n < N; n++) {
+						X[n].real() = x[n];
+						X[n].imag() = y[n];
+					}
 				} else {
 					auto b = fftw(Y);
 					timer tm;
 					tm.start();
-					fft_inplace((double*)X.data(), N);
+					for (int n = 0; n < N; n++) {
+						x[n] = X[n].real();
+						y[n] = X[n].imag();
+					}
+					//fft_complex(x.data(), y.data(), N);
+					for (int n = 0; n < N; n++) {
+						X[n].real() = x[n];
+						X[n].imag() = y[n];
+					}
 					tm.stop();
 					t2 += tm.read();
 					t4 += tm.read();
@@ -174,7 +192,7 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-			//			printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+						printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
@@ -190,7 +208,7 @@ int main(int argc, char **argv) {
 			cnt++;
 			score /= cnt;
 			printf("C %c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
-		//	abort();
+			abort();
 		}
 	}
 	return 0;
