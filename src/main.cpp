@@ -73,7 +73,7 @@ void fft_inplace_real(double* x, int N);
 void fft_odd_real(double* x, int N);
 void fft_complex(double* x, double* y, int N);
 //void fft_6_real(double* x, int N);
-void fft_6_real(double* x, int N, bool reverse =true);
+void fft_6_real(double* x, int N);
 
 int main(int argc, char **argv) {
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 128; N <= 1024 * 1024 * 1024; N *= 4) {
+	for (int N = 16; N <= 1024 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-						printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+					///	printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
@@ -144,7 +144,7 @@ int main(int argc, char **argv) {
 			cnt++;
 			score /= cnt;
 			printf("R %c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
-			abort();
+//			abort();
 		}
 		{
 			continue;
