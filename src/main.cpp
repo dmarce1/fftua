@@ -72,7 +72,8 @@ void fft_inplace(double* x, int N);
 void fft_inplace_real(double* x, int N);
 void fft_odd_real(double* x, int N);
 void fft_complex(double* x, double* y, int N);
-void fft_6_real(double* x, int N);
+//void fft_6_real(double* x, int N);
+void fft_6_real(double* x, int N, bool reverse =false);
 
 int main(int argc, char **argv) {
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -82,7 +83,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 16; N <= 1024 * 1024 * 1024; N *= 4) {
+	for (int N = 128; N <= 1024 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
