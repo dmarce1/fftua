@@ -73,7 +73,7 @@ void fft_inplace_real(double* x, int N);
 void fft_odd_real(double* x, int N);
 void fft_complex(double* x, double* y, int N);
 //void fft_6_real(double* x, int N);
-void fft_6_real(double* x, int N, bool reverse =false);
+void fft_6_real(double* x, int N, bool reverse =true);
 
 int main(int argc, char **argv) {
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
