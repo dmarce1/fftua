@@ -66,8 +66,6 @@ mainloop:
        je              done
        xorq            nhi, nhi
 nhiloop:
-
-
        xorq            mm, mm
 mmloop0:      
 	   movq			   MN2, %rax
@@ -90,11 +88,6 @@ mmloop0:
        vmovapd         er0, (%rax)
        cmp             $2, N2
        jl              skipm1
-	   movq			   MN2, %rax
-	   shl             %rax
-	   mul			   nhi
-	   add			   mm, %rax
-	   mov             %rax, %rcx
 	   movq            N2, %rax
 	   shr             %rax
 	   add			   N2, %rax
@@ -128,26 +121,21 @@ mmloop2:
 	   mul             k2
 	   add             %rcx, %rax
        lea             (X, %rax, 8), %rax
-
        push            %rax
        vmovapd         (%rax), er0
        lea             (%rax, MN2, 8), %rax
        push            %rax
        vmovapd         (%rax), er1
-
 	   movq            N2, %rax
 	   sub             k2, %rax
 	   mul             M
 	   add             %rcx, %rax
 	   lea             (X, %rax, 8), %rax
-
        push            %rax
        vmovapd         (%rax), ei0
        lea             (%rax, MN2, 8), %rax
        push            %rax
        vmovapd         (%rax), ei1
-
-
        vmovapd         er0, tmpr
        vmovapd         ei0, tmpi
        vfmsub231pd     ei1, wi, er0
@@ -158,7 +146,6 @@ mmloop2:
        vmovapd		   ei0, ei1
        vfmsub231pd     tmpr, two, er1
        vfnmadd231pd    tmpi, two, ei1
-
        pop             %rax
        vmovapd         ei0, (%rax)
        pop             %rax
@@ -167,7 +154,6 @@ mmloop2:
        vmovapd         ei1, (%rax)
        pop             %rax
        vmovapd         er0, (%rax)
-
        add             SIMD_SIZE, mm
        cmp             M, mm
        jne             mmloop2
