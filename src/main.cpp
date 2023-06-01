@@ -139,10 +139,10 @@ int main(int argc, char **argv) {
 				std::vector<complex<double>> X(N / 2 + 1);
 				std::vector<complex<double>> Y(N / 2 + 1);
 				for (int n = 0; n < N; n++) {
-					x[n] = (y[n] = 0.0);
+					x[n] = (y[n] = rand1());
 				}
-				int nn = 0;
-				x[nn] = y[nn] = 1.0;
+				int nn = 1;
+//				x[nn] = y[nn] = 1.0;
 				if (i == 0) {
 					fftw_real(Y, y);
 					fft_6_real(x.data(), N);
@@ -172,7 +172,7 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-							printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+		//					printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
 			cnt++;
 			score /= cnt;
 			printf("R %c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
-			abort();
+	//		abort();
 		}
 		{
 			continue;
