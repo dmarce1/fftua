@@ -15,12 +15,13 @@
 #define er1       %ymm1
 #define ei0       %ymm2
 #define ei1       %ymm3
-#define tr0       %ymm4
-#define tr1       %ymm5
-#define ti0       %ymm6
-#define ti1       %ymm7
-#define two       %ymm8
-#define zero      %ymm9
+#define tr1       %ymm4
+#define two       %ymm5
+#define zero      %ymm6
+#define wr        %ymm7
+#define wi        %ymm8
+#define tmpr      %ymm9
+#define tmpi      %ymm10
 
         .global        fft_iter_real
 
@@ -48,13 +49,14 @@ fft_iter_real:
        movq            $1, N2
        vbroadcastsd    dtwo, two
        vbroadcastsd    dzero, zero
+
 mainloop:
        movq            N2, %rax
        cmp             N, %rax
        je              done
        xorq            %rdx, %rdx
-       mov             M, %rax
-       mov             N2, MN2
+       movq            M, %rax
+       movq            N2, MN2
        mul             MN2
        movq            %rax, MN2
        movq            N1, %rax
@@ -67,15 +69,18 @@ mainloop:
        movq			   N1, %rax
        movq			   MN2, MN2N1
        mul             MN2N1
-       mov		       %rax, MN2N1
+       movq		       %rax, MN2N1
+
        xorq            nhi, nhi
 nhiloop:
+
        xorq            mm, mm
 mmloop0:      
-	   movq            MN2N1, %rax
-	   mul             nhi
+	   movq			   MN2N1, %rax
+	   xorq            %rdx, %rdx
+	   mul			   nhi
+	   add			   mm, %rax
        lea             (X, %rax, 8), %rax
-       lea             (%rax, mm, 8), %rax
        push            %rax
        vmovapd         (%rax), er0
        lea             (%rax, MN2, 8), %rax
@@ -93,17 +98,22 @@ mmloop0:
        jne             mmloop0
        cmp             $2, N2
        jl              skipk2
+
        xorq            mm, mm
 mmloop1:
-       movq            MN2, %rax
-       shr             %rax
-       add             MN2, %rax
-       push            %rax
-	   movq            MN2N1, %rax
-	   mul             nhi
+	   movq			   MN2N1, %rax
+	   xorq            %rdx, %rdx
+	   mul			   nhi
+	   push			   %rax
+	   movq            M, %rax
+	   xorq            %rdx, %rdx
+	   movq            N2, %rbx
+	   shr	           %rbx
+	   add			   N2, %rbx
+	   mul             %rbx
 	   pop             %rbx
-	   add			   %rbx, %rax
-       add             mm, %rax
+	   add             %rbx, %rax
+	   add			   mm, %rax
        lea             (X, %rax, 8), %rax
        vmovapd         (%rax), er1
        vsubpd          er1, zero, er1
@@ -111,71 +121,94 @@ mmloop1:
        add             SIMD_SIZE, mm
        cmp             M, mm
        jne             mmloop1
-       movq            $1, k2
-k2loop:      
+
        cmp             $2, N2
        jle             skipk2
+       movq            $1, k2
+k2loop:
        movq            NHI, %rax
        xorq            %rdx, %rdx
        mul             k2
-       vbroadcastsd    (W, %rax, 8), tr1
-       vbroadcastsd    8(W, %rax, 8), ti1
+       shl             %rax
+       vbroadcastsd    (W, %rax, 8), wr
+       vbroadcastsd    8(W, %rax, 8), wi
        xorq            mm, mm
 mmloop2:
-       mov             M, %rax
-       xorq            %rdx, %rdx
-       mul             k2
+	   //X + 8 * (MN2N1 * nhi + M * k2 + m)
+
+	   movq			   MN2N1, %rax
+	   xorq            %rdx, %rdx
+	   mul			   nhi
+	   push			   %rax
+	   movq            M, %rax
+	   xorq            %rdx, %rdx
+	   mul             k2
+	   pop             %rbx
+	   add             %rbx, %rax
+	   add			   mm, %rax
        lea             (X, %rax, 8), %rax
-       lea             (%rax, mm, 8), %rax
        push            %rax
        vmovapd         (%rax), er0
-       add             MN2, %rax
+       lea             (%rax, MN2, 8), %rax
        push            %rax
        vmovapd         (%rax), er1
-       mov             N2, %rax
-       sub             k2, %rax
-       xorq            %rdx, %rdx
-       mul             M
+
+	   movq			   MN2N1, %rax
+	   xorq            %rdx, %rdx
+	   mul			   nhi
+	   push			   %rax
+	   movq            N2, %rax
+	   sub             k2, %rax
+	   xorq            %rdx, %rdx
+	   mul             M
+	   pop             %rbx
+	   add             %rbx, %rax
+	   add			   mm, %rax
        lea             (X, %rax, 8), %rax
-       lea             (%rax, mm, 8), %rax
        push            %rax
        vmovapd         (%rax), ei0
        lea             (%rax, MN2, 8), %rax
        push            %rax
        vmovapd         (%rax), ei1
-       vmovapd         er1, tr0
-       vmovapd         ei1, ti0
-       vfmsub132pd     ti0, er0, ti1
-       vfmsub132pd     tr0, er0, tr1
-       vfmadd132pd     ti0, ei0, tr1
-       vfmadd132pd     tr0, ei0, ti1
-       vmovapd         er0, er1
-       vmovapd         ei0, ei1
-       vfmsub132pd     tr0, er1, two
-       vfmsub132pd     ti0, ei1, two
+
+       vmovapd         er0, tmpr
+       vmovapd         ei0, tmpi
+       vfmsub231pd     ei1, wi, er0
+       vfmsub231pd     er1, wr, er0
+       vfmadd231pd     ei1, wr, ei0
+       vfmadd231pd     er1, wi, ei0
+       vmovapd		   er0, er1
+       vmovapd		   ei0, ei1
+       vfmsub231pd     tmpr, two, er1
+       vfmsub231pd     tmpi, two, ei1
        vsubpd          ei1, zero, ei1
+
        pop             %rax
        vmovapd         ei0, (%rax)
        pop             %rax
-       vmovapd         ei1, (%rax)
-       pop             %rax
        vmovapd         er1, (%rax)
        pop             %rax
+       vmovapd         ei1, (%rax)
+       pop             %rax
        vmovapd         er0, (%rax)
+
        add             SIMD_SIZE, mm
        cmp             M, mm
        jne             mmloop2
        inc             k2
-       mov             N2, %rax
+       movq            N2, %rax
        shr             %rax
        cmp             k2, %rax
        jne             k2loop
+
 skipk2:
        inc             nhi
        cmp             NHI, nhi
        jne             nhiloop
+
        shl             N2
        jmp             mainloop
+
 done:
        pop             %r15
        pop             %r14
@@ -188,6 +221,7 @@ done:
        pop             %rsi
        pop             %rdi
        pop             %rbx
+       emms
        ret
 
 
