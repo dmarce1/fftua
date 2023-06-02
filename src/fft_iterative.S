@@ -12,21 +12,56 @@
 #define N              %rsi
 #define er0            %ymm0
 #define er1            %ymm1
-#define ei0            %ymm2
-#define ei1            %ymm3
-#define tr1            %ymm4
-#define two            %ymm5
-#define zero           %ymm6
-#define wr             %ymm7
-#define wi             %ymm8
-#define tmpr           %ymm9
-#define tmpi           %ymm10
+#define er2            %ymm2
+#define er3            %ymm3
+#define ei0            %ymm4
+#define ei1            %ymm5
+#define ei2            %ymm6
+#define ei3            %ymm7
+#define tr0            %ymm8
+#define tr1            %ymm9
+#define tr2            %ymm10
+#define tr3            %ymm11
+#define ti0            %ymm12
+#define ti1            %ymm13
+#define ti2            %ymm14
+#define ti3            %ymm15
 
        .global         fft_iter_real
 
        .data
-dtwo:  .double         2.00
-dzero: .double         0.00
+two:   .double         2.00
+       .double         2.00
+       .double         2.00
+       .double         2.00
+       .double         2.00
+       .double         2.00
+       .double         2.00
+       .double         2.00
+zero:  .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+wr:    .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+wi:    .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
+       .double         0.00
 
        .text
 fft_iter_real:
@@ -47,8 +82,6 @@ fft_iter_real:
        movq            %rcx, M
        movq            $1, N2
        xorq            %rdx, %rdx
-       vbroadcastsd    dtwo, two
-       vbroadcastsd    dzero, zero
        movq            M, %rax
        movq            N2, MN2
        mul             MN2
@@ -94,8 +127,8 @@ mmloop0:
 	   mul             M
 	   add             %rcx, %rax
        lea             (X, %rax, 8), %rax
-       vmovapd         (%rax), er1
-       vsubpd          er1, zero, er1
+       vmovapd         zero, tr1
+       vsubpd          (%rax), tr1, er1
        vmovapd         er1, (%rax)
 skipm1:
        add             SIMD_SIZE, mm
@@ -108,8 +141,10 @@ k2loop:
        movq            NHI, %rax
        mul             k2
        shl             %rax
-       vbroadcastsd    (W, %rax, 8), wr
-       vbroadcastsd    8(W, %rax, 8), wi
+       vbroadcastsd    (W, %rax, 8), tr0
+       vbroadcastsd    8(W, %rax, 8), ti0
+       vmovapd         tr0, wr
+       vmovapd         ti0, wi
        xorq            mm, mm
 mmloop2:
 	   movq			   MN2, %rax
@@ -136,16 +171,16 @@ mmloop2:
        lea             (%rax, MN2, 8), %rax
        push            %rax
        vmovapd         (%rax), ei1
-       vmovapd         er0, tmpr
-       vmovapd         ei0, tmpi
-       vfmsub231pd     ei1, wi, er0
-       vfmsub231pd     er1, wr, er0
-       vfmadd231pd     ei1, wr, ei0
-       vfmadd231pd     er1, wi, ei0
+       vmovapd         er0, tr0
+       vmovapd         ei0, ti0
+       vfmsub231pd     wi, ei1, er0
+       vfmsub231pd     wr, er1, er0
+       vfmadd231pd     wr, ei1, ei0
+       vfmadd231pd     wi, er1, ei0
        vmovapd		   er0, er1
        vmovapd		   ei0, ei1
-       vfmsub231pd     tmpr, two, er1
-       vfnmadd231pd    tmpi, two, ei1
+       vfmsub231pd     two, tr0, er1
+       vfnmadd231pd    two, ti0, ei1
        pop             %rax
        vmovapd         ei0, (%rax)
        pop             %rax
