@@ -3,6 +3,7 @@
 #include <stack>
 #include <cstring>
 
+
 void fft_bluestein(complex<double>* X, int N) {
 	workspace<complex<double>> ws;
 	const int M = compute_padding(N);
