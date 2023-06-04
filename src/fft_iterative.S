@@ -1,6 +1,7 @@
 #define M_SQRT2_1      0.70710678118
 #define N1 	           $4
 #define SIMD_SIZE      $4
+#define N2             %rsi
 #define mm             %r10
 #define nhi            %r11
 #define k2             %r12
@@ -15,13 +16,6 @@
 #define sin2           -192(%rbp)
 #define sin3           -224(%rbp)
 #define NHI            -232(%rbp)
-#define N2             -240(%rbp)
-#define MN21           -248(%rbp)
-#define MN20           -256(%rbp)
-#define tmp0           -264(%rbp)
-#define tmp1           -272(%rbp)
-#define tmp2           -280(%rbp)
-#define tmp3           -288(%rbp)
 #define er0            %ymm0
 #define er1            %ymm1
 #define er2            %ymm2
@@ -46,7 +40,7 @@ fft_iter_real:
 	   push            %rbp
 	   sub             $16, %rsp
 	   mov             %rsp, %rbp
-	   sub             $320, %rsp
+	   sub             $264, %rsp
        push            %rbx
        push            %r12
        push            %r13
@@ -66,8 +60,7 @@ fft_iter_real:
 	   andq            $1, %rcx
 	   jz              skipradix2
        movq            $2, %rax
-       movq            N2, %rbx
-       mul             %rbx
+       mul             N2
        movq            %rax, %rbx
        movq            N, %rax
        div             %rbx
@@ -99,18 +92,15 @@ radix2loop1:
        inc             nhi
        cmp             NHI, nhi
        jne             radix2loop0
-       mov             N2, %rax
        mov             NHI, %rbx
-       shl             %rax
+       shl             N2
        shr             $2, %rbx
-       mov             %rax, N2
        mov             %rbx, NHI
        shl             MN2
        jmp             mainloop
 skipradix2:
        movq            N1, %rax
-       movq            N2, %rbx
-       mul             %rbx
+       mul             N2
        movq            %rax, %rbx
        movq            N, %rax
        div             %rbx
@@ -275,11 +265,9 @@ skipk2:
        inc             nhi
        cmp             NHI, nhi
        jne             nhiloop
-       mov             N2, %rax
        mov             NHI, %rbx
-       shl             $2, %rax
+       shl             $2, N2
        shr             $2, %rbx
-       mov             %rax, N2
        mov             %rbx, NHI
        shl             $2, MN2
        jmp             mainloop
@@ -289,9 +277,9 @@ done:
        pop             %r13
        pop             %r12
        pop             %rbx
-       emms
- 	   add             $336, %rsp
+  	   add             $280, %rsp
        pop             %rbp
+       emms
        ret
 
        .data
