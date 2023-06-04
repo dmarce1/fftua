@@ -1,16 +1,29 @@
-#define M_SQRT         0.70710678118
+#define M_SQRT2_1      0.70710678118
 #define N1 	           $4
 #define SIMD_SIZE      $4
 #define mm             %r8
-#define M              %r9
-#define nhi            %r10
-#define NHI            %r11
-#define k2             %r12
-#define N2             %r13
-#define MN2            %r14
-#define W              %r15
-#define X              %rdi
-#define N              %rsi
+#define nhi            %r9
+#define NHI            %r10
+#define k2             %r11
+#define N2             %r12
+#define MN2            %r13
+#define W              %r14
+#define X              %r15
+#define N              -32(%rbp)
+#define cos1           -64(%rbp)
+#define cos2           -96(%rbp)
+#define cos3           -128(%rbp)
+#define sin1           -160(%rbp)
+#define sin2           -192(%rbp)
+#define sin3           -224(%rbp)
+#define MN23           -232(%rbp)
+#define MN22           -240(%rbp)
+#define MN21           -248(%rbp)
+#define MN20           -256(%rbp)
+#define tmp0           -264(%rbp)
+#define tmp1           -272(%rbp)
+#define tmp2           -280(%rbp)
+#define tmp3           -288(%rbp)
 #define er0            %ymm0
 #define er1            %ymm1
 #define er2            %ymm2
@@ -32,6 +45,10 @@
 
        .text
 fft_iter_real:
+	   push            %rbp
+	   sub             $16, %rsp
+	   mov             %rsp, %rbp
+	   sub             $320, %rsp
        push            %rbx
        push            %rdi
        push            %rsi
@@ -46,10 +63,10 @@ fft_iter_real:
        movq            %rdi, X
        movq            %rsi, W
        movq            %rdx, N
-       movq            %rcx, M
+       movq            %rcx, N
        movq            $1, N2
        xorq            %rdx, %rdx
-       movq            M, %rax
+       movq            N, %rax
        movq            N2, MN2
        mul             MN2
        movq            %rax, MN2
@@ -85,7 +102,7 @@ radix2loop1:
        pop             %rbx
        vmovapd         tr0, (%rbx)
        add             SIMD_SIZE, mm
-       cmp             M, mm
+       cmp             N, mm
        jne             radix2loop1
        inc             nhi
        cmp             NHI, nhi
@@ -144,7 +161,7 @@ mmloop0:
        jl              skipm1
 	   movq            N2, %rax
 	   shr             %rax
-	   mul             M
+	   mulq            N
 	   add             %rcx, %rax
        lea             (X, %rax, 8), %rax
        push            %rax
@@ -176,33 +193,32 @@ mmloop0:
        vmovapd         ei0, (%rax)
 skipm1:
        add             SIMD_SIZE, mm
-       cmp             M, mm
+       cmp             N, mm
        jne             mmloop0
        cmp             $2, N2
        jle             skipk2
        movq            $1, k2
+       movq            $0, MN20
+       movq            MN2, %rax
+       movq            MN2, MN21
+       add             MN2, %rax
+       movq            %rax, MN22
+       add             MN2, %rax
+       movq            %rax, MN23
 k2loop:
        movq            NHI, %rax
        mul             k2
-       mov             $3, %rcx
-       mul             %rcx
-       movq            %rax, %rcx
-       movq            NHI, %rax
-       mul             k2
-       mov             $2, %rbx
-       mul             %rbx
-       movq            %rax, %rbx
-       movq            NHI, %rax
-       mul             k2
        shl             %rax
-       shl             %rbx
-       shl             %rcx
-       vbroadcastsd    (W, %rax, 8), tr1
-       vbroadcastsd    8(W, %rax, 8), ti1
+       mov             %rax, %rcx
+       add             %rcx, %rax
+       mov             %rax, %rbx
+       add             %rcx, %rax
+       vbroadcastsd    (W, %rcx, 8), tr1
+       vbroadcastsd    8(W, %rcx, 8), ti1
        vbroadcastsd    (W, %rbx, 8), tr2
        vbroadcastsd    8(W, %rbx, 8), ti2
-       vbroadcastsd    (W, %rcx, 8), tr3
-       vbroadcastsd    8(W, %rcx, 8), ti3
+       vbroadcastsd    (W, %rax, 8), tr3
+       vbroadcastsd    8(W, %rax, 8), ti3
        vmovapd         tr1, cos1
        vmovapd         ti1, sin1
        vmovapd         tr2, cos2
@@ -216,7 +232,7 @@ mmloop2:
 	   mul			   nhi
 	   add			   mm, %rax
 	   mov             %rax, %rcx
-	   movq            M, %rax
+	   movq            N, %rax
 	   mul             k2
 	   add             %rcx, %rax
        lea             (X, %rax, 8), %rax
@@ -233,7 +249,7 @@ mmloop2:
        vmovapd         (%rax), er3
 	   movq            N2, %rax
 	   sub             k2, %rax
-	   mul             M
+	   mulq            N
 	   add             %rcx, %rax
 	   lea             (X, %rax, 8), %rax
        push            %rax
@@ -298,7 +314,7 @@ mmloop2:
        pop             %rax
        vmovapd         er0, (%rax)
        add             SIMD_SIZE, mm
-       cmp             M, mm
+       cmp             N, mm
        jne             mmloop2
        inc             k2
        movq            N2, %rax
@@ -326,6 +342,8 @@ done:
        pop             %rdi
        pop             %rbx
        emms
+ 	   add             $336, %rsp
+       pop             %rbp
        ret
 
        .data
@@ -333,81 +351,20 @@ none:  .double        -1.00
        .double        -1.00
        .double        -1.00
        .double        -1.00
-       .double        -1.00
-       .double        -1.00
-       .double        -1.00
-       .double        -1.00
 zero:  .double         0.00
        .double         0.00
        .double         0.00
        .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-cos1:  .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-sin1:  .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-cos2:  .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-sin2:  .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-cos3:  .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-sin3:  .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-       .double         0.00
-C0:    .double         M_SQRT
-       .double         M_SQRT
-       .double         M_SQRT
-       .double         M_SQRT
-       .double         M_SQRT
-       .double         M_SQRT
-       .double         M_SQRT
-       .double         M_SQRT
-C1:    .double         -M_SQRT
-       .double         -M_SQRT
-       .double         -M_SQRT
-       .double         -M_SQRT
-       .double         -M_SQRT
-       .double         -M_SQRT
-       .double         -M_SQRT
-       .double         -M_SQRT
-
+C0:    .double         M_SQRT2_1
+       .double         M_SQRT2_1
+       .double         M_SQRT2_1
+       .double         M_SQRT2_1
+C1:    .double         -M_SQRT2_1
+       .double         -M_SQRT2_1
+       .double         -M_SQRT2_1
+       .double         -M_SQRT2_1
+two:   .quad           2
+       .quad           2
+       .quad           2
+       .quad           2
 

@@ -451,7 +451,7 @@ void fft_batch_real(double* x, int L, int N) {
 #include <cstring>
 
 extern "C" {
-void fft_iter_real(double*, double*, int N, int M);
+void fft_iter_real(double*, double*, int N, int M, __m256d dummy = __m256d());
 }
 
 template<class T>
