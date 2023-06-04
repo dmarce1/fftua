@@ -227,42 +227,34 @@ k2loop:
        vmovapd         ti3, sin3
        xorq            mm, mm
 mmloop2:
-	   movq			   MN2, %rax
-	   shl             $2, %rax
+ 	   movq			   MN2, %rax
 	   mul			   nhi
-	   add			   mm, %rax
-	   mov             %rax, %rcx
+	   lea             (mm, %rax, 4), %rcx
+	   movq            N2, %rax
+	   sub             k2, %rax
+	   sub             k2, %rax
+	   mulq            N
+	   mov             %rax, %rbx
 	   movq            N, %rax
 	   mul             k2
 	   add             %rcx, %rax
        lea             (X, %rax, 8), %rax
        push            %rax
        vmovapd         (%rax), er0
+       vmovapd         (%rax, %rbx, 8), ei0
        lea             (%rax, MN2, 8), %rax
        push            %rax
        vmovapd         (%rax), er2
+       vmovapd         (%rax, %rbx, 8), ei2
        lea             (%rax, MN2, 8), %rax
        push            %rax
        vmovapd         (%rax), er1
+       vmovapd         (%rax, %rbx, 8), ei1
        lea             (%rax, MN2, 8), %rax
        push            %rax
        vmovapd         (%rax), er3
-	   movq            N2, %rax
-	   sub             k2, %rax
-	   mulq            N
-	   add             %rcx, %rax
-	   lea             (X, %rax, 8), %rax
-       push            %rax
-       vmovapd         (%rax), ei0
-       lea             (%rax, MN2, 8), %rax
-       push            %rax
-       vmovapd         (%rax), ei2
-       lea             (%rax, MN2, 8), %rax
-       push            %rax
-       vmovapd         (%rax), ei1
-       lea             (%rax, MN2, 8), %rax
-       push            %rax
-       vmovapd         (%rax), ei3
+       vmovapd         (%rax, %rbx, 8), ei3
+       push            %rbx
        vmulpd          sin1, ei1, tr1
        vmulpd          cos1, ei1, ti1
        vfmsub231pd     cos1, er1, tr1
@@ -297,22 +289,20 @@ mmloop2:
 	   vsubpd          ti0, ti1, ei2
 	   vsubpd          ti3, tr2, er3
 	   vsubpd          ti2, tr3, ei3
+	   pop             %rbx
+
 	   pop             %rax
-       vmovapd         ei0, (%rax)
+       vmovapd         ei3, (%rax)  // 6
+       vmovapd         ei0, (%rax, %rbx, 8) // 7
        pop             %rax
-       vmovapd         ei1, (%rax)
+       vmovapd         ei2, (%rax)  // 4
+       vmovapd         ei1, (%rax, %rbx, 8) // 5
        pop             %rax
-       vmovapd         er2, (%rax)
+       vmovapd         er1, (%rax)  // 2
+       vmovapd         er2, (%rax, %rbx, 8) // 3
        pop             %rax
-       vmovapd         er3, (%rax)
-       pop             %rax
-       vmovapd         ei3, (%rax)
-       pop             %rax
-       vmovapd         ei2, (%rax)
-       pop             %rax
-       vmovapd         er1, (%rax)
-       pop             %rax
-       vmovapd         er0, (%rax)
+       vmovapd         er0, (%rax)  // 0
+       vmovapd         er3, (%rax, %rbx, 8)  // 1
        add             SIMD_SIZE, mm
        cmp             N, mm
        jne             mmloop2
