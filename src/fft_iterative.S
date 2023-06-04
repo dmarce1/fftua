@@ -48,12 +48,6 @@ fft_iter_real:
 	   mov             %rsp, %rbp
 	   sub             $320, %rsp
        push            %rbx
-       push            %rdi
-       push            %rsi
-       push            %r8
-       push            %r9
-       push            %r10
-       push            %r11
        push            %r12
        push            %r13
        push            %r14
@@ -130,54 +124,39 @@ nhiloop:
        xorq            mm, mm
 mmloop0:      
 	   movq			   MN2, %rax
-	   shl             $2, %rax
 	   mul			   nhi
-	   add			   mm, %rax
-	   movq            %rax, %rcx
-       lea             (X, %rax, 8), %rax
-       push            %rax
-       vmovapd         (%rax), er0
-       lea             (%rax, MN2, 8), %rax
-       push            %rax
-       vmovapd         (%rax), er2
-       lea             (%rax, MN2, 8), %rax
-       push            %rax
-       vmovapd         (%rax), er1
-       lea             (%rax, MN2, 8), %rax
-       push            %rax
-       vmovapd         (%rax), er3
+	   lea             (mm, %rax, 4), %rax
+       lea             (X, %rax, 8), %r8
+       lea             (%r8, MN2, 8), %r9
+       lea             (%r9, MN2, 8), %rcx
+       lea             (%rcx, MN2, 8), %rdi
+       vmovapd         (%r8), er0
+       vmovapd         (%r9), er2
+       vmovapd         (%rcx), er1
+       vmovapd         (%rdi), er3
 	   vaddpd          er2, er0, tr0
 	   vsubpd          er2, er0, tr1
 	   vaddpd          er3, er1, tr2
 	   vsubpd          er1, er3, tr3
 	   vaddpd          tr2, tr0, er0
 	   vsubpd          tr2, tr0, er1
-       pop             %rax
-       vmovapd         tr3, (%rax)
-       pop             %rbx
-       vmovapd         er1, (%rbx)
-       pop             %rax
-       vmovapd         tr1, (%rax)
-       pop             %rbx
-       vmovapd         er0, (%rbx)
+       vmovapd         tr3, (%rdi)
+       vmovapd         er1, (%rcx)
+       vmovapd         tr1, (%r9)
+       vmovapd         er0, (%r8)
        cmp             $2, N2
        jl              skipm1
 	   movq            N2, %rax
 	   shr             %rax
 	   mulq            N
-	   add             %rcx, %rax
-       lea             (X, %rax, 8), %rax
-       push            %rax
-       vmovapd         (%rax), ti0
-       lea             (%rax, MN2, 8), %rax
-       push            %rax
-       vmovapd         (%rax), ti3
-       lea             (%rax, MN2, 8), %rax
-       push            %rax
-       vmovapd         (%rax), ti1
-       lea             (%rax, MN2, 8), %rax
-       push            %rax
-       vmovapd         (%rax), ti2
+       lea             (%r8, %rax, 8), %r8
+       lea             (%r9, %rax, 8), %r9
+       lea             (%rcx, %rax, 8), %rcx
+       lea             (%rdi, %rax, 8), %rdi
+       vmovapd         (%r8), ti0
+       vmovapd         (%r9), ti3
+       vmovapd         (%rcx), ti1
+       vmovapd         (%rdi), ti2
 	   vsubpd          ti2, ti1, er1
 	   vaddpd          ti2, ti1, er2
 	   vmulpd          C0, er1, ti1
@@ -186,14 +165,10 @@ mmloop0:
 	   vsubpd          ti3, ti2, ei1
 	   vsubpd          ti1, ti0, ei2
 	   vaddpd          ti2, ti3, ei3
-       pop             %rax
-       vmovapd         ei1, (%rax)
-       pop             %rax
-       vmovapd         ei3, (%rax)
-       pop             %rax
-       vmovapd         ei2, (%rax)
-       pop             %rax
-       vmovapd         ei0, (%rax)
+       vmovapd         ei1, (%rdi)
+       vmovapd         ei3, (%rcx)
+       vmovapd         ei2, (%r9)
+       vmovapd         ei0, (%r8)
 skipm1:
        add             SIMD_SIZE, mm
        cmp             N, mm
@@ -236,14 +211,14 @@ mmloop2:
 	   add             %rcx, %rax
        lea             (X, %rax, 8), %r8
        lea             (%r8, MN2, 8), %r9
-       vmovapd         (%r8), er0
-       vmovapd         (%r9), er2
-       vmovapd         (%r8, %rbx, 8), ei0
-       vmovapd         (%r9, %rbx, 8), ei2
        lea             (%r9, MN2, 8), %rcx
        lea             (%rcx, MN2, 8), %rdx
+       vmovapd         (%r8), er0
+       vmovapd         (%r9), er2
        vmovapd         (%rcx), er1
        vmovapd         (%rdx), er3
+       vmovapd         (%r8, %rbx, 8), ei0
+       vmovapd         (%r9, %rbx, 8), ei2
        vmovapd         (%rcx, %rbx, 8), ei1
        vmovapd         (%rdx, %rbx, 8), ei3
        vmulpd          sin1, ei1, tr1
@@ -281,12 +256,12 @@ mmloop2:
 	   vsubpd          ti3, tr2, er3
 	   vsubpd          ti2, tr3, ei3
        vmovapd         ei3, (%rdx)
-       vmovapd         ei0, (%rdx, %rbx, 8)
        vmovapd         ei2, (%rcx)
-       vmovapd         ei1, (%rcx, %rbx, 8)
        vmovapd         er1, (%r9)
-       vmovapd         er2, (%r9, %rbx, 8)
        vmovapd         er0, (%r8)
+       vmovapd         ei0, (%rdx, %rbx, 8)
+       vmovapd         ei1, (%rcx, %rbx, 8)
+       vmovapd         er2, (%r9, %rbx, 8)
        vmovapd         er3, (%r8, %rbx, 8)
        add             SIMD_SIZE, mm
        cmp             N, mm
@@ -313,12 +288,6 @@ done:
        pop             %r14
        pop             %r13
        pop             %r12
-       pop             %r11
-       pop             %r10
-       pop             %r9
-       pop             %r8
-       pop             %rsi
-       pop             %rdi
        pop             %rbx
        emms
  	   add             $336, %rsp
