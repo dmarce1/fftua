@@ -52,19 +52,13 @@ fft_iter_real:
        movq            %rcx, N
        movq            $1, N2
        xorq            %rdx, %rdx
-       movq            N, %rax
-       movq            N2, MN2
-       mul             MN2
-       movq            %rax, MN2
+       movq            N, MN2
 	   bsf             N, %rcx
 	   andq            $1, %rcx
 	   jz              skipradix2
-       movq            $2, %rax
-       mul             N2
-       movq            %rax, %rbx
        movq            N, %rax
-       div             %rbx
-       movq            %rax, NHI
+       shr             %rax
+       mov             %rax, NHI
        xorq            nhi, nhi
 radix2loop0:
        xorq            mm, mm
@@ -99,11 +93,8 @@ radix2loop1:
        shl             MN2
        jmp             mainloop
 skipradix2:
-       movq            N1, %rax
-       mul             N2
-       movq            %rax, %rbx
        movq            N, %rax
-       div             %rbx
+       shr             $2, %rax
        movq            %rax, NHI
 mainloop:
        mov             N2, %rax
