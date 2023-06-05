@@ -274,6 +274,7 @@ done:
        ret
 
        .data
+       .align         32
 none:  .double        -1.00
        .double        -1.00
        .double        -1.00

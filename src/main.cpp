@@ -127,13 +127,13 @@ int main(int argc, char **argv) {
 */
 
 
-	for (int N = 16; N <= 1024 * 1024 * 1024; N *= 4) {
+	for (int N = 64; N <= 1024 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 62; i++) {
+			for (int i = 0; i < 562; i++) {
 				std::vector<double> x(N);
 				std::vector<double> y(N);
 				std::vector<complex<double>> X(N / 2 + 1);

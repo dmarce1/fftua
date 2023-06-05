@@ -241,6 +241,28 @@ const std::vector<std::vector<complex<fft_simd4>>>& vector_twiddles(int N1, int 
 	}
 }
 
+const std::vector<complex<fft_simd4>>& vector_twiddles2(int N1, int N2) {
+	using entry_type = std::shared_ptr<std::vector<complex<fft_simd4>>>;
+	static std::unordered_map<int, std::unordered_map<int, entry_type>> cache;
+	auto iter = cache[N1].find(N2);
+	if (iter != cache[N1].end()) {
+		return *(iter->second);
+	} else {
+		const int N = N1 * N2;
+		std::vector<complex<fft_simd4>> W(N1 * N2 / SIMD_SIZE);
+		for (int n = 0; n < N1; n += SIMD_SIZE) {
+			for (int k = 0; k < N2; k++) {
+				for (int i = 0; i < SIMD_SIZE; i++) {
+					W[(k * N1 + n) / SIMD_SIZE].real()[i] = cos(-2.0 * M_PI * (n+i) * k / N);
+					W[(k * N1 + n) / SIMD_SIZE].imag()[i] = sin(-2.0 * M_PI * (n+i) * k / N);
+				}
+			}
+		}
+		cache[N1][N2] = std::make_shared<std::vector<complex<fft_simd4>>>(std::move(W));
+		return *(cache[N1][N2]);
+	}
+}
+
 const std::vector<std::vector<complex<fft_simd4>>>& shifted_vector_twiddles(int N1, int N2) {
 	std::swap(N1,N2);
 	using entry_type = std::shared_ptr<std::vector<std::vector<complex<fft_simd4>>>>;

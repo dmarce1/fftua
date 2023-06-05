@@ -452,6 +452,7 @@ void fft_batch_real(double* x, int L, int N) {
 
 extern "C" {
 void fft_iter_real(double*, double*, int N, int M, __m256d dummy = __m256d());
+void fft_twiddles(double*, double*, int N, __m256d dummy = __m256d());
 }
 
 template<class T>
@@ -477,7 +478,7 @@ void fft_6_real(T* x, int N) {
 	static std::vector<T> buffer;
 	const int M = lround(sqrt(N));
 	assert(M * M == N);
-	const auto& W0 = twiddles(N);
+	const auto& W0 = vector_twiddles2(M, M);
 	const auto& W1 = twiddles(2 * M);
 	const auto& W2 = twiddles(M);
 	const auto& BR = bit_reversals(M);
@@ -496,7 +497,8 @@ void fft_6_real(T* x, int N) {
 	}
 	//fft_batch_real(x, M, M);
 	fft_iter_real(x, (double*) W2.data(), M, M);
-	for (int k2 = 1; k2 < Mo2; k2++) {
+	fft_twiddles(x, (double*) W0.data(), M);
+/*	for (int k2 = 1; k2 < Mo2; k2++) {
 		complex<double> wk2 = W0[k2];
 		complex<__m256d> W, w0;
 		W.real()[0] = 1.0;
@@ -525,7 +527,7 @@ void fft_6_real(T* x, int N) {
 			_mm256_store_pd(iptr, Im);
 			W *= w0;
 		}
-	}
+	}*/
 	T1 = 0.0;
 	T2 = 0.0;
 	for (int n1 = 0; n1 < M; n1 += 2) {
