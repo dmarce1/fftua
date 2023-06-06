@@ -136,38 +136,61 @@ scramble_loop1e:
        emms
        ret
 recurse:
-       cmp            $2, N
-       jne            Nneq2
-       mov            $32, %rsi
-       lea            (X), %rax
-       lea            (%rax, %rsi), %rbx
-       vmovapd        (%rax), er0
-       vmovapd        (%rbx), er1
-       vaddpd         er1, er0, tr0
-       vsubpd         er1, er0, tr1
-       vmovapd        tr0, (%rax)
-       vmovapd        tr1, (%rbx)
-       ret
-Nneq2:
        cmp            $4, N
        jne            Nneq4
        jmp            skipcalls
 Nneq4:
+       cmp            $8, N
+       mov            $32, %rsi
+       lea            (X), %rax
+       lea            (%rax, %rsi), %rbx
+       lea            (%rbx, %rsi), %rcx
+       lea            (%rcx, %rsi), %rdx
+       vmovapd        (%rax), er0
+       vmovapd        (%rbx), er1
+       vmovapd        (%rcx), er2
+       vmovapd        (%rdx), er3
+       vaddpd         er1, er0, tr0
+       vsubpd         er1, er0, tr1
+       vaddpd         er3, er2, tr2
+       vsubpd         er3, er2, tr3
+       vmovapd        tr0, (%rax)
+       vmovapd        tr1, (%rbx)
+       vmovapd        tr2, (%rcx)
+       vmovapd        tr3, (%rdx)
+       lea            (%rdx, %rsi), %rax
+       lea            (%rax, %rsi), %rbx
+       lea            (%rbx, %rsi), %rcx
+       lea            (%rcx, %rsi), %rdx
+       vmovapd        (%rax), er0
+       vmovapd        (%rbx), er1
+       vmovapd        (%rcx), er2
+       vmovapd        (%rdx), er3
+       vaddpd         er1, er0, tr0
+       vsubpd         er1, er0, tr1
+       vaddpd         er3, er2, tr2
+       vsubpd         er3, er2, tr3
+       vmovapd        tr0, (%rax)
+       vmovapd        tr1, (%rbx)
+       vmovapd        tr2, (%rcx)
+       vmovapd        tr3, (%rdx)
+       jne            Nneq8
+       jmp            skipcalls
+Nneq8:
        shr            $2, N
        shr            $2, N2
        shl            $2, NHI
+       push           X
        call           recurse
-       add            N, X
+       lea            (X, N, 8), X
        call           recurse
-       add            N, X
+       lea            (X, N, 8), X
        call           recurse
-       add            N, X
+       lea            (X, N, 8), X
        call           recurse
-       sub            N, X
-       shl            N
+       pop            X
        shr            $2, NHI
-       sub            N, X
-       shl            N
+       shl            $2, N
        shl            $2, N2
 skipcalls:
        shl            $2, N2
@@ -213,11 +236,16 @@ skipcalls:
        vaddpd         ti2, ti3, ei3
        vmovapd        ei1, (%rdx)
        vmovapd        ei3, (%rcx)
-       vmovapd        er2, (%rbx)
-       vmovapd        er0, (%rax)
+       vmovapd        ei2, (%rbx)
+       vmovapd        ei0, (%rax)
 not_k2eqN2o2:
-       mov            $1, k2
-k2loop:
+       xor            k2, k2
+k2loopb:
+       mov            N2, %rcx
+       inc            k2
+       shr            %rcx
+       cmp            k2, %rcx
+       jle            k2loope
        mov            NHI, %rax
        mul            k2
        shl            %rax
@@ -231,10 +259,11 @@ k2loop:
        vbroadcastsd   8(W, %rbx, 8), sin2
        vbroadcastsd   (W, %rcx, 8), cos3
        vbroadcastsd   8(W, %rcx, 8), sin3
-        mov            N2, %rax
+       mov            N2, %rax
        sub            k2, %rax
        sub            k2, %rax
        mov            %rax, %rsi
+       shl            $2, %rsi
        shl            $2, k2
        shl            $2, N2
        lea            (X, k2, 8), %rax
@@ -261,14 +290,14 @@ k2loop:
        vmulpd         cos2, ei2, ti
        vfmsub231pd    cos2, er2, tr
        vfmadd231pd    sin2, er2, ti
-       vmovapd        ti, ei1
-       vmovapd        tr, er1
+       vmovapd        ti, ei2
+       vmovapd        tr, er2
        vmulpd         sin3, ei3, tr
        vmulpd         cos3, ei3, ti
        vfmsub231pd    cos3, er3, tr
        vfmadd231pd    sin3, er3, ti
-       vmovapd        ti, ei1
-       vmovapd        tr, er1
+       vmovapd        ti, ei3
+       vmovapd        tr, er3
        vaddpd         er2, er0, tr0
        vaddpd         ei2, ei0, ti0
        vsubpd         er2, er0, tr2
@@ -293,9 +322,7 @@ k2loop:
        vmovapd        ei1, (%rcx, %rsi, 8)
        vmovapd        er2, (%rbx, %rsi, 8)
        vmovapd        er3, (%rax, %rsi, 8)
-       mov            N2, %rcx
-       shr            %rcx
-       cmp            k2, %rcx
-       jne            k2loop
+       jmp            k2loopb
+k2loope:
        ret
 

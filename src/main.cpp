@@ -92,54 +92,53 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-/*
-	constexpr int N = 32;
-	for (int l = 0; l < N; l++) {
-		std::vector<double> x(N);
-		std::vector<double> H(N);
-		std::vector<complex<double>> X(N / 2 + 1);
-		for (int n = 0; n < N; n++) {
-			H[n] = hadamard(l, n);
-		}
-		x = H;
-		fftw_real(X, x);
-		x[0] = X[0].real();
-		x[N / 2] = X[N / 2].real() = 0.0;
-		for (int n = 1; n < N - n; n++) {
-			x[n] = X[n].real();
-			x[N - n] = X[n].imag();
-		}
-		for (int n = 0; n < N; n++) {
-			printf("%2i ", (int) H[n]);
-		}
-		printf( " | ");
-		for (int n = 0; n < N; n++) {
-			if( x[n] != 0.0 ) {
-				printf("%5.2f ", x[n]);
-			} else {
-				printf( "      ");
-			}
-		}
-		printf( "\n");
-	}
-	abort();
+	/*
+	 constexpr int N = 32;
+	 for (int l = 0; l < N; l++) {
+	 std::vector<double> x(N);
+	 std::vector<double> H(N);
+	 std::vector<complex<double>> X(N / 2 + 1);
+	 for (int n = 0; n < N; n++) {
+	 H[n] = hadamard(l, n);
+	 }
+	 x = H;
+	 fftw_real(X, x);
+	 x[0] = X[0].real();
+	 x[N / 2] = X[N / 2].real() = 0.0;
+	 for (int n = 1; n < N - n; n++) {
+	 x[n] = X[n].real();
+	 x[N - n] = X[n].imag();
+	 }
+	 for (int n = 0; n < N; n++) {
+	 printf("%2i ", (int) H[n]);
+	 }
+	 printf( " | ");
+	 for (int n = 0; n < N; n++) {
+	 if( x[n] != 0.0 ) {
+	 printf("%5.2f ", x[n]);
+	 } else {
+	 printf( "      ");
+	 }
+	 }
+	 printf( "\n");
+	 }
+	 abort();
 
-*/
+	 */
 
-
-	for (int N = 64; N <= 1024 * 1024 * 1024; N *= 4) {
+	for (int N = 16; N <= 1024 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 562; i++) {
+			for (int i = 0; i < 2; i++) {
 				std::vector<double> x(N);
 				std::vector<double> y(N);
 				std::vector<complex<double>> X(N / 2 + 1);
 				std::vector<complex<double>> Y(N / 2 + 1);
 				for (int n = 0; n < N; n++) {
-					x[n] = (y[n] = 0);
+					x[n] = (y[n] = rand1());
 				}
 				int nn = 0;
 				x[nn] = y[nn] = 1.0;
@@ -172,7 +171,7 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-							printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+						printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
@@ -188,7 +187,7 @@ int main(int argc, char **argv) {
 			cnt++;
 			score /= cnt;
 			printf("R %c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
-		abort();
+			abort();
 		}
 		{
 			continue;
