@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
 
 	 */
 
-	for (int N = 16; N <= 1024 * 1024 * 1024; N *= 4) {
+	for (int N = 32; N <= 1024 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 				std::vector<complex<double>> X(N / 2 + 1);
 				std::vector<complex<double>> Y(N / 2 + 1);
 				for (int n = 0; n < N; n++) {
-					x[n] = (y[n] = rand1());
+					x[n] = (y[n] = rand());
 				}
 				int nn = 0;
 				x[nn] = y[nn] = 1.0;

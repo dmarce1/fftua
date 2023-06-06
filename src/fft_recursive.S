@@ -141,6 +141,7 @@ recurse:
        jmp            skipcalls
 Nneq4:
        cmp            $8, N
+       jne            Nneq8
        mov            $32, %rsi
        lea            (X), %rax
        lea            (%rax, %rsi), %rbx
@@ -174,21 +175,25 @@ Nneq4:
        vmovapd        tr1, (%rbx)
        vmovapd        tr2, (%rcx)
        vmovapd        tr3, (%rdx)
-       jne            Nneq8
        jmp            skipcalls
 Nneq8:
+       mov            N, %rbx
        shr            $2, N
        shr            $2, N2
        shl            $2, NHI
        push           X
-       call           recurse
-       lea            (X, N, 8), X
-       call           recurse
-       lea            (X, N, 8), X
-       call           recurse
-       lea            (X, N, 8), X
+       lea            (X, %rbx, 8), X
+       push           X
+       lea            (X, %rbx, 8), X
+       push           X
+       lea            (X, %rbx, 8), X
        call           recurse
        pop            X
+       call           recurse
+       pop            X
+       call           recurse
+       pop            X
+       call           recurse
        shr            $2, NHI
        shl            $2, N
        shl            $2, N2
@@ -209,10 +214,10 @@ skipcalls:
        vsubpd         er1, er3, tr3
        vaddpd         tr2, tr0, er0
        vsubpd         tr2, tr0, er1
-       vmovapd        tr3, (%rdx)
-       vmovapd        er1, (%rcx)
-       vmovapd        tr1, (%rbx)
        vmovapd        er0, (%rax)
+       vmovapd        tr1, (%rbx)
+       vmovapd        er1, (%rcx)
+       vmovapd        tr3, (%rdx)
        cmp            $1, N2
        jle            not_k2eqN2o2
        shl            N2
@@ -259,10 +264,9 @@ k2loopb:
        vbroadcastsd   8(W, %rbx, 8), sin2
        vbroadcastsd   (W, %rcx, 8), cos3
        vbroadcastsd   8(W, %rcx, 8), sin3
-       mov            N2, %rax
-       sub            k2, %rax
-       sub            k2, %rax
-       mov            %rax, %rsi
+       mov            N2, %rsi
+       sub            k2, %rsi
+       sub            k2, %rsi
        shl            $2, %rsi
        shl            $2, k2
        shl            $2, N2
@@ -314,14 +318,14 @@ k2loopb:
        vsubpd         ti0, ti1, ei2
        vsubpd         ti3, tr2, er3
        vsubpd         ti2, tr3, ei3
-       vmovapd        ei3, (%rdx)
-       vmovapd        ei2, (%rcx)
-       vmovapd        er1, (%rbx)
        vmovapd        er0, (%rax)
-       vmovapd        ei0, (%rdx, %rsi, 8)
-       vmovapd        ei1, (%rcx, %rsi, 8)
+       vmovapd        er1, (%rbx)
        vmovapd        er2, (%rbx, %rsi, 8)
        vmovapd        er3, (%rax, %rsi, 8)
+       vmovapd        ei3, (%rdx)
+       vmovapd        ei2, (%rcx)
+       vmovapd        ei1, (%rcx, %rsi, 8)
+       vmovapd        ei0, (%rdx, %rsi, 8)
        jmp            k2loopb
 k2loope:
        ret
