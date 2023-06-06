@@ -1,5 +1,4 @@
-#define M_SQRT2_1     0.70710678118
-#define N1               $4
+#define N1            $4
 #define SIMD_SIZE     $4
 #define X             %r8
 #define Y             %r9
@@ -182,11 +181,11 @@ Nneq8:
        shr            $2, N2
        shl            $2, NHI
        push           X
-       lea            (X, %rbx, 8), X
-       push           X
-       lea            (X, %rbx, 8), X
-       push           X
-       lea            (X, %rbx, 8), X
+       lea            (X, %rbx, 8), %rax
+       lea            (%rax, %rbx, 8), %rcx
+       lea            (%rcx, %rbx, 8), X
+       push           %rax
+       push           %rcx
        call           recurse
        pop            X
        call           recurse

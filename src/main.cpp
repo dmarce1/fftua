@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
 				std::vector<complex<double>> X(N / 2 + 1);
 				std::vector<complex<double>> Y(N / 2 + 1);
 				for (int n = 0; n < N; n++) {
-					x[n] = (y[n] = rand());
+					x[n] = (y[n] = rand1());
 				}
 				int nn = 0;
 				x[nn] = y[nn] = 1.0;
