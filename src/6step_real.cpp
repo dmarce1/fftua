@@ -31,6 +31,12 @@ const std::vector<int>& bit_reversals(int N) {
 
 #include <cstring>
 
+extern "C" {
+void fft_iter_real(double*, double*, int N, int M, __m256d dummy = __m256d());
+void fft_twiddles(double*, double*, int N, __m256d dummy = __m256d());
+void fft_scramble(double*, int N, __m256d dummy = __m256d());
+}
+
 template<class T>
 void scramble(T* x, int N) {
 	static std::vector<T> buffer;
@@ -38,45 +44,46 @@ void scramble(T* x, int N) {
 	buffer.resize(M);
 	int b = 4;
 	const auto& BR = bit_reversals(M);
-	for (int n0 = 0; n0 < M; n0 += b) {
-		int m0 = n0;
-		const int n1 = std::min(n0 + b, M);
-		for (int n = n0; n < n1; n++) {
-			const int m1 = std::min(m0 + b, M);
-			for (int m = n + 1; m < m1; m++) {
-				std::swap(x[M * m + n], x[M * n + m]);
-			}
-		}
-		const auto mask = _mm_set_epi32(12, 8, 4, 0);
-		for (int m0 = n0 + b; m0 < M; m0 += b) {
-			__m256d A[4];
-			__m256d B[4];
-			A[0] = _mm256_load_pd(x + M * (n0 + 0) + m0);
-			A[1] = _mm256_load_pd(x + M * (n0 + 1) + m0);
-			A[2] = _mm256_load_pd(x + M * (n0 + 2) + m0);
-			A[3] = _mm256_load_pd(x + M * (n0 + 3) + m0);
-			B[0] = _mm256_i32gather_pd((double* ) A + 0, mask, 8);
-			B[1] = _mm256_i32gather_pd((double* ) A + 1, mask, 8);
-			B[2] = _mm256_i32gather_pd((double* ) A + 2, mask, 8);
-			B[3] = _mm256_i32gather_pd((double* ) A + 3, mask, 8);
-			A[0] = _mm256_load_pd(x + M * (m0 + 0) + n0);
-			A[1] = _mm256_load_pd(x + M * (m0 + 1) + n0);
-			A[2] = _mm256_load_pd(x + M * (m0 + 2) + n0);
-			A[3] = _mm256_load_pd(x + M * (m0 + 3) + n0);
-			_mm256_store_pd(x + M * (m0 + 0) + n0, B[0]);
-			_mm256_store_pd(x + M * (m0 + 1) + n0, B[1]);
-			_mm256_store_pd(x + M * (m0 + 2) + n0, B[2]);
-			_mm256_store_pd(x + M * (m0 + 3) + n0, B[3]);
-			B[0] = _mm256_i32gather_pd((double* ) A + 0, mask, 8);
-			B[1] = _mm256_i32gather_pd((double* ) A + 1, mask, 8);
-			B[2] = _mm256_i32gather_pd((double* ) A + 2, mask, 8);
-			B[3] = _mm256_i32gather_pd((double* ) A + 3, mask, 8);
-			_mm256_store_pd(x + M * (n0 + 0) + m0, B[0]);
-			_mm256_store_pd(x + M * (n0 + 1) + m0, B[1]);
-			_mm256_store_pd(x + M * (n0 + 2) + m0, B[2]);
-			_mm256_store_pd(x + M * (n0 + 3) + m0, B[3]);
-		}
-	}
+	fft_scramble(x, M);
+	/*for (int n0 = 0; n0 < M; n0 += b) {
+	 int m0 = n0;
+	 const int n1 = std::min(n0 + b, M);
+	 for (int n = n0; n < n1; n++) {
+	 const int m1 = std::min(m0 + b, M);
+	 for (int m = n + 1; m < m1; m++) {
+	 std::swap(x[M * m + n], x[M * n + m]);
+	 }
+	 }
+	 const auto mask = _mm_set_epi32(12, 8, 4, 0);
+	 for (int m0 = n0 + b; m0 < M; m0 += b) {
+	 __m256d A[4];
+	 __m256d B[4];
+	 A[0] = _mm256_load_pd(x + M * (n0 + 0) + m0);
+	 A[1] = _mm256_load_pd(x + M * (n0 + 1) + m0);
+	 A[2] = _mm256_load_pd(x + M * (n0 + 2) + m0);
+	 A[3] = _mm256_load_pd(x + M * (n0 + 3) + m0);
+	 B[0] = _mm256_i32gather_pd((double* ) A + 0, mask, 8);
+	 B[1] = _mm256_i32gather_pd((double* ) A + 1, mask, 8);
+	 B[2] = _mm256_i32gather_pd((double* ) A + 2, mask, 8);
+	 B[3] = _mm256_i32gather_pd((double* ) A + 3, mask, 8);
+	 A[0] = _mm256_load_pd(x + M * (m0 + 0) + n0);
+	 A[1] = _mm256_load_pd(x + M * (m0 + 1) + n0);
+	 A[2] = _mm256_load_pd(x + M * (m0 + 2) + n0);
+	 A[3] = _mm256_load_pd(x + M * (m0 + 3) + n0);
+	 _mm256_store_pd(x + M * (m0 + 0) + n0, B[0]);
+	 _mm256_store_pd(x + M * (m0 + 1) + n0, B[1]);
+	 _mm256_store_pd(x + M * (m0 + 2) + n0, B[2]);
+	 _mm256_store_pd(x + M * (m0 + 3) + n0, B[3]);
+	 B[0] = _mm256_i32gather_pd((double* ) A + 0, mask, 8);
+	 B[1] = _mm256_i32gather_pd((double* ) A + 1, mask, 8);
+	 B[2] = _mm256_i32gather_pd((double* ) A + 2, mask, 8);
+	 B[3] = _mm256_i32gather_pd((double* ) A + 3, mask, 8);
+	 _mm256_store_pd(x + M * (n0 + 0) + m0, B[0]);
+	 _mm256_store_pd(x + M * (n0 + 1) + m0, B[1]);
+	 _mm256_store_pd(x + M * (n0 + 2) + m0, B[2]);
+	 _mm256_store_pd(x + M * (n0 + 3) + m0, B[3]);
+	 }
+	 }*/
 	for (int i = 0; i < M; i++) {
 		int j = BR[i];
 		if (i < j) {
@@ -451,30 +458,27 @@ void fft_batch_real(double* x, int L, int N) {
 #include <cstring>
 
 extern "C" {
-void fft_iter_real(double*, double*, int N, int M, __m256d dummy = __m256d());
-void fft_twiddles(double*, double*, int N, __m256d dummy = __m256d());
+void fft_recursive(double* x, double* y, double* W, int N);
 }
 
 template<class T>
 void fft_6_real(T* x, int N) {
-	/*{
-		const auto& BR = bit_reversals(N);
-		int M = 4;
-		std::vector<double> xx(N * M);
-		for (int n = 0; n < M; n++) {
-			for (int m = 0; m < N; m++) {
-				xx[n + M * m] = x[BR[m]];
-			}
+	const auto& W = twiddles(N);
+	std::vector<double> y(SIMD_SIZE * N);
+	std::vector<double> z(SIMD_SIZE * N);
+	for (int n = 0; n < N; n++) {
+		for (int l = 0; l < SIMD_SIZE; l++) {
+			y[SIMD_SIZE * n + l] = x[n];
 		}
-		const auto& W3 = twiddles(N);
-		fft_iter_real(xx.data(), (double*) W3.data(), N, M);
-		for (int n = 0; n < M; n++) {
-			for (int m = 0; m < N; m++) {
-				x[m] = xx[n + M * m];
-			}
+	}
+	fft_recursive(y.data(), z.data(), (double*) W.data(), N);
+	for (int n = 0; n < N; n++) {
+		for (int l = 0; l < SIMD_SIZE; l++) {
+			x[n] = z[SIMD_SIZE * n + l];
 		}
-		return;
-	}*/
+	}
+	return;
+
 	static std::vector<T> buffer;
 	const int M = lround(sqrt(N));
 	assert(M * M == N);
@@ -486,7 +490,6 @@ void fft_6_real(T* x, int N) {
 	const int Mo2 = M / 2;
 	T T1, T2, T3, T4;
 	buffer.resize(M);
-
 	for (int i = 0; i < M; i++) {
 		int j = BR[i];
 		if (i < j) {
@@ -495,39 +498,8 @@ void fft_6_real(T* x, int N) {
 			std::memcpy(x + M * j, buffer.data(), sizeof(T) * M);
 		}
 	}
-	//fft_batch_real(x, M, M);
 	fft_iter_real(x, (double*) W2.data(), M, M);
 	fft_twiddles(x, (double*) W0.data(), M);
-/*	for (int k2 = 1; k2 < Mo2; k2++) {
-		complex<double> wk2 = W0[k2];
-		complex<__m256d> W, w0;
-		W.real()[0] = 1.0;
-		W.imag()[0] = 0.0;
-		W.real()[1] = wk2.real();
-		W.imag()[1] = wk2.imag();
-		W.real()[2] = (wk2 * wk2).real();
-		W.imag()[2] = (wk2 * wk2).imag();
-		W.real()[3] = (wk2 * wk2 * wk2).real();
-		W.imag()[3] = (wk2 * wk2 * wk2).imag();
-		w0.real() = _mm256_set1_pd((wk2 * wk2 * wk2 * wk2).real());
-		w0.imag() = _mm256_set1_pd((wk2 * wk2 * wk2 * wk2).imag());
-		for (int n1 = 0; n1 < M; n1 += SIMD_SIZE) {
-			const double* wptr = (double*) (&W);
-			double* rptr = &x[M * k2 + n1];
-			double* iptr = &x[M * (M - k2) + n1];
-			const __m256d C = _mm256_load_pd(wptr + 0);
-			const __m256d S = _mm256_load_pd(wptr + SIMD_SIZE);
-			__m256d Re = _mm256_load_pd(rptr);
-			__m256d Im = _mm256_load_pd(iptr);
-			const __m256d T0 = _mm256_mul_pd(Re, S);
-			const __m256d T1 = _mm256_mul_pd(Im, S);
-			Im = _mm256_fmadd_pd(C, Im, T0);
-			Re = _mm256_fmsub_pd(C, Re, T1);
-			_mm256_store_pd(rptr, Re);
-			_mm256_store_pd(iptr, Im);
-			W *= w0;
-		}
-	}*/
 	T1 = 0.0;
 	T2 = 0.0;
 	for (int n1 = 0; n1 < M; n1 += 2) {
@@ -537,10 +509,7 @@ void fft_6_real(T* x, int N) {
 	for (int n1 = 0; n1 < M; n1++) {
 		x[M * Mo2 + n1] *= -2.0 * W1[n1].imag();
 	}
-
 	scramble(x, N);
-
-//	fft_batch_real(x, M, M);
 	fft_iter_real(x, (double*) W2.data(), M, M);
 	T3 = x[Mo2 + M * (M - 1)];
 	x[Mo2 + M * (M - 1)] = -0.5 * x[Mo2];
@@ -566,10 +535,9 @@ void fft_6_real(T* x, int N) {
 			x[rx] = rex - imy;
 			x[ix] = rey + imx;
 			x[ry] = rex + imy;
-			x[iy] = -rey + imx;
+			x[iy] = imx - rey;
 		}
 	}
-
 	for (int k1 = 0; k1 < Mo2; k1++) {
 		for (int k2 = Mo2 + 1; k2 < M; k2++) {
 			const int i = M * k1 + k2;
