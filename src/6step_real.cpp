@@ -464,19 +464,8 @@ void fft_recursive(double* x, double* y, double* W, int N);
 template<class T>
 void fft_6_real(T* x, int N) {
 	const auto& W = twiddles(N);
-	std::vector<double> y(SIMD_SIZE * N);
-	std::vector<double> z(SIMD_SIZE * N);
-	for (int n = 0; n < N; n++) {
-		for (int l = 0; l < SIMD_SIZE; l++) {
-			y[SIMD_SIZE * n + l] = x[n];
-		}
-	}
-	fft_recursive(y.data(), z.data(), (double*) W.data(), N);
-	for (int n = 0; n < N; n++) {
-		for (int l = 0; l < SIMD_SIZE; l++) {
-			x[n] = z[SIMD_SIZE * n + l];
-		}
-	}
+	std::vector<double> y(N);
+	fft_recursive(x, y.data(), (double*) W.data(), N);
 	return;
 
 	static std::vector<T> buffer;

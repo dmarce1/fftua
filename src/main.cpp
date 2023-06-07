@@ -126,7 +126,7 @@ int main(int argc, char **argv) {
 
 	 */
 
-	for (int N = 32; N <= 1024 * 1024 * 1024; N *= 4) {
+	for (int N = 64; N <= 1024 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
