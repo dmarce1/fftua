@@ -99,6 +99,11 @@ Z0:    .double        0.0
 Z1:    .double        0.0
 Z2:    .double        0.0
 Z3:    .double        0.0
+iota:
+       .quad          0
+       .quad          2
+       .quad          4
+       .quad          6
 
 
        .text
@@ -109,8 +114,8 @@ fft_recursive:
        push           %r13
        push           %r14
        push           %r15
-       mov            %rdi, Y
-       mov            %rsi, X
+       mov            %rdi, X
+       mov            %rsi, Y
        mov            %rdx, W
        mov            %rcx, N
        shr            $2, N
@@ -139,8 +144,11 @@ fft_recursive:
        xor            I4, I4
        xor            J4, J4
 scramble_loop0:
+	   cmp            I, J
+	   jle            skip_scramble1
        vmovapd        (Y, I4, 8), tmp
        vmovapd        tmp, (X, J4, 8)
+skip_scramble1:
        mov            N, K
        shr            K
 scramble_loop1b:
@@ -159,7 +167,7 @@ scramble_loop1e:
        jne            scramble_loop0
        shl            $2, Nm1
 skip_scramble:
-       vmovapd        (Y, Nm1, 8), tmp
+       vmovapd        (X, Nm1, 8), tmp
        vmovapd        tmp, (X, Nm1, 8)
        call           recurse
        shl            $2, N
@@ -396,7 +404,7 @@ finish:
        vsubpd         xer1, xer3, xtr3
        vaddpd         xtr2, xtr0, xer0
        vsubpd         xtr2, xtr0, xer1
-       lea            (Y), %rax
+       lea            (X), %rax
        lea            (%rax, N2, 8), %rbx
        lea            (%rbx, N2, 8), %rcx
        lea            (%rcx, N2, 8), %rdx
@@ -424,7 +432,7 @@ skipr1:
        vsubpd         xei1, xei0, xtr2
        vaddpd         xei2, xei3, xtr3
        shr            N2
-       lea            (Y, N2, 8), %rax
+       lea            (X, N2, 8), %rax
        shl            N2
        lea            (%rax, N2, 8), %rbx
        lea            (%rbx, N2, 8), %rcx
@@ -434,11 +442,13 @@ skipr1:
        movq           xtr3, (%rcx)
        movq           xtr1, (%rdx)
        xor            k2, k2
+       mov            $8, %rdi
+       cmp            %rdi, N2
+       cmovl          N2, %rdi
+       shr            %rdi
 k2loopb2:
-       mov            N2, %rcx
        inc            k2
-       shr            %rcx
-       cmp            k2, %rcx
+       cmp            k2, %rdi
        jle            k2loope2
        mov            k2, %rax
        shl            %rax
@@ -505,7 +515,7 @@ k2loopb2:
        vsubpd         xti3, xtr2, xer3
        vsubpd         xti2, xtr3, xei3
        shr            $2, %rsi
-       lea            (Y, k2, 8), %rax
+       lea            (X, k2, 8), %rax
        lea            (%rax, N2, 8), %rbx
        lea            (%rbx, N2, 8), %rcx
        lea            (%rcx, N2, 8), %rdx
@@ -519,4 +529,123 @@ k2loopb2:
        movq           xei0, (%rdx, %rsi, 8)
        jmp            k2loopb2
 k2loope2:
+       mov            N, NHI
+       shr            $2, NHI
+       xor            %rcx, %rcx
+simd_scramble0_b:
+       cmp            NHI, %rcx
+       jge            simd_scramble0_e
+       mov            SIMD_SIZE, %rax
+       mul            %rcx
+       mov            %rcx, %rbx
+       mov            (X, %rax, 8), %rdx
+       mov            %rdx, (Y, %rbx, 8)
+       add            $2, %rax
+       add            NHI, %rbx
+       mov            (X, %rax, 8), %rdx
+       mov            %rdx, (Y, %rbx, 8)
+       dec            %rax
+       add            NHI, %rbx
+       mov            (X, %rax, 8), %rdx
+       mov            %rdx, (Y, %rbx, 8)
+       add            $2, %rax
+       add            NHI, %rbx
+       mov            (X, %rax, 8), %rdx
+       mov            %rdx, (Y, %rbx, 8)
+       inc            %rcx
+       jmp            simd_scramble0_b
+simd_scramble0_e:
+       mov            N2, N
+       shr            $2, N2
+       xor            k2, k2
+       mov            N2, %rdi
+       shr            %rdi
+k2loopb3:
+       add            SIMD_SIZE, k2
+       cmp            k2, %rdi
+       jle            k2loope3
+       mov            k2, %rax
+       shl            %rax
+       movq           %rax, %xmm6
+       vpbroadcastq   %xmm6, %ymm6
+       vpaddq         iota, %ymm6, %ymm6
+       vmovdqa        %ymm6, %ymm7
+       vmovdqa        %ymm6, %ymm8
+       vpaddq         %ymm6, %ymm7, %ymm7
+       vpaddq         %ymm7, %ymm8, %ymm8
+       xor            %rax, %rax
+       not            %rax
+       movq           %rax, %xmm0
+       vpbroadcastq   %xmm0, %ymm10
+       vmovdqa        %ymm10, %ymm9
+       vgatherqpd     %ymm9, (W, %ymm6, 8), cos1
+       vmovdqa        %ymm10, %ymm9
+       vgatherqpd     %ymm9, 8(W, %ymm6, 8), sin1
+       vmovdqa        %ymm10, %ymm9
+       vgatherqpd     %ymm9, (W, %ymm7, 8), cos2
+       vmovdqa        %ymm10, %ymm9
+       vgatherqpd     %ymm9, 8(W, %ymm7, 8), sin2
+       vmovdqa        %ymm10, %ymm9
+       vgatherqpd     %ymm9, (W, %ymm8, 8), cos3
+       vmovdqa        %ymm10, %ymm9
+       vgatherqpd     %ymm9, 8(W, %ymm8, 8), sin3
+       mov            N2, %rsi
+       sub            k2, %rsi
+       sub            k2, %rsi
+       lea            (X, k2, 8), %rax
+       lea            (%rax, N2, 8), %rbx
+       lea            (%rbx, N2, 8), %rcx
+       lea            (%rcx, N2, 8), %rdx
+       vmovapd        (%rax), er0
+       vmovapd        (%rbx), er2
+       vmovapd        (%rcx), er1
+       vmovapd        (%rdx), er3
+       vmovapd        (%rax, %rsi, 8), ei0
+       vmovapd        (%rbx, %rsi, 8), ei2
+       vmovapd        (%rcx, %rsi, 8), ei1
+       vmovapd        (%rdx, %rsi, 8), ei3
+       vmulpd         sin1, ei1, tr
+       vmulpd         cos1, ei1, ti
+       vfmsub231pd    cos1, er1, tr
+       vfmadd231pd    sin1, er1, ti
+       vmovapd        ti, ei1
+       vmovapd        tr, er1
+       vmulpd         sin2, ei2, tr
+       vmulpd         cos2, ei2, ti
+       vfmsub231pd    cos2, er2, tr
+       vfmadd231pd    sin2, er2, ti
+       vmovapd        ti, ei2
+       vmovapd        tr, er2
+       vmulpd         sin3, ei3, tr
+       vmulpd         cos3, ei3, ti
+       vfmsub231pd    cos3, er3, tr
+       vfmadd231pd    sin3, er3, ti
+       vmovapd        ti, ei3
+       vmovapd        tr, er3
+       vaddpd         er2, er0, tr0
+       vaddpd         ei2, ei0, ti0
+       vsubpd         er2, er0, tr2
+       vsubpd         ei2, ei0, ti2
+       vaddpd         er3, er1, tr1
+       vaddpd         ei3, ei1, ti1
+       vsubpd         er1, er3, tr3
+       vsubpd         ei3, ei1, ti3
+       vaddpd         tr1, tr0, er0
+       vaddpd         ti1, ti0, ei0
+       vaddpd         ti3, tr2, er1
+       vaddpd         tr3, ti2, ei1
+       vsubpd         tr1, tr0, er2
+       vsubpd         ti0, ti1, ei2
+       vsubpd         ti3, tr2, er3
+       vsubpd         ti2, tr3, ei3
+       vmovapd        er0, (%rax)
+       vmovapd        er1, (%rbx)
+       vmovapd        er2, (%rbx, %rsi, 8)
+       vmovapd        er3, (%rax, %rsi, 8)
+       vmovapd        ei3, (%rdx)
+       vmovapd        ei2, (%rcx)
+       vmovapd        ei1, (%rcx, %rsi, 8)
+       vmovapd        ei0, (%rdx, %rsi, 8)
+       jmp            k2loopb3
+k2loope3:
        ret
