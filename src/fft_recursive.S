@@ -90,6 +90,11 @@ iota:
        .quad          2
        .quad          4
        .quad          6
+ones:
+       .quad          0xffffffffffffffff
+       .quad          0xffffffffffffffff
+       .quad          0xffffffffffffffff
+       .quad          0xffffffffffffffff
 C:
 C0:    .double        0.0
 C1:    .double        0.0
@@ -569,42 +574,24 @@ k2loopb3:
        jle            k2loope3
        mov            k2, %rax
        shl            %rax
-       movq           $16, %rbx
-       vmovq          (W, %rbx), %xmm0
-       vmovq          8(W, %rbx), %xmm1
-	   vmovq          (W, %rax, 8), %xmm2
-	   vmovq          8(W, %rax, 8), %xmm3
-	   vmulpd         %xmm1, %xmm3, %xmm4
-       vmulpd         %xmm0, %xmm3, %xmm5
-       vfmsub231pd    %xmm0, %xmm2, %xmm4
-       vfmadd231pd    %xmm1, %xmm2, %xmm5
-	   vmulpd         %xmm1, %xmm5, %xmm6
-       vmulpd         %xmm0, %xmm5, %xmm7
-       vfmsub231pd    %xmm0, %xmm4, %xmm6
-       vfmadd231pd    %xmm1, %xmm4, %xmm7
-	   vmulpd         %xmm1, %xmm7, %xmm8
-       vmulpd         %xmm0, %xmm7, %xmm9
-       vfmsub231pd    %xmm0, %xmm6, %xmm8
-       vfmadd231pd    %xmm1, %xmm6, %xmm9
-	   movq           %xmm2, tmpr0
-	   movq           %xmm4, tmpr1
-	   movq           %xmm6, tmpr2
-	   movq           %xmm8, tmpr3
-	   movq           %xmm3, tmpi0
-	   movq           %xmm5, tmpi1
-	   movq           %xmm7, tmpi2
-	   movq           %xmm9, tmpi3
-       vmovapd        tmpr, cos1
-       vmovapd        tmpi, sin1
-       vmulpd         cos1, cos1, cos2
-       vmulpd         sin1, sin1, sin2
-       vsubpd         sin2, cos2, cos2
-       vmulpd         cos1, sin1, sin2
-       vmulpd         two, sin2, sin2
-       vmulpd         sin1, sin2, cos3
-       vmulpd         cos1, sin2, sin3
-       vfmsub231pd    cos1, cos2, cos3
-       vfmadd231pd    sin1, cos2, sin3
+       vmovq          %rax, %xmm10
+       vpbroadcastq   %xmm10, %ymm10
+       vpaddq         iota, %ymm10, %ymm10
+       vpaddq         %ymm10, %ymm10, %ymm11
+       vpaddq         %ymm10, %ymm11, %ymm12
+       vmovdqa        ones, %ymm8
+       vmovdqa        %ymm8, %ymm13
+       vmovdqa        %ymm8, %ymm14
+       vmovdqa        %ymm8, %ymm15
+	   vgatherqpd     %ymm13, (W, %ymm10, 8), cos1
+	   vgatherqpd     %ymm14, 8(W, %ymm10, 8), sin1
+	   vgatherqpd     %ymm15, (W, %ymm11, 8), cos2
+       vmovdqa        %ymm8, %ymm13
+       vmovdqa        %ymm8, %ymm14
+       vmovdqa        %ymm8, %ymm15
+	   vgatherqpd     %ymm13, 8(W, %ymm11, 8), sin2
+	   vgatherqpd     %ymm14, (W, %ymm12, 8), cos3
+	   vgatherqpd     %ymm15, 8(W, %ymm12, 8), sin3
        mov            N2, %rsi
        sub            k2, %rsi
        sub            k2, %rsi
