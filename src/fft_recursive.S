@@ -8,12 +8,15 @@
 #define N             %r13
 #define N2            %r14
 #define k2            %r15
+#define NLO           %r15
 #define I             %rax
 #define J             %rbx
 #define I4            %rcx
 #define J4            %rdx
+#define NMID          %r11
 #define K             %rdi
-#define Nm1           %rsi
+#define L             %r10
+#define M             %rsi
 #define tmp           %ymm0
 #define cos1          %ymm0
 #define sin1          %ymm1
@@ -141,9 +144,6 @@ fft_recursive:
        mov            %rdx, W
        mov            %rcx, Wv
        shr            $2, N
-       mov            $1, NHI
-       mov            N, N2
-       shr            $2, N2
        emms
        fld1
        fst            C0
@@ -158,37 +158,12 @@ fft_recursive:
        vmovapd        Z, ti
        vsubpd         C, ti, tr
        vmovapd        tr, nC
-       mov            N, Nm1
-       dec            Nm1
-       jz             skip_scramble
-       xor            I, I
-       xor            J, J
-       xor            I4, I4
-       xor            J4, J4
-scramble_loop0:
-	   cmp            I, J
-       vmovapd        (Y, I4, 8), tmp
-       vmovapd        tmp, (X, J4, 8)
-       mov            N, K
-       shr            K
-scramble_loop1b:
-       cmp            K, J
-       jl             scramble_loop1e
-       sub            K, J
-       shr            K
-       jmp            scramble_loop1b
-scramble_loop1e:
-       add            K, J
-       mov            J, J4
-       shl            $2, J4
-       inc            I
-       add            SIMD_SIZE, I4
-       cmp            I, Nm1
-       jne            scramble_loop0
-       shl            $2, Nm1
-skip_scramble:
-       vmovapd        (Y, Nm1, 8), tmp
-       vmovapd        tmp, (X, Nm1, 8)
+       call           scramble_hi
+       call           transpose
+       call           scramble_hi
+       mov            $1, NHI
+       mov            N, N2
+       shr            $2, N2
        call           recurse
        shl            $2, N
        mov            N, N2
@@ -201,30 +176,11 @@ skip_scramble:
        pop            %rbx
        emms
        ret
+
 recurse:
-       cmp            $1, N
-       jg             Nle1
-       ret
-Nle1:
-       cmp            $2, N
-       jne            Nneq2
-       mov            $32, %rsi
-       lea            (X), %rax
-       lea            (%rax, %rsi), %rbx
-       vmovapd        (%rax), er0
-       vmovapd        (%rbx), er1
-       vaddpd         er1, er0, tr0
-       vsubpd         er1, er0, tr1
-       vmovapd        tr0, (%rax)
-       vmovapd        tr1, (%rbx)
-       ret
-Nneq2:
-       cmp            $4, N
-       jne            Nneq4
-       jmp            skipcalls
-Nneq4:
        cmp            $8, N
-       jne            Nneq8
+       jg             rcalls
+       jl             skip_rcalls
        mov            $32, %rsi
        lea            (X), %rax
        lea            (%rax, %rsi), %rbx
@@ -258,18 +214,17 @@ Nneq4:
        vmovapd        tr1, (%rbx)
        vmovapd        tr2, (%rcx)
        vmovapd        tr3, (%rdx)
-       jmp            skipcalls
-Nneq8:
-       mov            N, %rbx
-       shr            $2, N
-       shr            $2, N2
-       shl            $2, NHI
+       jmp            skip_rcalls
+rcalls:
        push           X
-       lea            (X, %rbx, 8), %rax
-       lea            (%rax, %rbx, 8), %rcx
-       lea            (%rcx, %rbx, 8), X
+       lea            (X, N, 8), %rax
+       shr            $2, N2
+       lea            (%rax, N, 8), %rbx
+       shl            $2, NHI
        push           %rax
-       push           %rcx
+       lea            (%rbx, N, 8), X
+       shr            $2, N
+       push           %rbx
        call           recurse
        pop            X
        call           recurse
@@ -280,13 +235,11 @@ Nneq8:
        shr            $2, NHI
        shl            $2, N
        shl            $2, N2
-skipcalls:
-       shl            $2, N2
+skip_rcalls:
        lea            (X), %rax
-       lea            (%rax, N2, 8), %rbx
-       lea            (%rbx, N2, 8), %rcx
-       lea            (%rcx, N2, 8), %rdx
-       shr            $2, N2
+       lea            (%rax, N, 8), %rbx
+       lea            (%rbx, N, 8), %rcx
+       lea            (%rcx, N, 8), %rdx
        vmovapd        (%rax), er0
        vmovapd        (%rbx), er2
        vmovapd        (%rcx), er1
@@ -302,31 +255,30 @@ skipcalls:
        vmovapd        er1, (%rcx)
        vmovapd        tr3, (%rdx)
        cmp            $1, N2
-       jle            not_k2eqN2o2
+       jle            k2neqN2o2
        shl            N2
        lea            (X, N2, 8), %rax
-       shl            N2
-       lea            (%rax, N2, 8), %rbx
-       lea            (%rbx, N2, 8), %rcx
-       lea            (%rcx, N2, 8), %rdx
-       shr            $2, N2
-       vmovapd        (%rax), ti0
-       vmovapd        (%rbx), ti3
-       vmovapd        (%rcx), ti1
-       vmovapd        (%rdx), ti2
-       vsubpd         ti2, ti1, er1
-       vaddpd         ti2, ti1, er2
-       vmulpd         C, er1, ti1
-       vmulpd         nC, er2, ti2
-       vaddpd         ti1, ti0, ei0
-       vsubpd         ti3, ti2, ei1
-       vsubpd         ti1, ti0, ei2
-       vaddpd         ti2, ti3, ei3
-       vmovapd        ei1, (%rdx)
-       vmovapd        ei3, (%rcx)
-       vmovapd        ei2, (%rbx)
-       vmovapd        ei0, (%rax)
-not_k2eqN2o2:
+       shr            N2
+       lea            (%rax, N, 8), %rbx
+       lea            (%rbx, N, 8), %rcx
+       lea            (%rcx, N, 8), %rdx
+       vmovapd        (%rax), tr0
+       vmovapd        (%rbx), tr3
+       vmovapd        (%rcx), tr1
+       vmovapd        (%rdx), tr2
+       vsubpd         tr2, tr1, er1
+       vaddpd         tr2, tr1, er2
+       vmulpd         C, er1, tr1
+       vmulpd         nC, er2, tr2
+       vaddpd         tr1, tr0, er0
+       vsubpd         tr3, tr2, er1
+       vsubpd         tr1, tr0, er2
+       vaddpd         tr2, tr3, er3
+       vmovapd        er1, (%rdx)
+       vmovapd        er3, (%rcx)
+       vmovapd        er2, (%rbx)
+       vmovapd        er0, (%rax)
+k2neqN2o2:
        xor            k2, k2
 k2loopb:
        mov            N2, %rcx
@@ -348,17 +300,15 @@ k2loopb:
        vbroadcastsd   (W, %rcx, 8), cos3
        vbroadcastsd   8(W, %rcx, 8), sin3
        mov            N2, %rsi
+       shl            k2
        sub            k2, %rsi
-       sub            k2, %rsi
+       shl            k2
        shl            $2, %rsi
-       shl            $2, k2
-       shl            $2, N2
        lea            (X, k2, 8), %rax
-       lea            (%rax, N2, 8), %rbx
-       lea            (%rbx, N2, 8), %rcx
-       lea            (%rcx, N2, 8), %rdx
+       lea            (%rax, N, 8), %rbx
+       lea            (%rbx, N, 8), %rcx
+       lea            (%rcx, N, 8), %rdx
        shr            $2, k2
-       shr            $2, N2
        vmovapd        (%rax), er0
        vmovapd        (%rbx), er2
        vmovapd        (%rcx), er1
@@ -412,6 +362,7 @@ k2loopb:
        jmp            k2loopb
 k2loope:
        ret
+
 finish:
        mov            N, NHI
        shr            $2, NHI
@@ -460,6 +411,7 @@ simd_scramble0_e:
        cmp            $0, N2
        jne            skipr1
        ret
+
 skipr1:
        shr            N2
        lea            (Y, N2, 8), %rax
@@ -657,4 +609,108 @@ k2loopb3:
        vmovdqu        ei0, (%rdx, %rsi, 8)
        jmp            k2loopb3
 k2loope3:
+       ret
+
+scramble_hi:
+       push           W
+       bsf            N, %rax
+       mov            %rax, %rbx
+       shr            %rax
+       sub            %rax, %rbx
+       mov            $1, NLO
+       mov            $1, NHI
+       mov            %rax, %rcx
+       shl            %rcx, NHI
+       mov            %rbx, %rcx
+       shl            %rcx, NLO
+       jz             skip_hi_scramble
+       xor            L, L
+       xor            J, J
+scramble_hi_loop0:
+       xor            K, K
+scramble_hi_loop2b:
+       mov            L, %rax
+       mul            NLO
+       add            K, %rax
+       shl            $5, %rax
+       mov            %rax, %rcx
+       mov            J, %rax
+       mul            NLO
+       add            K, %rax
+       shl            $5, %rax
+       vmovapd        (Y, %rcx), tmp
+       vmovapd        tmp, (X, %rax)
+       inc            K
+       cmp            K, NLO
+       jg             scramble_hi_loop2b
+scramble_hi_loop2e:
+       mov            NHI, K
+       shr            K
+       mov            NHI, %rax
+       dec            %rax
+       cmp            L, %rax
+       je             scramble_hi_loop1s
+scramble_hi_loop1b:
+       cmp            K, J
+       jl             scramble_hi_loop1e
+       sub            K, J
+       shr            K
+       jmp            scramble_hi_loop1b
+scramble_hi_loop1e:
+       add            K, J
+scramble_hi_loop1s:
+       inc            L
+       cmp            L, NHI
+       jne            scramble_hi_loop0
+skip_hi_scramble:
+       pop            W
+       ret
+
+transpose:
+       push           W
+       bsf            N, %rax
+       mov            %rax, %rbx
+       shr            %rax
+       sub            %rax, %rbx
+       sub            %rax, %rbx
+       mov            $1, NHI
+       mov            $1, NMID
+       mov            %rax, %rcx
+       shl            %rcx, NHI
+       mov            %rbx, %rcx
+       shl            %rcx, NMID
+       xor            J, J
+transpose_b0:
+       xor            K, K
+transpose_b1:
+       xor            M, M
+transpose_b2:
+       mov            M, %rax
+       mul            NMID
+       add            K, %rax
+       mul            NHI
+       add            J, %rax
+       mov            %rax, %rcx
+       mov            J, %rax
+       mul            NMID
+       add            K, %rax
+       mul            NHI
+       add            M, %rax
+       shl            $5, %rax
+       shl            $5, %rcx
+	   vmovapd        (X, %rax), %ymm0
+	   vmovapd        %ymm0, (Y, %rcx)
+       inc            M
+       cmp            M, NHI
+       jne            transpose_b2
+transpose_e2:
+       inc            K
+       cmp            K, NMID
+       jne            transpose_b1
+transpose_e1:
+       inc            J
+       cmp            J, NHI
+       jne            transpose_b0
+transpose_e0:
+       pop            W
        ret
