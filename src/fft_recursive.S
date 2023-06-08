@@ -100,6 +100,16 @@ nC0:   .double        0.0
 nC1:   .double        0.0
 nC2:   .double        0.0
 nC3:   .double        0.0
+tmpr:
+tmpr0:  .double        0.0
+tmpr1:  .double        0.0
+tmpr2:  .double        0.0
+tmpr3:  .double        0.0
+tmpi:
+tmpi0:  .double        0.0
+tmpi1:  .double        0.0
+tmpi2:  .double        0.0
+tmpi3:  .double        0.0
 Z:
 Z0:    .double        0.0
 Z1:    .double        0.0
@@ -559,26 +569,33 @@ k2loopb3:
        jle            k2loope3
        mov            k2, %rax
        shl            %rax
-       mov            k2, %rax
-       shl            %rax
-       movq           %rax, %xmm6
-       vpbroadcastq   %xmm6, %ymm6
-       vpaddq         iota, %ymm6, %ymm6
-       vmovdqa        %ymm6, %ymm7
-       vmovdqa        %ymm6, %ymm8
-       vpaddq         %ymm6, %ymm7, %ymm7
-       vpaddq         %ymm7, %ymm8, %ymm8
-       xor            %rax, %rax
-       not            %rax
-       movq           %rax, %xmm0
-       vpbroadcastq   %xmm0, %ymm10
-       vmovdqa        %ymm10, %ymm11
-       vmovdqa        %ymm10, %ymm12
-       vmovdqa        %ymm10, %ymm13
-       vmovdqa        %ymm10, %ymm14
-       vmovdqa        %ymm10, %ymm15
-       vgatherqpd     %ymm10, (W, %ymm6, 8), cos1
-       vgatherqpd     %ymm11, 8(W, %ymm6, 8), sin1
+       movq           $16, %rbx
+       movq           (W, %rbx), %xmm0
+       movq           8(W, %rbx), %xmm1
+	   movq           (W, %rax, 8), %xmm2
+	   movq           8(W, %rax, 8), %xmm3
+	   vmulpd         %xmm1, %xmm3, %xmm4
+       vmulpd         %xmm0, %xmm3, %xmm5
+       vfmsub231pd    %xmm0, %xmm2, %xmm4
+       vfmadd231pd    %xmm1, %xmm2, %xmm5
+	   vmulpd         %xmm1, %xmm5, %xmm6
+       vmulpd         %xmm0, %xmm5, %xmm7
+       vfmsub231pd    %xmm0, %xmm4, %xmm6
+       vfmadd231pd    %xmm1, %xmm4, %xmm7
+	   vmulpd         %xmm1, %xmm7, %xmm8
+       vmulpd         %xmm0, %xmm7, %xmm9
+       vfmsub231pd    %xmm0, %xmm6, %xmm8
+       vfmadd231pd    %xmm1, %xmm6, %xmm9
+	   movq           %xmm2, tmpr0
+	   movq           %xmm4, tmpr1
+	   movq           %xmm6, tmpr2
+	   movq           %xmm8, tmpr3
+	   movq           %xmm3, tmpi0
+	   movq           %xmm5, tmpi1
+	   movq           %xmm7, tmpi2
+	   movq           %xmm9, tmpi3
+       vmovapd        tmpr, cos1
+       vmovapd        tmpi, sin1
        vmulpd         cos1, cos1, cos2
        vmulpd         sin1, sin1, sin2
        vsubpd         sin2, cos2, cos2
