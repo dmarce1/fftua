@@ -101,15 +101,15 @@ nC1:   .double        0.0
 nC2:   .double        0.0
 nC3:   .double        0.0
 tmpr:
-tmpr0:  .double        0.0
-tmpr1:  .double        0.0
-tmpr2:  .double        0.0
-tmpr3:  .double        0.0
+tmpr0:  .double       0.0
+tmpr1:  .double       0.0
+tmpr2:  .double       0.0
+tmpr3:  .double       0.0
 tmpi:
-tmpi0:  .double        0.0
-tmpi1:  .double        0.0
-tmpi2:  .double        0.0
-tmpi3:  .double        0.0
+tmpi0:  .double       0.0
+tmpi1:  .double       0.0
+tmpi2:  .double       0.0
+tmpi3:  .double       0.0
 Z:
 Z0:    .double        0.0
 Z1:    .double        0.0
@@ -438,20 +438,20 @@ simd_scramble0_e:
        lea            (%rax, N2, 8), %rbx
        lea            (%rbx, N2, 8), %rcx
        lea            (%rcx, N2, 8), %rdx
-       movq           (%rax), xer0
-       movq           (%rbx), xer2
-       movq           (%rcx), xer1
-       movq           (%rdx), xer3
+       vmovq          (%rax), xer0
+       vmovq          (%rbx), xer2
+       vmovq          (%rcx), xer1
+       vmovq          (%rdx), xer3
        vaddpd         xer2, xer0, xtr0
        vsubpd         xer2, xer0, xtr1
        vaddpd         xer3, xer1, xtr2
        vsubpd         xer1, xer3, xtr3
        vaddpd         xtr2, xtr0, xer0
        vsubpd         xtr2, xtr0, xer1
-       movq           xer0, (%rax)
-       movq           xtr1, (%rbx)
-       movq           xer1, (%rcx)
-       movq           xtr3, (%rdx)
+       vmovq          xer0, (%rax)
+       vmovq          xtr1, (%rbx)
+       vmovq          xer1, (%rcx)
+       vmovq          xtr3, (%rdx)
        cmp            $0, N2
        jne            skipr1
        ret
@@ -462,10 +462,10 @@ skipr1:
        lea            (%rax, N2, 8), %rbx
        lea            (%rbx, N2, 8), %rcx
        lea            (%rcx, N2, 8), %rdx
-       movq           (%rax), xti0
-       movq           (%rbx), xti3
-       movq           (%rcx), xti1
-       movq           (%rdx), xti2
+       vmovq          (%rax), xti0
+       vmovq          (%rbx), xti3
+       vmovq          (%rcx), xti1
+       vmovq          (%rdx), xti2
        vsubpd         xti2, xti1, xer1
        vaddpd         xti2, xti1, xer2
        vmulpd         C, xer1, xti1
@@ -474,10 +474,10 @@ skipr1:
        vsubpd         xti3, xti2, xei1
        vsubpd         xti1, xti0, xei2
        vaddpd         xti2, xti3, xei3
-       movq           xei1, (%rdx)
-       movq           xei3, (%rcx)
-       movq           xei2, (%rbx)
-       movq           xei0, (%rax)
+       vmovq          xei1, (%rdx)
+       vmovq          xei3, (%rcx)
+       vmovq          xei2, (%rbx)
+       vmovq          xei0, (%rax)
        xor            k2, k2
        mov            $8, %rdi
        cmp            %rdi, N2
@@ -493,12 +493,12 @@ k2loopb2:
        mov            %rax, %rbx
        add            %rax, %rbx
        add            %rbx, %rcx
-       movq           (W, %rax, 8), xcos1
-       movq           8(W, %rax, 8), xsin1
-       movq           (W, %rbx, 8), xcos2
-       movq           8(W, %rbx, 8), xsin2
-       movq           (W, %rcx, 8), xcos3
-       movq           8(W, %rcx, 8), xsin3
+       vmovq          (W, %rax, 8), xcos1
+       vmovq          8(W, %rax, 8), xsin1
+       vmovq          (W, %rbx, 8), xcos2
+       vmovq          8(W, %rbx, 8), xsin2
+       vmovq          (W, %rcx, 8), xcos3
+       vmovq          8(W, %rcx, 8), xsin3
        mov            N2, %rsi
        sub            k2, %rsi
        sub            k2, %rsi
@@ -506,32 +506,32 @@ k2loopb2:
        lea            (%rax, N2, 8), %rbx
        lea            (%rbx, N2, 8), %rcx
        lea            (%rcx, N2, 8), %rdx
-       movq           (%rax), xer0
-       movq           (%rbx), xer2
-       movq           (%rcx), xer1
-       movq           (%rdx), xer3
-       movq           (%rax, %rsi, 8), xei0
-       movq           (%rbx, %rsi, 8), xei2
-       movq           (%rcx, %rsi, 8), xei1
-       movq           (%rdx, %rsi, 8), xei3
+       vmovq          (%rax), xer0
+       vmovq          (%rbx), xer2
+       vmovq          (%rcx), xer1
+       vmovq          (%rdx), xer3
+       vmovq          (%rax, %rsi, 8), xei0
+       vmovq          (%rbx, %rsi, 8), xei2
+       vmovq          (%rcx, %rsi, 8), xei1
+       vmovq          (%rdx, %rsi, 8), xei3
        vmulpd         xsin1, xei1, xtr
        vmulpd         xcos1, xei1, xti
        vfmsub231pd    xcos1, xer1, xtr
        vfmadd231pd    xsin1, xer1, xti
-       movq           xti, xei1
-       movq           xtr, xer1
+       vmovq          xti, xei1
+       vmovq          xtr, xer1
        vmulpd         xsin2, xei2, xtr
        vmulpd         xcos2, xei2, xti
        vfmsub231pd    xcos2, xer2, xtr
        vfmadd231pd    xsin2, xer2, xti
-       movq           xti, xei2
-       movq           xtr, xer2
+       vmovq          xti, xei2
+       vmovq          xtr, xer2
        vmulpd         xsin3, xei3, xtr
        vmulpd         xcos3, xei3, xti
        vfmsub231pd    xcos3, xer3, xtr
        vfmadd231pd    xsin3, xer3, xti
-       movq           xti, xei3
-       movq           xtr, xer3
+       vmovq          xti, xei3
+       vmovq          xtr, xer3
        vaddpd         xer2, xer0, xtr0
        vaddpd         xei2, xei0, xti0
        vsubpd         xer2, xer0, xtr2
@@ -570,10 +570,10 @@ k2loopb3:
        mov            k2, %rax
        shl            %rax
        movq           $16, %rbx
-       movq           (W, %rbx), %xmm0
-       movq           8(W, %rbx), %xmm1
-	   movq           (W, %rax, 8), %xmm2
-	   movq           8(W, %rax, 8), %xmm3
+       vmovq          (W, %rbx), %xmm0
+       vmovq          8(W, %rbx), %xmm1
+	   vmovq          (W, %rax, 8), %xmm2
+	   vmovq          8(W, %rax, 8), %xmm3
 	   vmulpd         %xmm1, %xmm3, %xmm4
        vmulpd         %xmm0, %xmm3, %xmm5
        vfmsub231pd    %xmm0, %xmm2, %xmm4
