@@ -581,11 +581,10 @@ k2loopb3:
        vmovdqa        ones, %ymm14
 	   vgatherqpd     %ymm13, (W, %ymm10, 8), cos1
 	   vgatherqpd     %ymm14, 8(W, %ymm10, 8), sin1
-       vmulpd         cos1, cos1, cos2
-       vmulpd         sin1, sin1, sin2
-       vsubpd         sin2, cos2, cos2
+       vmulpd         sin1, sin1, cos2
        vmulpd         cos1, sin1, sin2
-       vmulpd         two, sin2, sin2
+       vfmsub231pd    cos1, cos1, cos2
+       vfmadd231pd    sin1, cos1, sin2
        vmulpd         sin1, sin2, cos3
        vmulpd         cos1, sin2, sin3
        vfmsub231pd    cos1, cos2, cos3
