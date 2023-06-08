@@ -458,14 +458,15 @@ void fft_batch_real(double* x, int L, int N) {
 #include <cstring>
 
 extern "C" {
-void fft_recursive(double* x, double* y, double* W, int N);
+void fft_recursive(double* x, double* y, double* W, double* W0, int N);
 }
 
 template<class T>
 void fft_6_real(T* x, int N) {
 	const auto& W = twiddles(N);
+	const auto& W4 = vector_twiddles2(N / 4, 4);
 	std::vector<double> y(N);
-	fft_recursive(x, y.data(), (double*) W.data(), N);
+	fft_recursive(x, y.data(), (double*) W.data(), (double*) W4.data(), N);
 	return;
 
 	static std::vector<T> buffer;

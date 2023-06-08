@@ -3,7 +3,7 @@
 #define X             %r8
 #define Y             %r9
 #define W             %r10
-//#define Wv            %r11
+#define Wv            %r11
 #define NHI           %r12
 #define N             %r13
 #define N2            %r14
@@ -85,6 +85,11 @@
 
        .data
        .align         32
+iota:
+       .quad          0
+       .quad          2
+       .quad          4
+       .quad          6
 C:
 C0:    .double        0.0
 C1:    .double        0.0
@@ -100,11 +105,11 @@ Z0:    .double        0.0
 Z1:    .double        0.0
 Z2:    .double        0.0
 Z3:    .double        0.0
-iota:
-       .quad          0
-       .quad          2
-       .quad          4
-       .quad          6
+two:
+       .double        2.0
+       .double        2.0
+       .double        2.0
+       .double        2.0
 
 
        .text
@@ -115,10 +120,11 @@ fft_recursive:
        push           %r13
        push           %r14
        push           %r15
+       mov            %r8, N
        mov            %rdi, Y
        mov            %rsi, X
        mov            %rdx, W
-       mov            %rcx, N
+       mov            %rcx, Wv
        shr            $2, N
        mov            $1, NHI
        mov            N, N2
@@ -553,6 +559,8 @@ k2loopb3:
        jle            k2loope3
        mov            k2, %rax
        shl            %rax
+       mov            k2, %rax
+       shl            %rax
        movq           %rax, %xmm6
        vpbroadcastq   %xmm6, %ymm6
        vpaddq         iota, %ymm6, %ymm6
@@ -571,10 +579,15 @@ k2loopb3:
        vmovdqa        %ymm10, %ymm15
        vgatherqpd     %ymm10, (W, %ymm6, 8), cos1
        vgatherqpd     %ymm11, 8(W, %ymm6, 8), sin1
-       vgatherqpd     %ymm12, (W, %ymm7, 8), cos2
-       vgatherqpd     %ymm13, 8(W, %ymm7, 8), sin2
-       vgatherqpd     %ymm14, (W, %ymm8, 8), cos3
-       vgatherqpd     %ymm15, 8(W, %ymm8, 8), sin3
+       vmulpd         cos1, cos1, cos2
+       vmulpd         sin1, sin1, sin2
+       vsubpd         sin2, cos2, cos2
+       vmulpd         cos1, sin1, sin2
+       vmulpd         two, sin2, sin2
+       vmulpd         sin1, sin2, cos3
+       vmulpd         cos1, sin2, sin3
+       vfmsub231pd    cos1, cos2, cos3
+       vfmadd231pd    sin1, cos2, sin3
        mov            N2, %rsi
        sub            k2, %rsi
        sub            k2, %rsi
