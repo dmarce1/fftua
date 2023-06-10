@@ -6,8 +6,8 @@
 #define  Ib1         %r11
 #define  Ia2         %r12
 #define  Ib2         %r13
-#define  mask        %r14
-#define  not_mask    %r15
+#define  mask0        %r14
+#define  mask1    %r15
 #define  NHI         -8(%rbp)
 #define  NMID        -16(%rbp)
 #define  NLO         -24(%rbp)
@@ -58,9 +58,9 @@ fft_swap:
          dec       %rcx
          and       %rbx, %rcx
          or        %rcx, %rsi
-         mov       %rsi, mask
+         mov       %rsi, mask0
          not       %rsi
-         mov       %rsi, not_mask
+         mov       %rsi, mask1
          xor       In, In
          cmp       $4, NLO
          jge       simd_b
@@ -91,12 +91,10 @@ loop_be1:
          add       dB, Ia2
          cmp       Ia1, maxA
          jg        loop_a1
-         mov       In, %rax
-         or        mask, %rax
-         inc       %rax
-         and       not_mask, %rax
-         mov       %rax, In
-         cmp       %rax, N
+         or        mask0, In
+         inc       In
+         and       mask1, In
+         cmp       In, N
          jg        loop_hi1
          jmp       simd_e
 simd_b:
@@ -112,8 +110,8 @@ loop_bb2:
          mov       In, %rax
          mov       In, %rbx
          or        Ia1, %rax
-         or        Ib1, %rax
          or        Ia2, %rbx
+         or        Ib1, %rax
          or        Ib2, %rbx
          vmovapd   (X, %rax, 8), %ymm0
          vmovapd   (X, %rbx, 8), %ymm1
@@ -127,12 +125,10 @@ loop_be2:
          add       dB, Ia2
          cmp       Ia1, maxA
          jg        loop_a2
-         mov       In, %rax
-         or        mask, %rax
-         add       SIMD_SIZE, %rax
-         and       not_mask, %rax
-         mov       %rax, In
-         cmp       %rax, N
+         or        mask0, In
+         add       SIMD_SIZE, In
+         and       mask1, In
+         cmp       In, N
          jg        loop_hi2
 simd_e:
          pop       %r15
