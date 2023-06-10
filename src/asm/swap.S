@@ -1,7 +1,8 @@
+#define  SIMD_SIZE   $4
 #define  STACK_SIZE  $32
-#define  In          %r8
-#define  Ia          %r9
-#define  Ib          %r10
+#define  Ia          %r8
+#define  Ib          %r9
+#define  In          %r10
 #define  X           %r11
 #define  N           %r12
 #define  NA          %r13
@@ -12,9 +13,8 @@
 #define  NHI         -8(%rbp)
 #define  NMID        -16(%rbp)
 #define  NLO         -24(%rbp)
-#define  log2NA2     -25(%rbp)
-#define  shiftA      -26(%rbp)
-#define  shiftB      -27(%rbp)
+#define  shiftA      -25(%rbp)
+#define  shiftB      -26(%rbp)
 
          .global   fft_swap
 
@@ -31,10 +31,6 @@ fft_swap:
          mov       %rcx, NMID
          mov       %r8, NLO
          mov       %r9, NA
-         mov       NA, %rax
-         mul       NA
-         bsf       %rax, %rax
-         mov       %al, log2NA2
          mov       NLO, %rax
          mov       %rax, %rbx
          dec       %rbx
@@ -43,7 +39,7 @@ fft_swap:
          mov       %rax, %rcx
          dec       %rcx
          and       %rbx, %rcx
-         mov       %rcx, %rdx
+         mov       %rcx, %rsi
          mov       NMID, %rdi
          mul       %rdi
          mov       %rax, %rbx
@@ -53,10 +49,10 @@ fft_swap:
          mov       %rax, %rcx
          dec       %rcx
          and       %rbx, %rcx
-         or        %rcx, %rdx
-         mov       %rdx, mask
-         not       %rdx
-         mov       %rdx, not_mask
+         or        %rcx, %rsi
+         mov       %rsi, mask
+         not       %rsi
+         mov       %rsi, not_mask
          bsf       NLO, %rdx
          mov       %rdx, %rcx
          bsf       NA, %rax
@@ -66,46 +62,44 @@ fft_swap:
          mov       %cl, shiftA
          mov       %dl, shiftB
          xor       In, In
-loop_hi:
+loop_hi2:
          xor       Ia, Ia
-loop_a:
+loop_a2:
+         xor       Ib, Ib
+loop_bb2:
+         cmp       Ib, Ia
+         jle       loop_be2
          mov       Ia, %rax
+         mov       Ib, %rdx
          mov       shiftA, %cl
          shl       %cl, %rax
-         mov       Ia, %rbx
-         mov       shiftB, %cl
-         shl       %cl, %rbx
-         xor       Ib, Ib
-loop_bb:
-         cmp       Ib, Ia
-         jle       loop_be
-         mov       Ib, %rdx
-         mov       shiftB, %cl
          shl       %cl, %rdx
          or        %rdx, %rax
-         mov       Ib, %rdx
-         mov       shiftA, %cl
+         or        In, %rax
+         mov       Ib, %rbx
+         mov       Ia, %rdx
+         mov       shiftB, %cl
+         shl       %cl, %rbx
          shl       %cl, %rdx
          or        %rdx, %rbx
-         or        In, %rax
          or        In, %rbx
          mov       (X, %rax, 8), %rcx
          mov       (X, %rbx, 8), %rdx
          mov       %rdx, (X, %rax, 8)
          mov       %rcx, (X, %rbx, 8)
          inc       Ib
-         jmp       loop_bb
-loop_be:
+         jmp       loop_bb2
+loop_be2:
          inc       Ia
          cmp       Ia, NA
-         jne       loop_a
+         jg        loop_a2
          mov       In, %rax
          or        mask, %rax
          inc       %rax
          and       not_mask, %rax
          mov       %rax, In
          cmp       %rax, N
-         jg        loop_hi
+         jg        loop_hi2
          pop       %r15
          pop       %r14
          pop       %r13

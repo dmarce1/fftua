@@ -12,6 +12,7 @@
 #include "util.hpp"
 #include "types.hpp"
 #include "fftu.hpp"
+#include "asm.hpp"
 
 void * operator new(std::size_t n) {
 	void* memptr;
@@ -85,6 +86,30 @@ double hadamard(int i, int j) {
 }
 
 int main(int argc, char **argv) {
+	constexpr int NHI = 4;
+	constexpr int NA = 2;
+	constexpr int NMID = 2;
+	constexpr int NB = 2;
+	constexpr int NLO = 4;
+	constexpr int N = NHI * NA * NMID * NB * NLO;
+	std::vector<double> X;
+	for( int nhi = 0; nhi < NHI; nhi++) {
+		for( int na = 0; na < NA; na++) {
+			for( int nmid = 0; nmid < NMID; nmid++) {
+				for( int nb = 0; nb < NB; nb++) {
+					for( int nlo = 0; nlo < NLO; nlo++) {
+						X.push_back(nlo);
+					}
+				}
+			}
+		}
+	}
+	fft_swap(X.data(), N, NHI, NMID, NLO, NA);
+	for( int n = 0; n < N; n++) {
+		printf( "%i %e\n", n, X[n]);
+	}
+	return 0;
+
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	timer tm3, tm4;
 	double t3 = 0.0;
@@ -132,7 +157,7 @@ int main(int argc, char **argv) {
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 2; i++) {
+			for (int i = 0; i < 102; i++) {
 				std::vector<double> x(N);
 				std::vector<double> y(N);
 				std::vector<complex<double>> X(N / 2 + 1);
@@ -171,7 +196,7 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-			//			printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+						//			printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
@@ -187,7 +212,7 @@ int main(int argc, char **argv) {
 			cnt++;
 			score /= cnt;
 			printf("R %c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
-		//	abort();
+			//	abort();
 		}
 		{
 			continue;
