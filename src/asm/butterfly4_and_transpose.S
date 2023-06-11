@@ -1,4 +1,4 @@
-#define  STACK_SIZE   $1224
+#define  STACK_SIZE   $1216
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
@@ -11,25 +11,24 @@
 #define  NHI          -8(%ebp)
 #define  N2           -16(%ebp)
 #define  NMID         -24(%ebp)
-#define  NHIN1        -32(%ebp)
-#define  N2N1         -40(%ebp)
-#define  N1NMID       -48(%ebp)
-#define  N1N2NMID     -56(%ebp)
-#define  N            -64(%ebp)
-#define  TWHI         -72(%ebp)
-#define  N2o2         -80(%ebp)
-#define  cos1         -88(%ebp)
-#define  cos2         -96(%ebp)
-#define  cos3         -104(%ebp)
-#define  sin1         -112(%ebp)
-#define  sin2         -120(%ebp)
-#define  sin3         -128(%ebp)
-#define  ihi          -136(%ebp)
-#define  klor         -144(%ebp)
-#define  khir         -152(%ebp)
-#define  kloi         -160(%ebp)
-#define  khii         -168(%ebp)
-#define  U0ptr        -1192(%ebp)
+#define  NHIoN1       -32(%ebp)
+#define  N1NMID       -40(%ebp)
+#define  N1N2NMID     -48(%ebp)
+#define  N            -56(%ebp)
+#define  TWHI         -64(%ebp)
+#define  N2o2         -72(%ebp)
+#define  cos1         -80(%ebp)
+#define  cos2         -88(%ebp)
+#define  cos3         -96(%ebp)
+#define  sin1         -104(%ebp)
+#define  sin2         -112(%ebp)
+#define  sin3         -120(%ebp)
+#define  ihi          -128(%ebp)
+#define  klor         -136(%ebp)
+#define  khir         -144(%ebp)
+#define  kloi         -152(%ebp)
+#define  khii         -160(%ebp)
+#define  U0ptr        -1184(%ebp)
 #define  er0          %ymm0
 #define  er1          %ymm1
 #define  er2          %ymm2
@@ -51,7 +50,7 @@
 
          .data
          .align       32
-t45:     .double      M_SQRT1_2
+tw45:    .double      M_SQRT1_2
          .double      M_SQRT1_2
          .double      M_SQRT1_2
          .double      M_SQRT1_2
@@ -62,7 +61,9 @@ none:    .double      -1.0
 two:     .quad        2
 three:   .quad        3
 
+
          .text
+
 butterfly4_and_transpose:
          enter        STACK_SIZE, $0
          push         %rbx
@@ -78,23 +79,21 @@ butterfly4_and_transpose:
          lea          U0ptr, U0
          and          0xffffffffffffffe0, U0
          mov          NHI, %rax
-         mov          N2, %rbx
-         mov          NMID, %rcx
-         mov          NMID, %rdx
-         mulx         %rbx, %rdx, %rdx
          shr          $2, %rax
-         shr          $2, %rbx
-         shl          $2, %rcx
+         mov          %rax, NHIoN1
+         mov          NMID, %rbx
+         shl          $2, %rbx
+         mov          %rbx, N1NMID
+         mulx         N2, %rbx, %rcx
+         mov          %rcx, N1N2NMID
+         mulx         NHI, %rcx, %rdx
          shl          $2, %rdx
-         mov          %rax, NHIN1
-         mov          %rbx, N2N1
-         mov          %rcx, N1NMID
-         mov          %rdx, N1N2NMID
-         mov          N, %rax
-         xor          %rdx, %rdx
-         mov          N2, %rbx
-         div          %rbx
-         shr          %rax
+         mov          %rdx, N
+         mov          N2, %rdi
+         mulx         NHI, %rdi, %rax
+         mulx         NMID, %rax, %rax
+         shl          $2, %rax
+         mov          %rax, TWHI
          mov          %rax, TWHI
          xor          %rdx, %rdx
          xor          %rdx, ihi
@@ -166,7 +165,7 @@ imidloop1:
          and          $3, %rbx
          mov          %rax, khir
          mov          %rbx, klor
-         mov          NHIN1, %rax
+         mov          NHIoN1, %rax
          mulx         klor, %rax, %rdi
          add          ihi, %rdi
          mulx         N1NMID, %rdi, %rdi
@@ -266,7 +265,7 @@ k2loop_b:
          mov          %rbx, klor
          mov          %rcx, khii
          mov          %rdx, kloi
-         mov          NHIN1, %rax
+         mov          NHIoN1, %rax
          mulx         klor, %rax, %rdi
          mulx         kloi, %rax, %rsi
          add          ihi, %rdi
@@ -310,14 +309,14 @@ n0loop1:
          mov          n0, %rdx
          shl          $8, %rdx
          add          U0, %rdx
-         vmovupd      (U0), er0
-         vmovupd      32(U0), ei0
-         vmovupd      64(U0), er1
-         vmovupd      96(U0), ei1
-         vmovupd      128(U0), er2
-         vmovupd      160(U0), ei2
-         vmovupd      192(U0), er3
-         vmovupd      224(U0), ei3
+         vmovupd      (%rdx), er0
+         vmovupd      32(%rdx), ei0
+         vmovupd      64(%rdx), er1
+         vmovupd      96(%rdx), ei1
+         vmovupd      128(%rdx), er2
+         vmovupd      160(%rdx), ei2
+         vmovupd      192(%rdx), er3
+         vmovupd      224(%rdx), ei3
          vbroadcastsd cos1, tr1
          vbroadcastsd cos2, tr2
          vbroadcastsd cos3, tr3
@@ -390,7 +389,7 @@ k2loop_e:
          mov          ihi, %rax
          inc          %rax
          mov          %rax, ihi
-         cmp          %rax, NHIN1
+         cmp          %rax, NHIoN1
          jne          ihiloop
          pop          %r15
          pop          %r14
