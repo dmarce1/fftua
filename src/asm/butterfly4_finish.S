@@ -41,6 +41,7 @@
 #define  si1          %xmm13
 #define  si2          %xmm14
 #define  si3          %xmm15
+#define  prmt_cntrl   $27
 
          .global      butterfly4_finish
 
@@ -231,8 +232,8 @@ k2simd:
          mov          N2, %rdi
          sub          k2, %rdi
          sub          k2, %rdi
-         mov          k2, %rax
-         lea          (W, %rax, 8), %rax
+         sub          $24, %rdi
+         lea          (W, k2, 8), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
          lea          (%rcx, N2, 8), %rdx
@@ -240,10 +241,14 @@ k2simd:
          vmovapd      (%rbx), er1
          vmovapd      (%rcx), er2
          vmovapd      (%rdx), er3
-         vmovapd      (%rax, %rdi, 8), ei0
-         vmovapd      (%rbx, %rdi, 8), ei1
-         vmovapd      (%rcx, %rdi, 8), ei2
-         vmovapd      (%rdx, %rdi, 8), ei3
+         vmovupd      (%rax, %rdi, 8), ei0
+         vmovupd      (%rbx, %rdi, 8), ei1
+         vmovupd      (%rcx, %rdi, 8), ei2
+         vmovupd      (%rdx, %rdi, 8), ei3
+         vpermpd      prmt_cntrl, ei0, ei0
+         vpermpd      prmt_cntrl, ei1, ei1
+         vpermpd      prmt_cntrl, ei2, ei2
+         vpermpd      prmt_cntrl, ei3, ei3
          vmulpd       ti1, ei1, tr0
          vmulpd       tr1, ei1, ti0
          vfmsub231pd  tr1, er1, tr0
@@ -278,14 +283,18 @@ k2simd:
          vsubpd       ti0, ti1, ei2
          vsubpd       ti3, tr2, er3
          vsubpd       ti2, tr3, ei3
+         vpermpd      prmt_cntrl, er3, er3
+         vpermpd      prmt_cntrl, er2, er2
+         vpermpd      prmt_cntrl, ei1, ei1
+         vpermpd      prmt_cntrl, ei0, ei0
          vmovapd      er0, (%rax)
          vmovapd      er1, (%rbx)
          vmovapd      ei2, (%rcx)
          vmovapd      ei3, (%rdx)
-         vmovapd      er3, (%rax, %rdi, 8)
-         vmovapd      er2, (%rbx, %rdi, 8)
-         vmovapd      ei1, (%rcx, %rdi, 8)
-         vmovapd      ei0, (%rdx, %rdi, 8)
+         vmovupd      er3, (%rax, %rdi, 8)
+         vmovupd      er2, (%rbx, %rdi, 8)
+         vmovupd      ei1, (%rcx, %rdi, 8)
+         vmovupd      ei0, (%rdx, %rdi, 8)
          add          SIMD_SIZE, k2
          cmp          k2, N2o2
          jne          k2simd

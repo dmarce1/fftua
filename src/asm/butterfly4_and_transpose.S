@@ -8,6 +8,22 @@
 #define  n0           %r13
 #define  n1           %r14
 #define  U0           %r15
+#define  er0          %ymm0
+#define  er1          %ymm1
+#define  er2          %ymm2
+#define  er3          %ymm3
+#define  ei0          %ymm4
+#define  ei1          %ymm5
+#define  ei2          %ymm6
+#define  ei3          %ymm7
+#define  tr0          %ymm8
+#define  tr1          %ymm9
+#define  tr2          %ymm10
+#define  tr3          %ymm11
+#define  ti0          %ymm12
+#define  ti1          %ymm13
+#define  ti2          %ymm14
+#define  ti3          %ymm15
 #define  NHI          -8(%ebp)
 #define  N2           -16(%ebp)
 #define  NMID         -24(%ebp)
@@ -29,22 +45,6 @@
 #define  kloi         -152(%ebp)
 #define  khii         -160(%ebp)
 #define  U0ptr        -1184(%ebp)
-#define  er0          %ymm0
-#define  er1          %ymm1
-#define  er2          %ymm2
-#define  er3          %ymm3
-#define  ei0          %ymm4
-#define  ei1          %ymm5
-#define  ei2          %ymm6
-#define  ei3          %ymm7
-#define  tr0          %ymm8
-#define  tr1          %ymm9
-#define  tr2          %ymm10
-#define  tr3          %ymm11
-#define  ti0          %ymm12
-#define  ti1          %ymm13
-#define  ti2          %ymm14
-#define  ti3          %ymm15
 
          .global      butterfly4_and_transpose
 
@@ -130,10 +130,10 @@ n0loop3:
          mov          n0, %rdx
          shl          $7, %rdx
          add          U0, %rdx
-         vmovupd      (U0), er0
-         vmovupd      32(U0), er1
-         vmovupd      64(U0), er2
-         vmovupd      96(U0), er3
+         vmovupd      (%rdx), er0
+         vmovupd      32(%rdx), er1
+         vmovupd      64(%rdx), er2
+         vmovupd      96(%rdx), er3
          vaddpd       er2, er0, tr0
          vsubpd       er2, er0, tr2
          vaddpd       er3, er1, tr1
@@ -198,10 +198,10 @@ n0loop5:
          mov          n0, %rdx
          shl          $7, %rdx
          add          U0, %rdx
-         vmovupd      (U0), er0
-         vmovupd      32(U0), er1
-         vmovupd      64(U0), er2
-         vmovupd      96(U0), er3
+         vmovupd      (%rdx), er0
+         vmovupd      32(%rdx), er1
+         vmovupd      64(%rdx), er2
+         vmovupd      96(%rdx), er3
          vaddpd       er3, er1, tr0
          vsubpd       er3, er1, tr2
          vmulpd       tw45, tr2, tr1

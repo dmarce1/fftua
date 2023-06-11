@@ -240,7 +240,7 @@ khiloop:
          vmovapd      (%rbx, %rdi, 8), er2
          vmovapd      (%rcx, %rdi, 8), ei1
          vmovapd      (%rdx, %rdi, 8), ei0
- khiloop_cont:
+khiloop_cont:
          inc          khi
          cmp          N2o2oN1, khi
          jne          khiloop
