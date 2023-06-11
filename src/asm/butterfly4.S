@@ -39,6 +39,7 @@
          .global      butterfly4
 
          .data
+
          .align       32
 tw45:    .double      M_SQRT1_2
          .double      M_SQRT1_2
@@ -52,6 +53,7 @@ two:     .quad        2
 three:   .quad        3
 
          .text
+
 butterfly4:
          enter        STACK_SIZE, $0
          push         %rbx

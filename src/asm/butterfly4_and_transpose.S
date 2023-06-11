@@ -49,6 +49,7 @@
          .global      butterfly4_and_transpose
 
          .data
+
          .align       32
 tw45:    .double      M_SQRT1_2
          .double      M_SQRT1_2
@@ -60,7 +61,6 @@ none:    .double      -1.0
          .double      -1.0
 two:     .quad        2
 three:   .quad        3
-
 
          .text
 
@@ -309,6 +309,12 @@ n0loop1:
          mov          n0, %rdx
          shl          $8, %rdx
          add          U0, %rdx
+         vbroadcastsd cos1, tr1
+         vbroadcastsd cos2, tr2
+         vbroadcastsd cos3, tr3
+         vbroadcastsd sin1, ti1
+         vbroadcastsd sin2, ti2
+         vbroadcastsd sin3, ti3
          vmovupd      (%rdx), er0
          vmovupd      32(%rdx), ei0
          vmovupd      64(%rdx), er1
@@ -317,12 +323,6 @@ n0loop1:
          vmovupd      160(%rdx), ei2
          vmovupd      192(%rdx), er3
          vmovupd      224(%rdx), ei3
-         vbroadcastsd cos1, tr1
-         vbroadcastsd cos2, tr2
-         vbroadcastsd cos3, tr3
-         vbroadcastsd sin1, ti1
-         vbroadcastsd sin2, ti2
-         vbroadcastsd sin3, ti3
          vmulpd       ti1, ei1, tr0
          vmulpd       tr1, ei1, ti0
          vfmsub231pd  tr1, er1, tr0
