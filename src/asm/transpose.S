@@ -22,59 +22,59 @@ loop:
          mov          K, %rdx
          inc          %rdx
          add          N1N2, %rax
-         movq         (X, %rdx, 8), %ymm0
-         movq         (X, %rax, 8), %ymm6
+         movq         (X, %rdx, 8), %xmm0
+         movq         (X, %rax, 8), %xmm6
          inc          %rdx
          add          N1N2, %rax
-         movq         (X, %rdx, 8), %ymm1
-         movq         (X, %rax, 8), %ymm7
+         movq         (X, %rdx, 8), %xmm1
+         movq         (X, %rax, 8), %xmm7
          inc          %rdx
          add          N1N2, %rax
-         movq         (X, %rdx, 8), %ymm2
-         movq         (X, %rax, 8), %ymm8
+         movq         (X, %rdx, 8), %xmm2
+         movq         (X, %rax, 8), %xmm8
          dec          %rdx
          sub          N1N2, %rax
          add          N1N2, %rdx
          inc          %rax
-         movq         (X, %rdx, 8), %ymm3
-         movq         (X, %rax, 8), %ymm9
+         movq         (X, %rdx, 8), %xmm3
+         movq         (X, %rax, 8), %xmm9
          inc          %rdx
          add          N1N2, %rax
-         movq         (X, %rdx, 8), %ymm4
-         movq         (X, %rax, 8), %ymm10
+         movq         (X, %rdx, 8), %xmm4
+         movq         (X, %rax, 8), %xmm10
          add          N1N2, %rdx
          inc          %rax
-         movq         (X, %rdx, 8), %ymm5
-         movq         (X, %rax, 8), %ymm11
+         movq         (X, %rdx, 8), %xmm5
+         movq         (X, %rax, 8), %xmm11
 
          mov          K, %rax
          mov          K, %rdx
          inc          %rdx
          add          N1N2, %rax
-         movq         %ymm6, (X, %rdx, 8)
-         movq         %ymm0, (X, %rax, 8)
+         movq         %xmm6, (X, %rdx, 8)
+         movq         %xmm0, (X, %rax, 8)
          inc          %rdx
          add          N1N2, %rax
-         movq         %ymm7, (X, %rdx, 8)
-         movq         %ymm1, (X, %rax, 8)
+         movq         %xmm7, (X, %rdx, 8)
+         movq         %xmm1, (X, %rax, 8)
          inc          %rdx
          add          N1N2, %rax
-         movq         %ymm8, (X, %rdx, 8)
-         movq         %ymm2, (X, %rax, 8)
+         movq         %xmm8, (X, %rdx, 8)
+         movq         %xmm2, (X, %rax, 8)
          dec          %rdx
          sub          N1N2, %rax
          add          N1N2, %rdx
          inc          %rax
-         movq         %ymm9, (X, %rdx, 8)
-         movq         %ymm3, (X, %rax, 8)
+         movq         %xmm9, (X, %rdx, 8)
+         movq         %xmm3, (X, %rax, 8)
          inc          %rdx
          add          N1N2, %rax
-         movq         %ymm10, (X, %rdx, 8)
-         movq         %ymm4, (X, %rax, 8)
+         movq         %xmm10, (X, %rdx, 8)
+         movq         %xmm4, (X, %rax, 8)
          add          N1N2, %rdx
          inc          %rax
-         movq         %ymm11, (X, %rdx, 8)
-         movq         %ymm5, (X, %rax, 8)
+         movq         %xmm11, (X, %rdx, 8)
+         movq         %xmm5, (X, %rax, 8)
          add          N1, K
          cmp          N1N2, K
          jne          loop
