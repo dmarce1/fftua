@@ -113,11 +113,12 @@ ihiloop0:
          mov          %rbx, klo0
          xor          ihi, ihi
 ihiloop1:
-         mov          NHIoN1, %rax
-         mov          klo0, %rbx
-         mul          %rbx
+         mov          NHIoN1, %rcx
+         mov          N2, %rbx
+         mov          klo0, %rax
+         mul          %rcx
          add          ihi, %rax
-         mul          N2
+         mul          %rbx
          add          khi0, %rax
          shl          $2, %rax
          lea          (X, %rax, 8), %rax
@@ -148,7 +149,6 @@ ihiloop1:
          jne          ihiloop1
          cmp          $2, N2
          jle          done
-skip_N2o2:
          xor          ihi, ihi
 ihiloop2:
          xor          klo, klo
@@ -184,10 +184,10 @@ khiloop:
          vbroadcastsd 0(W, %rcx, 8), tr3
          vbroadcastsd 8(W, %rcx, 8), ti3
          mov          NHIoN1, %rcx
+         mov          N2, %rbx
          mov          klo1, %rax
          mul          %rcx
          add          ihi, %rax
-         mov          N2, %rbx
          mul          %rbx
          add          khi1, %rax
          shl          $2, %rax
@@ -245,14 +245,14 @@ khiloop:
          vsubpd       ti0, ti1, ei2
          vsubpd       ti3, tr2, er3
          vsubpd       ti2, tr3, ei3
-         vmovapd      (%rax), er0
-         vmovapd      (%rbx), er1
-         vmovapd      (%rcx), ei2
-         vmovapd      (%rdx), ei3
-         vmovapd      (%rax, %rdi, 8), er3
-         vmovapd      (%rbx, %rdi, 8), er2
-         vmovapd      (%rcx, %rdi, 8), ei1
-         vmovapd      (%rdx, %rdi, 8), ei0
+         vmovapd      er0, (%rax)
+         vmovapd      er1, (%rbx)
+         vmovapd      ei2, (%rcx)
+         vmovapd      ei3, (%rdx)
+         vmovapd      er3, (%rax, %rdi, 8)
+         vmovapd      er2, (%rbx, %rdi, 8)
+         vmovapd      ei1, (%rcx, %rdi, 8)
+         vmovapd      ei0, (%rdx, %rdi, 8)
 khiloop_cont:
          inc          khi
          cmp          N2oN1, khi
