@@ -47,6 +47,11 @@
 
          .data
 
+trash:   .double      99.9
+         .double      99.9
+         .double      99.9
+         .double      99.9
+
          .align       32
 ones:    .quad        0xffffffffffffffff
          .quad        0xffffffffffffffff
@@ -291,10 +296,10 @@ k2simd:
          vpermpd      prmt_cntrl, ei0, ei0
          vmovapd      er0, (%rax)
          vmovapd      er1, (%rbx)
-         vmovapd      ei2, (%rcx)
-         vmovapd      ei3, (%rdx)
-         vmovupd      er3, (%rax, %rdi, 8)
          vmovupd      er2, (%rbx, %rdi, 8)
+         vmovupd      er3, (%rax, %rdi, 8)
+         vmovapd      ei3, (%rdx)
+         vmovapd      ei2, (%rcx)
          vmovupd      ei1, (%rcx, %rdi, 8)
          vmovupd      ei0, (%rdx, %rdi, 8)
          add          SIMD_SIZE, k2
