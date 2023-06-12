@@ -1,4 +1,4 @@
-#define  STACK_SIZE   $1208
+#define  STACK_SIZE   $1216
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
@@ -44,7 +44,8 @@
 #define  khir         -144(%rbp)
 #define  kloi         -152(%rbp)
 #define  khii         -160(%rbp)
-#define  U0ptr        -1184(%rbp)
+#define  N1N2         -168(%rbp)
+#define  U0ptr        -1192(%rbp)
 
          .global      butterfly4_and_transpose
 
@@ -103,14 +104,12 @@ butterfly4_and_transpose:
          mov          N2, %rax
          shr          %rax
          mov          %rax, N2o2
+         mov          N2, %rax
+         shl          $2, %rax
+         mov          %rax, N1N2
          xor          %rdx, %rdx
          mov          %rdx, ihi
 ihi_loop:
-
-
-
-
-
          xor          imid, imid
 imid_k0:
          mov          N1NMID, %rax
@@ -179,16 +178,6 @@ k0:
          inc          imid
          cmp          imid, NMID
          jne          imid_k0
-
-
-
-
-
-
-
-
-
-
          xor          imid, imid
 imid_kN2o2:
          mov          N2o2, %rax
@@ -258,8 +247,7 @@ kN2o2:
          mul          %rbx
          add          %rdi, %rax
          mov          N2, %rdx
-
-          lea          (X, %rax, 8), %rax
+         lea          (X, %rax, 8), %rax
          vmovapd      er0, (%rax)
          lea          (%rax, %rdx, 8), %rax
          vmovapd      er1, (%rax)
@@ -273,12 +261,6 @@ kN2o2:
          inc          imid
          cmp          imid, NMID
          jne          imid_kN2o2
-
-
-
-
-
-
          xor          imid, imid
 imid_loop:
          xor          k2, k2
@@ -345,29 +327,39 @@ k2_loop_b:
          mov          %rax, %rsi
          xor          n0, n0
 n0_loop:
-         xor          n1, n1
-n1_loop:
-         mov          n1, %rax
-         mov          N1NMID, %rbx
-         mul          %rbx
-         add          n0, %rax
-         mov          N2, %rbx
-         mul          %rbx
-         mov          %rax, %rcx
-         mov          %rax, %rdx
-         add          %rdi, %rcx
-         add          %rsi, %rdx
-         vmovdqa      (X, %rcx, 8), %ymm0
-         vmovdqa      (X, %rdx, 8), %ymm1
+         mov          n0, %rdx
+         mulx         N2, %rcx, %rax
+         lea          (X, %rcx, 8), %rax
+         lea          (%rax, %rdi, 8), %rcx
+         lea          (%rax, %rsi, 8), %rdx
+         mov          N1N2NMID, %rax
+         vmovdqa      (%rcx), %ymm0
+         vmovdqa      (%rdx), %ymm1
+         lea          (%rcx, %rax, 8), %rcx
+         lea          (%rdx, %rax, 8), %rdx
+         vmovdqa      (%rcx), %ymm2
+         vmovdqa      (%rdx), %ymm3
+         lea          (%rcx, %rax, 8), %rcx
+         lea          (%rdx, %rax, 8), %rdx
+         vmovdqa      (%rcx), %ymm4
+         vmovdqa      (%rdx), %ymm5
+         lea          (%rcx, %rax, 8), %rcx
+         lea          (%rdx, %rax, 8), %rdx
+         vmovdqa      (%rcx), %ymm6
+         vmovdqa      (%rdx), %ymm7
+         lea          (%rcx, %rax, 8), %rcx
+         lea          (%rdx, %rax, 8), %rdx
          mov          n0, %rax
-         shl          $2, %rax
-         add          n1, %rax
-         shl          $3, %rax
-         vmovdqu      %ymm0, 0(U0, %rax, 8)
-         vmovdqu      %ymm1, 32(U0, %rax, 8)
-         inc          n1
-         cmp          N1, n1
-         jne          n1_loop
+         shl          $5, %rax
+         lea          (U0, %rax, 8), %rax
+         vmovdqa      %ymm0, 0(%rax)
+         vmovdqa      %ymm1, 32(%rax)
+         vmovdqa      %ymm2, 64(%rax)
+         vmovdqa      %ymm3, 96(%rax)
+         vmovdqa      %ymm4, 128(%rax)
+         vmovdqa      %ymm5, 160(%rax)
+         vmovdqa      %ymm6, 192(%rax)
+         vmovdqa      %ymm7, 224(%rax)
          inc          n0
          cmp          N1, n0
          jne          n0_loop
@@ -429,7 +421,6 @@ main_loop:
          mul          %rbx
          mov          %rax, %rcx
          mov          N2, %rdx
-
          lea          (X, %rdi, 8), %rax
          lea          (%rax, %rcx, 8), %rax
          vmovapd      er0, (%rax)
@@ -439,7 +430,6 @@ main_loop:
          vmovapd      ei2, (%rax)
          lea          (%rax, %rdx, 8), %rax
          vmovapd      ei3, (%rax)
-
          lea          (X, %rsi, 8), %rax
          lea          (%rax, %rcx, 8), %rax
          vmovapd      er3, (%rax)
@@ -457,12 +447,6 @@ k2_loop_e:
          inc          imid
          cmp          imid, NMID
          jne          imid_loop
-
-
-
-
-
-
          mov          ihi, %rax
          inc          %rax
          mov          %rax, ihi

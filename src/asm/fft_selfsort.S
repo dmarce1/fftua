@@ -13,6 +13,11 @@
 
 fft_selfsort:
          enter        STACK_SIZE, $0
+         push         %rbx
+         push         %r12
+         push         %r13
+         push         %r14
+         push         %r15
          mov          %rdi, X
          mov          %rsi, W
          mov          %rdx, N
@@ -89,5 +94,10 @@ L3:
          mov          N, %rdx
          mov          N2, %rcx
          call         butterfly4_finish
+         pop          %r15
+         pop          %r14
+         pop          %r13
+         pop          %r12
+         pop          %rbx
          leave
          ret
