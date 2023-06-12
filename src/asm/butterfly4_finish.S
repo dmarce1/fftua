@@ -48,22 +48,22 @@
          .data
 
          .align       32
-dI1:     .double      0
-         .double      2
-         .double      4
-         .double      6
-dI2:     .double      0
-         .double      4
-         .double      8
-         .double      12
-dI3:     .double      0
-         .double      6
-         .double      12
-         .double      18
 ones:    .quad        0xffffffffffffffff
          .quad        0xffffffffffffffff
          .quad        0xffffffffffffffff
          .quad        0xffffffffffffffff
+dI1:     .long        0
+         .long        2
+         .long        4
+         .long        6
+dI2:     .long        0
+         .long        4
+         .long        8
+         .long        12
+dI3:     .long        0
+         .long        6
+         .long        12
+         .long        18
 tw45:    .double      M_SQRT1_2
 none:    .double      -1.0
 
@@ -216,9 +216,9 @@ k2simd:
          lea          (W, %rax, 8), %rax
          lea          (W, %rbx, 8), %rbx
          lea          (W, %rcx, 8), %rcx
-         movd         dI1, %xmm1
-         movd         dI2, %xmm2
-         movd         dI3, %xmm3
+         vmovdqa      dI1, %xmm1
+         vmovdqa      dI2, %xmm2
+         vmovdqa      dI3, %xmm3
          vmovdqa      ones, %ymm4
          vmovdqa      %ymm4, %ymm5
          vmovdqa      %ymm4, %ymm6
@@ -234,7 +234,7 @@ k2simd:
          mov          N2, %rdi
          sub          k2, %rdi
          sub          k2, %rdi
-         sub          $24, %rdi
+         sub          $3, %rdi
          lea          (W, k2, 8), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx

@@ -1592,9 +1592,9 @@ void fft_inplace_real(double* x, int N) {
 		}
 		for (int ihi = 0; ihi < NHIN1; ihi++) {
 			for( int klo = 0; klo < N1; klo++) {
-				for (int khi = 0; khi < N2N1 / 2; khi++) {
+				for (int khi = 0; khi < N2N1; khi++) {
 					const int k2 = (khi << 2) | klo;
-					if( k2 == 0 ) {
+					if( k2 == 0 || k2 >= N2/2) {
 						continue;
 					}
 					const int& khi0 = khi;
