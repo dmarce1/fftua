@@ -1654,13 +1654,13 @@ void fft_inplace_real(double* x, int N) {
 					U3R = _mm256_sub_pd(T2R, T3I);
 					U3I = _mm256_sub_pd(T3R, T2I);
 					_mm256_store_pd(xi0, U0R);
-					_mm256_store_pd(xi7, U0I);
 					_mm256_store_pd(xi1, U1R);
-					_mm256_store_pd(xi6, U1I);
-					_mm256_store_pd(xi5, U2R);
 					_mm256_store_pd(xi2, U2I);
-					_mm256_store_pd(xi4, U3R);
 					_mm256_store_pd(xi3, U3I);
+					_mm256_store_pd(xi4, U3R);
+					_mm256_store_pd(xi5, U2R);
+					_mm256_store_pd(xi6, U1I);
+					_mm256_store_pd(xi7, U0I);
 				}
 			}
 		}

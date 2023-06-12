@@ -235,7 +235,7 @@ k2simd:
          sub          k2, %rdi
          sub          k2, %rdi
          sub          $3, %rdi
-         lea          (W, k2, 8), %rax
+         lea          (X, k2, 8), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
          lea          (%rcx, N2, 8), %rdx
