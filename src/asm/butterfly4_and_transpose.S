@@ -1,4 +1,4 @@
-#define  STACK_SIZE   $1216
+#define  STACK_SIZE   $1208
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
@@ -125,7 +125,7 @@ n1_k0:
          mov          N2, %rbx
          mul          %rbx
          mov          %rax, %rdx
-         add          %rdx, %rdi
+         add          %rdi, %rdx
 
          mov          n0, %rax
          shl          $2, %rax
@@ -133,7 +133,7 @@ n1_k0:
          shl          $2, %rax
 
          vmovapd      (X, %rdx, 8), %ymm0
-         vmovupd      %ymm0, (U0, %rax, 8)
+         vmovapd      %ymm0, (U0, %rax, 8)
          inc          n1
          cmp          N1, n1
          jne          n1_k0
@@ -146,15 +146,14 @@ k0:
          mov          n0, %rdx
          shl          $7, %rdx
          add          U0, %rdx
-         vmovupd      (%rdx), er0
-         vmovupd      32(%rdx), er1
-         vmovupd      64(%rdx), er2
-         vmovupd      96(%rdx), er3
-
+         vmovapd      (%rdx), er0
+         vmovapd      32(%rdx), er1
+         vmovapd      64(%rdx), er2
+         vmovapd      96(%rdx), er3
          vaddpd       er2, er0, tr0
          vsubpd       er2, er0, tr2
          vaddpd       er3, er1, tr1
-         vsubpd       er3, er1, tr3
+         vsubpd       er1, er3, tr3
          vaddpd       tr1, tr0, er0
          vsubpd       tr1, tr0, er2
          mov          n0, %rax
@@ -216,7 +215,7 @@ n1_kN2o2:
          shl          $2, %rax
 
          vmovapd      (X, %rdx, 8), %ymm0
-         vmovupd      %ymm0, (U0, %rax, 8)
+         vmovapd      %ymm0, (U0, %rax, 8)
          inc          n1
          cmp          N1, n1
          jne          n1_kN2o2
@@ -228,10 +227,10 @@ kN2o2:
          mov          n0, %rdx
          shl          $7, %rdx
          add          U0, %rdx
-         vmovupd      (%rdx), er0
-         vmovupd      32(%rdx), er1
-         vmovupd      64(%rdx), er2
-         vmovupd      96(%rdx), er3
+         vmovapd      (%rdx), er0
+         vmovapd      32(%rdx), er1
+         vmovapd      64(%rdx), er2
+         vmovapd      96(%rdx), er3
          vaddpd       er3, er1, tr0
          vsubpd       er3, er1, tr2
          vmulpd       tw45, tr2, tr1
@@ -368,14 +367,14 @@ main_loop:
          vbroadcastsd sin1, ti1
          vbroadcastsd sin2, ti2
          vbroadcastsd sin3, ti3
-         vmovupd      (%rdx), er0
-         vmovupd      32(%rdx), ei0
-         vmovupd      64(%rdx), er1
-         vmovupd      96(%rdx), ei1
-         vmovupd      128(%rdx), er2
-         vmovupd      160(%rdx), ei2
-         vmovupd      192(%rdx), er3
-         vmovupd      224(%rdx), ei3
+         vmovapd      (%rdx), er0
+         vmovapd      32(%rdx), ei0
+         vmovapd      64(%rdx), er1
+         vmovapd      96(%rdx), ei1
+         vmovapd      128(%rdx), er2
+         vmovapd      160(%rdx), ei2
+         vmovapd      192(%rdx), er3
+         vmovapd      224(%rdx), ei3
          vmulpd       ti1, ei1, tr0
          vmulpd       tr1, ei1, ti0
          vfmsub231pd  tr1, er1, tr0
