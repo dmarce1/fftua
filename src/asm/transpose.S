@@ -20,6 +20,7 @@ transpose:
 loop:
          mov          K, %rax
          mov          K, %rdx
+
          inc          %rdx
          add          N1N2, %rax
          movq         (X, %rdx, 8), %xmm0

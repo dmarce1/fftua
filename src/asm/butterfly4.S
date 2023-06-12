@@ -1,4 +1,4 @@
-#define  STACK_SIZE   $80
+#define  STACK_SIZE   $64
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
@@ -31,8 +31,7 @@
 #define  N2oN1        -40(%rbp)
 #define  N2N1         -48(%rbp)
 #define  N2o2         -56(%rbp)
-#define  N2oN1        -64(%rbp)
-#define  khi1         -72(%rbp)
+#define  khi1         -64(%rbp)
 #define  khi0         khi
 #define  klo0         klo
 
@@ -54,6 +53,7 @@ none:    .double      -1.0
 
 butterfly4:
          enter        STACK_SIZE, $0
+         push         %rbx
          push         %r12
          push         %r13
          push         %r14
