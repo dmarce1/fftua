@@ -78,7 +78,7 @@ butterfly4_finish:
          mov          %rdi, X
          mov          %rsi, W
          mov          %rdx, N
-         shl          $2, %rdx
+         shr          $2, %rdx
          mov          %rdx, N2
          shl          $2, %rdx
          mov          %rdx, _8N2o2
@@ -126,8 +126,8 @@ butterfly4_finish:
          cmp          $2, N2
          jle          done
          movq         $8, k2max
-         cmp          $8, N
-         cmovl        N, k2max
+         cmp          $8, N2
+         cmovl        N2, k2max
          shr          k2max
          mov          $1, k2
 k2scalar:

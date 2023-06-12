@@ -26,7 +26,7 @@ fft_selfsort:
          mov          N2, %rdx
          mov          NHI, %rax
          mul          %rdx
-         mov          %rdx, %rcx
+         mov          %rax, %rcx
          shl          $4, %rcx
          mov          N, %rax
          xor          %rdx, %rdx
@@ -46,7 +46,7 @@ L0:
          mov          N2, %rdx
          mov          NHI, %rax
          mul          %rdx
-         mov          %rdx, %rcx
+         mov          %rax, %rcx
          shl          $4, %rcx
          mov          N, %rax
          xor          %rdx, %rdx
@@ -75,7 +75,8 @@ L2:
          jmp          L2
 L3:
          mov          X, %rdi
-         mov          N2, %rsi
+         mov          N, %rsi
+         shr          $4, %rsi
          call         transpose
          mov          N, %rax
          xor          %rdx, %rdx
