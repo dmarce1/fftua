@@ -253,6 +253,7 @@ n0loop5:
          inc          imid
          cmp          imid, NMID
          jne          imidloop1
+         xor          imid, imid
 imidloop2:
          xor          k2, k2
 k2loop_b:
