@@ -167,9 +167,9 @@ k0:
          lea          (%rax, %rdx, 8), %rax
          vmovapd      tr2, (%rax)
          lea          (%rax, %rdx, 8), %rax
-         vmovapd      tr3, (%rax)
-         lea          (%rax, %rdx, 8), %rax
          vmovapd      er2, (%rax)
+         lea          (%rax, %rdx, 8), %rax
+         vmovapd      tr3, (%rax)
          inc          n0
          cmp          N1, n0
          jne          k0
@@ -302,7 +302,6 @@ k2_loop_b:
          mov          %rbx, klor
          mov          %rcx, khii
          mov          %rdx, kloi
-
          mov          NHIoN1, %rbx
          mov          klor, %rax
          mul          %rbx
@@ -315,7 +314,6 @@ k2_loop_b:
          add          khir, %rax
          shl          $2, %rax
          mov          %rax, %rdi
-
          mov          NHIoN1, %rbx
          mov          kloi, %rax
          mul          %rbx
@@ -328,7 +326,6 @@ k2_loop_b:
          add          khii, %rax
          shl          $2, %rax
          mov          %rax, %rsi
-
          xor          n0, n0
 n0_loop:
          xor          n1, n1
