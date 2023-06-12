@@ -87,9 +87,6 @@ butterfly4_and_transpose:
          mov          N2, %rax
          mul          %rbx
          mov          %rax, N1N2NMID
-         mov          N2, %rax
-         shr          %rax
-         mov          %rax, N2o2
          mov          NHI, %rbx
          mul          %rbx
          shl          $2, %rax
@@ -97,13 +94,17 @@ butterfly4_and_transpose:
          mov          N, %rax
          mov          N2, %rbx
          shl          $2, %rbx
+         xor          %rdx, %rdx
          div          %rbx
          mov          %rax, TWHI
+         mov          N2, %rax
+         shr          %rax
+         mov          %rax, N2o2
          xor          %rdx, %rdx
          mov          %rdx, ihi
-ihiloop:
+ihi_loop:
          xor          imid, imid
-imidloop0:
+imid_k0:
          mov          N1NMID, %rax
          mov          ihi, %rbx
          mul          %rbx
@@ -113,9 +114,10 @@ imidloop0:
          shl          $2, %rax
          mov          %rax, %rdi
          xor          n0, n0
-n0loop2:
+n0_k0:
          xor          n1, n1
-n1loop2:
+n1_k0:
+
          mov          n1, %rax
          mov          N1NMID, %rbx
          mul          %rbx
@@ -124,20 +126,23 @@ n1loop2:
          mul          %rbx
          mov          %rax, %rdx
          add          %rdx, %rdi
+
          mov          n0, %rax
          shl          $2, %rax
          add          n1, %rax
          shl          $2, %rax
+
          vmovapd      (X, %rdx, 8), %ymm0
          vmovupd      %ymm0, (U0, %rax, 8)
          inc          n1
          cmp          N1, n1
-         jne          n1loop2
+         jne          n1_k0
          inc          n0
          cmp          N1, n0
-         jne          n0loop2
+         jne          n0_k0
          xor          n0, n0
-n0loop3:
+k0:
+
          mov          n0, %rdx
          shl          $7, %rdx
          add          U0, %rdx
@@ -145,6 +150,7 @@ n0loop3:
          vmovupd      32(%rdx), er1
          vmovupd      64(%rdx), er2
          vmovupd      96(%rdx), er3
+
          vaddpd       er2, er0, tr0
          vsubpd       er2, er0, tr2
          vaddpd       er3, er1, tr1
@@ -166,12 +172,12 @@ n0loop3:
          vmovapd      er2, (%rax)
          inc          n0
          cmp          N1, n0
-         jne          n0loop3
+         jne          k0
          inc          imid
          cmp          imid, NMID
-         jne          imidloop0
+         jne          imid_k0
          xor          imid, imid
-imidloop1:
+imid_kN2o2:
          mov          N2o2, %rax
          mov          N2o2, %rbx
          shr          $2, %rax
@@ -191,9 +197,10 @@ imidloop1:
          shl          $2, %rax
          mov          %rax, %rdi
          xor          n0, n0
-n0loop4:
+n0_kN2o2:
          xor          n1, n1
-n1loop4:
+n1_kN2o2:
+
          mov          n1, %rax
          mov          N1NMID, %rbx
          mul          %rbx
@@ -202,20 +209,22 @@ n1loop4:
          mul          %rbx
          mov          %rax, %rdx
          add          %rdi, %rdx
+
          mov          n0, %rax
          shl          $2, %rax
          add          n1, %rax
          shl          $2, %rax
+
          vmovapd      (X, %rdx, 8), %ymm0
          vmovupd      %ymm0, (U0, %rax, 8)
          inc          n1
          cmp          N1, n1
-         jne          n1loop4
+         jne          n1_kN2o2
          inc          n0
          cmp          N1, n0
-         jne          n0loop4
+         jne          n0_kN2o2
          xor          n0, n0
-n0loop5:
+kN2o2:
          mov          n0, %rdx
          shl          $7, %rdx
          add          U0, %rdx
@@ -249,17 +258,17 @@ n0loop5:
          vmovapd      er3, (%rax)
          inc          n0
          cmp          N1, n0
-         jne          n0loop5
+         jne          kN2o2
          inc          imid
          cmp          imid, NMID
-         jne          imidloop1
+         jne          imid_kN2o2
          xor          imid, imid
-imidloop2:
+imid_loop:
          xor          k2, k2
-k2loop_b:
+k2_loop_b:
          inc          k2
          cmp          k2, N2o2
-         je           k2loop_e
+         je           k2_loop_e
          mov          k2, %rbx
          mov          TWHI, %rax
          mul          %rbx
@@ -293,34 +302,37 @@ k2loop_b:
          mov          %rbx, klor
          mov          %rcx, khii
          mov          %rdx, kloi
+
          mov          NHIoN1, %rbx
          mov          klor, %rax
          mul          %rbx
          add          ihi, %rax
-         mov          NMID, %rbx
+         mov          N1NMID, %rbx
          mul          %rbx
          add          imid, %rax
          mov          N2, %rbx
          mul          %rbx
          add          khir, %rax
          shl          $2, %rax
-         mov          %rax, %rsi
+         mov          %rax, %rdi
+
          mov          NHIoN1, %rbx
          mov          kloi, %rax
          mul          %rbx
          add          ihi, %rax
-         mov          NMID, %rbx
+         mov          N1NMID, %rbx
          mul          %rbx
          add          imid, %rax
          mov          N2, %rbx
          mul          %rbx
          add          khii, %rax
          shl          $2, %rax
-         mov          %rax, %rdi
+         mov          %rax, %rsi
+
          xor          n0, n0
-n0loop0:
+n0_loop:
          xor          n1, n1
-n1loop0:
+n1_loop:
          mov          n1, %rax
          mov          N1NMID, %rbx
          mul          %rbx
@@ -331,22 +343,25 @@ n1loop0:
          mov          %rax, %rdx
          add          %rdi, %rcx
          add          %rsi, %rdx
+
          vmovdqa      (X, %rcx, 8), %ymm0
          vmovdqa      (X, %rdx, 8), %ymm1
+
          mov          n0, %rax
          shl          $2, %rax
          add          n1, %rax
          shl          $3, %rax
+
          vmovdqu      %ymm0, 0(U0, %rax, 8)
          vmovdqu      %ymm1, 32(U0, %rax, 8)
          inc          n1
          cmp          N1, n1
-         jne          n1loop0
+         jne          n1_loop
          inc          n0
          cmp          N1, n0
-         jne          n0loop0
+         jne          n0_loop
          xor          n0, n0
-n0loop1:
+main_loop:
          mov          n0, %rdx
          shl          $8, %rdx
          add          U0, %rdx
@@ -422,17 +437,17 @@ n0loop1:
          vmovapd      ei0, (%rbx)
          inc          n0
          cmp          N1, n0
-         jne          n0loop1
-         jmp          k2loop_b
-k2loop_e:
+         jne          main_loop
+         jmp          k2_loop_b
+k2_loop_e:
          inc          imid
          cmp          imid, NMID
-         jne          imidloop2
+         jne          imid_loop
          mov          ihi, %rax
          inc          %rax
          mov          %rax, ihi
          cmp          %rax, NHIoN1
-         jne          ihiloop
+         jne          ihi_loop
          pop          %r15
          pop          %r14
          pop          %r13

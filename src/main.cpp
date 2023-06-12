@@ -91,10 +91,10 @@ int main(int argc, char **argv) {
 				std::vector<complex<double>> X(N / 2 + 1);
 				std::vector<complex<double>> Y(N / 2 + 1);
 				for (int n = 0; n < N; n++) {
-					x[n] = (y[n] = rand1());
+					x[n] = (y[n] = 0);
 				}
 				//x[0] = y[0] = 1.0;
-//				x[0] = y[0] = 1.0;
+				x[0] = y[0] = 1.0;
 				if (i == 0) {
 					fftw_real(Y, y);
 					fft_inplace_real(x.data(), N);
