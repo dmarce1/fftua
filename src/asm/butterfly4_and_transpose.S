@@ -77,7 +77,7 @@ butterfly4_and_transpose:
          mov          %rsi, W
          mov          %rdi, X
          lea          U0ptr, U0
-         and          0xffffffffffffffe0, U0
+         and          $0xffffffffffffffe0, U0
          mov          NHI, %rax
          shr          $2, %rax
          mov          %rax, NHIoN1
@@ -87,6 +87,9 @@ butterfly4_and_transpose:
          mov          N2, %rax
          mul          %rbx
          mov          %rax, N1N2NMID
+         mov          N2, %rax
+         shr          %rax
+         mov          %rax, N2o2
          mov          NHI, %rbx
          mul          %rbx
          shl          $2, %rax
@@ -207,10 +210,10 @@ n1loop4:
          vmovupd      %ymm0, (U0, %rax, 8)
          inc          n1
          cmp          N1, n1
-         jne          n1loop2
+         jne          n1loop4
          inc          n0
          cmp          N1, n0
-         jne          n0loop2
+         jne          n0loop4
          xor          n0, n0
 n0loop5:
          mov          n0, %rdx
@@ -289,30 +292,30 @@ k2loop_b:
          mov          %rbx, klor
          mov          %rcx, khii
          mov          %rdx, kloi
-         mov          NHIoN1, %rax
-         mov          klor, %rbx
+         mov          NHIoN1, %rbx
+         mov          klor, %rax
          mul          %rbx
          add          ihi, %rax
-         mov          N1NMID, %rbx
+         mov          NMID, %rbx
          mul          %rbx
          add          imid, %rax
          mov          N2, %rbx
          mul          %rbx
          add          khir, %rax
-         mov          %rax, %rdi
-         mov          NHIoN1, %rax
-         mov          kloi, %rbx
+         shl          $2, %rax
+         mov          %rax, %rsi
+         mov          NHIoN1, %rbx
+         mov          kloi, %rax
          mul          %rbx
          add          ihi, %rax
-         mov          N1NMID, %rbx
+         mov          NMID, %rbx
          mul          %rbx
          add          imid, %rax
          mov          N2, %rbx
          mul          %rbx
          add          khii, %rax
-         mov          %rax, %rsi
-         shl          $2, %rdi
-         shl          $2, %rsi
+         shl          $2, %rax
+         mov          %rax, %rdi
          xor          n0, n0
 n0loop0:
          xor          n1, n1
@@ -403,7 +406,7 @@ n0loop1:
          lea          (X, %rdi, 8), %rax
          lea          (X, %rsi, 8), %rbx
          vmovapd      er0, (%rax)
-         vmovapd      er1, (%rax)
+         vmovapd      er1, (%rbx)
          lea          (%rax, %rdx, 8), %rax
          lea          (%rbx, %rdx, 8), %rbx
          vmovapd      ei2, (%rax)
