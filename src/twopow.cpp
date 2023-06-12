@@ -1163,10 +1163,18 @@ inline __m256& dble2m256(double* x) {
 	return *((__m256*) x);
 }
 
+extern "C" {
+void fft_selfsort(double*, double*, int);
+}
+
 void fft_inplace_real(double* x, int N) {
 	constexpr int N1 = 4;
 	int NHI, NMID, N2, TWHI, KLO, KHI;
 	const auto& w = twiddles(N);
+
+	fft_selfsort(x, (double*) w.data(), N);
+	return;
+
 	const auto& cos1 = cosines1(N);
 	const auto& cos2 = cosines2(N);
 	const auto& cos3 = cosines3(N);

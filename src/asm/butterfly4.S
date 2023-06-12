@@ -68,7 +68,8 @@ butterfly4:
          shr          $2, %rdx
          mov          %rcx, N2oN1
          mov          %rdx, NHIoN1
-         mulx         NHI, N2, %rax
+         mov          N2, %rdx
+         mulx         NHI, %rdx, %rax
          shl          $2, %rax
          mov          %rax, N
          mov          N2, %rbx
@@ -81,7 +82,8 @@ butterfly4:
          mov          %rcx, N2o2oN1
          xor          ihi, ihi
 ihiloop0:
-         mulx         N2N1, ihi, %rax
+         mov          ihi, %rdx
+         mulx         N2N1, %rdx, %rax
          lea          (X, %rax, 8), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
@@ -166,8 +168,10 @@ khiloop:
          mov          %rbx, klo1
          mulx         NHI, k2, %rax
          shl          %rax
-         mulx         two, %rax, %rbx
-         mulx         three, %rax, %rcx
+         mov          %rax, %rdx
+         mulx         two, %rdx, %rbx
+         mov          %rax, %rdx
+         mulx         three, %rdx, %rcx
          vbroadcastsd 0(W, %rax, 8), tr1
          vbroadcastsd 8(W, %rax, 8), ti1
          vbroadcastsd 0(W, %rbx, 8), tr2
@@ -176,11 +180,13 @@ khiloop:
          vbroadcastsd 8(W, %rcx, 8), ti3
          mov          NHIoN1, %rdx
          mulx         klo0, %rdx, %rax
+         mov          NHIoN1, %rdx
          mulx         klo1, %rdx, %rdi
          add          ihi, %rax
          add          ihi, %rdi
          mul          N2
-         mulx         N2, %rdi, %rdi
+         mov          %rdi, %rdx
+         mulx         N2, %rdx, %rdi
          add          khi0, %rax
          add          khi1, %rdi
          shl          $2, %rax

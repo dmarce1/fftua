@@ -24,9 +24,10 @@ fft_selfsort:
          shl          $2, NHI
          shl          $2, N2
          mov          N, %rax
-         xor          %rdx, %rdx
-         mulx         NHI, N2, %rcx
+         mov          N2, %rdx
+         mulx         NHI, %rdx, %rcx
          shl          $4, %rcx
+         xor          %rdx, %rdx
          div          %rcx
          mov          %rax, NMID
 L0:
@@ -41,9 +42,10 @@ L0:
          shl          $2, NHI
          shl          $2, N2
          mov          N, %rax
-         xor          %rdx, %rdx
-         mulx         NHI, N2, %rcx
+         mov          N2, %rdx
+         mulx         NHI, %rdx, %rcx
          shl          $4, %rcx
+         xor          %rdx, %rdx
          div          %rcx
          mov          %rax, NMID
          jmp          L0

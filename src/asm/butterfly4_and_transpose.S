@@ -90,8 +90,9 @@ butterfly4_and_transpose:
          shl          $2, %rdx
          mov          %rdx, N
          mov          N2, %rdi
+         mov          %rax, %rcx
          mulx         NHI, %rdi, %rax
-         mulx         NMID, %rax, %rax
+         mulx         NMID, %rcx, %rax
          shl          $2, %rax
          mov          %rax, TWHI
          mov          %rax, TWHI
@@ -103,15 +104,18 @@ imidloop0:
          mov          N1NMID, %rax
          mulx         ihi, %rax, %rdi
          add          imid, %rdi
-         mulx         N2, %rdi, %rdi
+         mov          %rdi, %rax
+         mulx         N2, %rax, %rdi
          shl          $2, %rdi
          xor          n0, n0
 n0loop2:
          xor          n1, n1
 n1loop2:
-         mulx         N1NMID, n1, %rdx
+         mov          n1, %rax
+         mulx         N1NMID, %rax, %rdx
          add          n0, %rdx
-         mulx         N2, %rdx, %rdx
+         mov          %rdx, %rax
+         mulx         N2, %rax, %rdx
          add          %rdx, %rdi
          mov          n0, %rax
          shl          $2, %rax
@@ -140,7 +144,8 @@ n0loop3:
          vsubpd       er3, er1, tr3
          vaddpd       tr1, tr0, er0
          vsubpd       tr1, tr0, er2
-         mulx         N1N2NMID, n0, %rax
+         mov          n0, %rbx
+         mulx         N1N2NMID, %rbx, %rax
          add          %rdi, %rax
          mov          N2, %rdx
          lea          (X, %rax, 8), %rax
@@ -168,18 +173,22 @@ imidloop1:
          mov          NHIoN1, %rax
          mulx         klor, %rax, %rdi
          add          ihi, %rdi
-         mulx         N1NMID, %rdi, %rdi
+         mov          %rdi, %rax
+         mulx         N1NMID, %rax, %rdi
          add          imid, %rdi
-         mulx         N2, %rdi, %rdi
+         mov          %rdi, %rax
+         mulx         N2, %rax, %rdi
          add          khir, %rdi
          shl          $2, %rdi
          xor          n0, n0
 n0loop4:
          xor          n1, n1
 n1loop4:
-         mulx         N1NMID, n1, %rdx
+         mov          n1, %rax
+         mulx         N1NMID, %rax, %rdx
          add          n0, %rdx
-         mulx         N2, %rdx, %rdx
+         mov          %rdx, %rax
+         mulx         N2, %rax, %rdx
          add          %rdx, %rdi
          mov          n0, %rax
          shl          $2, %rax
@@ -213,7 +222,8 @@ n0loop5:
          vsubpd       tr1, tr0, er1
          vsubpd       tr3, tr2, er2
          vmulpd       none, er3, er3
-         mulx         N1N2NMID, n0, %rax
+         mov          n0, %rbx
+         mulx         N1N2NMID, %rbx, %rax
          add          %rdi, %rax
          mov          N2, %rdx
          lea          (X, %rax, 8), %rax
@@ -236,10 +246,13 @@ k2loop_b:
          inc          k2
          cmp          k2, N2o2
          je           k2loop_e
-         mulx         TWHI, k2, %rax
+         mov          %rbx, k2
+         mulx         TWHI, %rbx, %rax
          shl          %rax
-         mulx         two, %rax, %rbx
-         mulx         three, %rax, %rcx
+         mov          %rax, %rdx
+         mulx         two, %rdx, %rbx
+         mov          %rax, %rdx
+         mulx         three, %rdx, %rcx
          movq         0(W, %rax, 8), %xmm0
          movq         8(W, %rax, 8), %xmm1
          movq         0(W, %rbx, 8), %xmm2
@@ -267,15 +280,20 @@ k2loop_b:
          mov          %rdx, kloi
          mov          NHIoN1, %rax
          mulx         klor, %rax, %rdi
+         mov          NHIoN1, %rax
          mulx         kloi, %rax, %rsi
          add          ihi, %rdi
          add          ihi, %rsi
-         mulx         N1NMID, %rdi, %rdi
-         mulx         N1NMID, %rsi, %rsi
+         mov          %rdi, %rax
+         mulx         N1NMID, %rax, %rdi
+         mov          %rsi, %rax
+         mulx         N1NMID, %rax, %rsi
          add          imid, %rdi
          add          imid, %rsi
-         mulx         N2, %rdi, %rdi
-         mulx         N2, %rsi, %rsi
+         mov          %rdi, %rax
+         mulx         N2, %rax, %rdi
+         mov          %rsi, %rax
+         mulx         N2, %rax, %rsi
          add          khir, %rdi
          add          khii, %rsi
          shl          $2, %rdi
@@ -284,7 +302,8 @@ k2loop_b:
 n0loop0:
          xor          n1, n1
 n1loop0:
-         mulx         N1NMID, n1, %rdx
+         mov          n1, %rax
+         mulx         N1NMID, %rax, %rdx
          add          n0, %rdx
          mulx         N2, %rdx, %rdx
          mov          %rdx, %rcx
@@ -357,7 +376,8 @@ n0loop1:
          vsubpd       ti0, ti1, ei2
          vsubpd       ti3, tr2, er3
          vsubpd       ti2, tr3, ei3
-         mulx         N1N2NMID, n0, %rdx
+         mov          n0, %rax
+         mulx         N1N2NMID, %rax, %rdx
          mov          %rdx, %rcx
          add          %rdi, %rcx
          add          %rsi, %rdx

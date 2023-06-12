@@ -135,8 +135,10 @@ butterfly4_finish:
 k2scalar:
          mov          k2, %rax
          shl          %rax
-         mulx         two, %rax, %rbx
-         mulx         three, %rax, %rcx
+         mov          %rax, %rdx
+         mulx         two, %rdx, %rbx
+         mov          %rax, %rdx
+         mulx         three, %rdx, %rcx
          movq         0(W, %rax, 8), sr1
          movq         0(W, %rbx, 8), sr2
          movq         0(W, %rcx, 8), sr3
@@ -209,8 +211,10 @@ k2scalar:
 k2simd:
          mov          k2, %rax
          shl          %rax
-         mulx         two, %rax, %rbx
-         mulx         three, %rax, %rcx
+         mov          %rax, %rdx
+         mulx         two, %rdx, %rbx
+         mov          %rax, %rdx
+         mulx         three, %rdx, %rcx
          lea          (W, %rax, 8), %rax
          lea          (W, %rbx, 8), %rbx
          lea          (W, %rcx, 8), %rcx
