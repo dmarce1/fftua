@@ -24,15 +24,15 @@
 #define  ti1          %ymm13
 #define  ti2          %ymm14
 #define  ti3          %ymm15
-#define  N            -8(%ebp)
-#define  NHI          -24(%ebp)
-#define  NHIoN1       -32(%ebp)
-#define  N2oN1        -40(%ebp)
-#define  N2N1         -48(%ebp)
-#define  N2o2         -56(%ebp)
-#define  N2o2oN1      -64(%ebp)
-#define  khi1         -72(%ebp)
-#define  klo1         -80(%ebp)
+#define  NHI          -8(%rbp)
+#define  klo1         -16(%rbp)
+#define  N            -24(%rbp)
+#define  NHIoN1       -32(%rbp)
+#define  N2oN1        -40(%rbp)
+#define  N2N1         -48(%rbp)
+#define  N2o2         -56(%rbp)
+#define  N2o2oN1      -64(%rbp)
+#define  khi1         -72(%rbp)
 #define  khi0         khi
 #define  klo0         klo
 
@@ -54,7 +54,6 @@ none:    .double      -1.0
 
 butterfly4:
          enter        STACK_SIZE, $0
-         push         %rbx
          push         %r12
          push         %r13
          push         %r14
