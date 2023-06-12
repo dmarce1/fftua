@@ -38,7 +38,7 @@ loop:
          vmovapd      e0, (%r8)
          vmovapd      t2, (%r9)
          vmovapd      e2, (%r10)
-         vmovapd      e3, (%r11)
+         vmovapd      t3, (%r11)
          add          SIMD_SIZE, I
          cmp          I, M
          jne          loop
