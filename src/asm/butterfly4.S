@@ -49,8 +49,6 @@ none:    .double      -1.0
          .double      -1.0
          .double      -1.0
          .double      -1.0
-two:     .quad        2
-three:   .quad        3
 
          .text
 
@@ -69,7 +67,8 @@ butterfly4:
          mov          %rcx, N2oN1
          mov          %rdx, NHIoN1
          mov          N2, %rdx
-         mulx         NHI, %rdx, %rax
+         mov          NHI, %rax
+         mul          %rdx
          shl          $2, %rax
          mov          %rax, N
          mov          N2, %rbx
@@ -82,8 +81,9 @@ butterfly4:
          mov          %rcx, N2o2oN1
          xor          ihi, ihi
 ihiloop0:
-         mov          ihi, %rdx
-         mulx         N2N1, %rdx, %rax
+         mov          ihi, %rax
+         mov          N2N1, %rbx
+         mul          %rbx
          lea          (X, %rax, 8), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
@@ -116,7 +116,8 @@ ihiloop0:
          xor          ihi, ihi
 ihiloop1:
          mov          NHIoN1, %rax
-         mulx         klo0, %rax, %rax
+         mov          klo0, %rbx
+         mul          %rbx
          add          ihi, %rax
          mul          N2
          add          khi0, %rax
@@ -166,32 +167,41 @@ khiloop:
          and          $3, %rbx
          mov          %rax, khi1
          mov          %rbx, klo1
-         mulx         NHI, k2, %rax
+         mov          NHI, %rax
+         mov          k2, %rbx
+         mul          %rbx
          shl          %rax
-         mov          %rax, %rdx
-         mulx         two, %rdx, %rbx
-         mov          %rax, %rdx
-         mulx         three, %rdx, %rcx
+         mov          %rax, %rbx
+         mov          %rax, %rcx
+         add          %rax, %rbx
+         add          %rbx, %rcx
          vbroadcastsd 0(W, %rax, 8), tr1
          vbroadcastsd 8(W, %rax, 8), ti1
          vbroadcastsd 0(W, %rbx, 8), tr2
          vbroadcastsd 8(W, %rbx, 8), ti2
          vbroadcastsd 0(W, %rcx, 8), tr3
          vbroadcastsd 8(W, %rcx, 8), ti3
+         mov          NHIoN1, %rax
+         mov          klo0, %rbx
+         mul          %rbx
+         mov          %rax, %rbx
          mov          NHIoN1, %rdx
-         mulx         klo0, %rdx, %rax
-         mov          NHIoN1, %rdx
-         mulx         klo1, %rdx, %rdi
-         add          ihi, %rax
+         mov          klo0, %rax
+         mul          %rdx
+         mov          %rax, %rdi
+         add          ihi, %rbx
          add          ihi, %rdi
-         mul          N2
-         mov          %rdi, %rdx
-         mulx         N2, %rdx, %rdi
-         add          khi0, %rax
+         mov          N2, %rax
+         mul          %rbx
+         mov          %rax, %rdx
+         mov          N2, %rax
+         mul          %rdx
+         mov          %rax, %rdx
+         add          khi0, %rbx
          add          khi1, %rdi
-         shl          $2, %rax
+         shl          $2, %rbx
          shl          $2, %rdi
-         sub          %rax, %rdi
+         sub          %rbx, %rdi
          lea          (X, %rax, 8), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx

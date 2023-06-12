@@ -66,8 +66,6 @@ ones:    .quad        0xffffffffffffffff
          .quad        0xffffffffffffffff
 tw45:    .double      M_SQRT1_2
 none:    .double      -1.0
-two:     .quad        2
-three:   .quad        3
 
          .text
 
@@ -135,10 +133,10 @@ butterfly4_finish:
 k2scalar:
          mov          k2, %rax
          shl          %rax
-         mov          %rax, %rdx
-         mulx         two, %rdx, %rbx
-         mov          %rax, %rdx
-         mulx         three, %rdx, %rcx
+         mov          %rax, %rbx
+         mov          %rax, %rcx
+         add          %rax, %rbx
+         add          %rbx, %rcx
          movq         0(W, %rax, 8), sr1
          movq         0(W, %rbx, 8), sr2
          movq         0(W, %rcx, 8), sr3
@@ -211,10 +209,10 @@ k2scalar:
 k2simd:
          mov          k2, %rax
          shl          %rax
-         mov          %rax, %rdx
-         mulx         two, %rdx, %rbx
-         mov          %rax, %rdx
-         mulx         three, %rdx, %rcx
+         mov          %rax, %rbx
+         mov          %rax, %rcx
+         add          %rax, %rbx
+         add          %rbx, %rcx
          lea          (W, %rax, 8), %rax
          lea          (W, %rbx, 8), %rbx
          lea          (W, %rcx, 8), %rcx
