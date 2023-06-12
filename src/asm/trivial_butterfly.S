@@ -32,13 +32,13 @@ loop:
          vaddpd       e2, e0, t0
          vsubpd       e2, e0, t2
          vaddpd       e3, e1, t1
-         vsubpd       e3, e1, t3
+         vsubpd       e1, e3, t3
          vaddpd       t1, t0, e0
          vsubpd       t1, t0, e2
          vmovapd      e0, (%r8)
          vmovapd      t2, (%r9)
-         vmovapd      t3, (%r10)
-         vmovapd      e2, (%r11)
+         vmovapd      e2, (%r10)
+         vmovapd      e3, (%r11)
          add          SIMD_SIZE, I
          cmp          I, M
          jne          loop

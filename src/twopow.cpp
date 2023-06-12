@@ -1213,8 +1213,8 @@ void fft_inplace_real(double* x, int N) {
 			U2R = _mm256_sub_pd(T0R, T1R);
 			_mm256_store_pd(xi0, U0R);
 			_mm256_store_pd(xi1, T2R);
-			_mm256_store_pd(xi3, T3R);
 			_mm256_store_pd(xi2, U2R);
+			_mm256_store_pd(xi3, T3R);
 		}
 		tm1.stop();
 	};

@@ -95,13 +95,13 @@ ihiloop0:
          vaddpd       er2, er0, tr0
          vsubpd       er2, er0, tr2
          vaddpd       er3, er1, tr1
-         vsubpd       er3, er1, tr3
+         vsubpd       er1, er3, tr3
          vaddpd       tr1, tr0, er0
          vsubpd       tr1, tr0, er2
          vmovapd      er0, (%rax)
          vmovapd      tr2, (%rbx)
-         vmovapd      tr3, (%rcx)
-         vmovapd      er2, (%rdx)
+         vmovapd      er2, (%rcx)
+         vmovapd      tr3, (%rdx)
          inc          ihi
          cmp          ihi, NHIoN1
          jne          ihiloop0

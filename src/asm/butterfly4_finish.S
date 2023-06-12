@@ -29,14 +29,14 @@
 #define  ur1          %xmm1
 #define  ur2          %xmm2
 #define  ur3          %xmm3
-#define  sr0          %xmm4
-#define  sr1          %xmm5
-#define  sr2          %xmm6
-#define  sr3          %xmm7
-#define  ui0          %xmm8
-#define  ui1          %xmm9
-#define  ui2          %xmm10
-#define  ui3          %xmm11
+#define  ui0          %xmm4
+#define  ui1          %xmm5
+#define  ui2          %xmm6
+#define  ui3          %xmm7
+#define  sr0          %xmm8
+#define  sr1          %xmm9
+#define  sr2          %xmm10
+#define  sr3          %xmm11
 #define  si0          %xmm12
 #define  si1          %xmm13
 #define  si2          %xmm14
@@ -95,13 +95,13 @@ butterfly4_finish:
          vaddsd       ur2, ur0, sr0
          vsubsd       ur2, ur0, sr2
          vaddsd       ur3, ur1, sr1
-         vsubsd       ur3, ur1, sr3
+         vsubsd       ur1, ur3, sr3
          vaddsd       sr1, sr0, ur0
          vsubsd       sr1, sr0, ur2
          movq         ur0, (%rax)
          movq         sr2, (%rbx)
-         movq         sr3, (%rcx)
-         movq         ur2, (%rdx)
+         movq         ur2, (%rcx)
+         movq         sr3, (%rdx)
          cmp          $1, N2
          jle          done
          movq         (%rax, _8N2o2), ur0
@@ -143,7 +143,7 @@ k2scalar:
          movq         8(W, %rax, 8), si1
          movq         8(W, %rbx, 8), si2
          movq         8(W, %rcx, 8), si3
-         movq         N, %rdi
+         movq         N2, %rdi
          sub          k2, %rdi
          sub          k2, %rdi
          lea          (X, k2, 8), %rax
@@ -192,14 +192,14 @@ k2scalar:
          vsubsd       si0, si1, ui2
          vsubsd       si3, sr2, ur3
          vsubsd       si2, sr3, ui3
-         movq         (%rax), ur0
-         movq         (%rbx), ur1
-         movq         (%rcx), ui2
-         movq         (%rdx), ui3
-         movq         (%rax, %rdi, 8), ur3
-         movq         (%rbx, %rdi, 8), ur2
-         movq         (%rcx, %rdi, 8), ui1
-         movq         (%rdx, %rdi, 8), ui0
+         movq         ur0, (%rax)
+         movq         ur1, (%rbx)
+         movq         ui2, (%rcx)
+         movq         ui3, (%rdx)
+         movq         ur3, (%rax, %rdi, 8)
+         movq         ur2, (%rbx, %rdi, 8)
+         movq         ui1, (%rcx, %rdi, 8)
+         movq         ui0, (%rdx, %rdi, 8)
          inc          k2
          cmp          k2, k2max
          jne          k2scalar
