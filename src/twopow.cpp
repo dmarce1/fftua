@@ -1216,8 +1216,8 @@ void fft_inplace_real(double* x, int N) {
 	tm5.start();
 	butterfly4_finish(x, (double*) w.data(), N);
 	tm5.stop();
-	double tot = tm1.read() + tm2.read() + tm3.read() + tm4.read() + tm5.read();
-	printf("1: %e 2: %e 3: %e 4: %e 5: %e\n", tm1.read() / tot, tm2.read() / tot, tm3.read() / tot, tm4.read() / tot, tm5.read() / tot);
+//	double tot = tm1.read() + tm2.read() + tm3.read() + tm4.read() + tm5.read();
+//	printf("1: %e 2: %e 3: %e 4: %e 5: %e\n", tm1.read() / tot, tm2.read() / tot, tm3.read() / tot, tm4.read() / tot, tm5.read() / tot);
 
 	/*(	fft_selfsort(x, (double*) w.data(), N);
 	 return;

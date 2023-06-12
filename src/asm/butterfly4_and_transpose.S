@@ -94,11 +94,10 @@ butterfly4_and_transpose:
          div          %rbx
          mov          %rax, TWHI
          mov          N2, %rax
-         shr          %rax
-         mov          %rax, N2o2
-         mov          N2, %rax
          shl          $2, %rax
          mov          %rax, N1N2
+         shr          $3, %rax
+         mov          %rax, N2o2
          xor          %rdx, %rdx
          mov          %rdx, ihi
 ihi_loop:
@@ -108,8 +107,7 @@ imid_k0:
          mov          ihi, %rbx
          mul          %rbx
          add          imid, %rax
-         mov          N2, %rbx
-         mul          %rbx
+         mul          N2
          shl          $2, %rax
          mov          %rax, %rdi
          xor          n0, n0
@@ -184,8 +182,7 @@ imid_kN2o2:
          mov          N1NMID, %rbx
          mul          %rbx
          add          imid, %rax
-         mov          N2, %rbx
-         mul          %rbx
+         mul          N2
          pop          %rcx
          add          %rcx, %rax
          shl          $2, %rax
@@ -236,8 +233,7 @@ kN2o2_compute:
          vsubpd       tr3, tr2, er2
          vmulpd       none, er3, er3
          mov          N1N2NMID, %rax
-         mov          n0, %rbx
-         mul          %rbx
+         mul          n0
          add          %rdi, %rax
          mov          N2, %rdx
          lea          (X, %rax, 8), %rax
@@ -293,16 +289,13 @@ k2_loop_b:
          push         %rcx
          push         %rdx
          push         %rax
-         push         %rbx
-         mov          NHIoN1, %rbx
-         pop          %rax
+         mov          NHIoN1, %rax
          mul          %rbx
          add          ihi, %rax
          mov          N1NMID, %rbx
          mul          %rbx
          add          imid, %rax
-         mov          N2, %rbx
-         mul          %rbx
+         mul          N2
          pop          %rcx
          add          %rcx, %rax
          shl          $2, %rax
@@ -314,8 +307,7 @@ k2_loop_b:
          mov          N1NMID, %rbx
          mul          %rbx
          add          imid, %rax
-         mov          N2, %rbx
-         mul          %rbx
+         mul          N2
          pop          %rcx
          add          %rcx, %rax
          shl          $2, %rax
