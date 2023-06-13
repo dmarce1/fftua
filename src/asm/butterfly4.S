@@ -1,4 +1,3 @@
-#define  STACK_SIZE   $112
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
@@ -34,10 +33,9 @@
 #define  khi1         -64(%rbp)
 #define  N2oN1o2      -72(%rbp)
 #define  TW1          -80(%rbp)
-#define  TW2          -88(%rbp)
+#define  dN2o2        -88(%rbp)
 #define  TW3          -96(%rbp)
-#define  N2o2hi       -104(%rbp)
-#define  N2o2lo       -112(%rbp)
+#define  STACK_SIZE   $96
 
          .global      butterfly4
 
@@ -82,10 +80,13 @@ butterfly4:
          mov          %rcx, N2o2
          mov          %rcx, %rax
          mov          %rcx, %rbx
-         and          $3, %rbx
-         shr          $2, %rax
-         mov          %rax, N2o2hi
-         mov          %rbx, N2o2lo
+         and          $3, %rax
+         shr          $2, %rbx
+         imul         NHIoN1, %rax
+         imul         N2, %rax
+         add          %rbx, %rax
+         shl          $5, %rax
+         mov          %rax, dN2o2
          shr          $2, %rcx
          cmp          $1, %rcx
          mov          $1, %rax
@@ -98,8 +99,6 @@ butterfly4:
          add          %rax, %rbx
          add          %rbx, %rcx
          mov          %rax, TW1
-         mov          %rbx, TW2
-         mov          %rcx, TW3
          xor          ihi, ihi
 ihiloop:
          mov          ihi, %rax
@@ -124,20 +123,11 @@ ihiloop:
          vmovapd      tr3, (%rdx)
          cmp          $1, N2
          jle          done
-         mov          N2o2lo, %rax
-         imul         NHIoN1, %rax
-         add          ihi, %rax
-         imul         N2, %rax
-         add          N2o2hi, %rax
-         shl          $2, %rax
-         lea          (X, %rax, 8), %rax
-         lea          (%rax, N2, 8), %rbx
-         lea          (%rbx, N2, 8), %rcx
-         lea          (%rcx, N2, 8), %rdx
-         vmovapd      (%rax), er0
-         vmovapd      (%rbx), er1
-         vmovapd      (%rcx), er2
-         vmovapd      (%rdx), er3
+         mov          dN2o2, %rdi
+         vmovapd      (%rax, %rdi), er0
+         vmovapd      (%rbx, %rdi), er1
+         vmovapd      (%rcx, %rdi), er2
+         vmovapd      (%rdx, %rdi), er3
          vaddpd       er3, er1, tr0
          vsubpd       er3, er1, tr2
          vmulpd       tw45, tr2, tr1
@@ -149,10 +139,10 @@ ihiloop:
          vsubpd       tr1, tr0, er1
          vsubpd       tr3, tr2, er2
          vmulpd       none, er3, er3
-         vmovapd      er0, (%rax)
-         vmovapd      er1, (%rbx)
-         vmovapd      er2, (%rcx)
-         vmovapd      er3, (%rdx)
+         vmovapd      er0, (%rax, %rdi)
+         vmovapd      er1, (%rbx, %rdi)
+         vmovapd      er2, (%rcx, %rdi)
+         vmovapd      er3, (%rdx, %rdi)
          cmp          $2, N2
          jle          done
          xor          klo, klo
