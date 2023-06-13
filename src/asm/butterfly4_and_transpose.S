@@ -1,10 +1,9 @@
-#define  STACK_SIZE   $960
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
 #define  W            %r9
 #define  N2           %r10
-#define  imid         %r11
+#define  ihi         %r11
 #define  k2           %r12
 #define  n0           %r13
 #define  n1           %r14
@@ -32,7 +31,7 @@
 #define  N1NMID       -40(%rbp)
 #define  N1N2NMID     -48(%rbp)
 #define  N            -56(%rbp)
-#define  ihi          -64(%rbp)
+#define  mask2        -64(%rbp)
 #define  N2o2         -72(%rbp)
 #define  cos1         -80(%rbp)
 #define  cos2         -88(%rbp)
@@ -46,7 +45,9 @@
 #define  NHINMIDN2    -152(%rbp)
 #define  N2o2hi       -160(%rbp)
 #define  N2o2lo       -168(%rbp)
-#define  U0ptr        -936(%rbp)
+#define  mask1        -176(%rbp)
+#define  U0ptr        -946(%rbp)
+#define  STACK_SIZE   $968
 
 
          .global      butterfly4_and_transpose
@@ -124,16 +125,17 @@ butterfly4_and_transpose:
          mov          N2o2, %rax
          shr          $2, %rax
          mov          %rax, N2o2hi
-         xor          %rdx, %rdx
-         mov          %rdx, ihi
+         mov          NMID, %rcx
+         bsf          %rcx, %rcx
+         mov          $3, %rax
+         shl          %cl, %rax
+         mov          %rax, mask1
+         not          %rax
+         mov          %rax, mask2
+         xor          ihi, ihi
 ihi_loop:
-         xor          imid, imid
-imid_loop:
-         mov          ihi, %rax
-         add          imid, %rax
-         imul         N2, %rax
-         shl          $2, %rax
-         mov          %rax, %rdi
+         mov          ihi, %rdi
+         imul         N1N2, %rdi
          xor          n0, n0
 k0_load:
          mov          n0, %rax
@@ -192,7 +194,6 @@ k0_compute_enter:
          imul         N2o2lo, %rdi
          imul         N1NMID, %rdi
          add          ihi, %rdi
-         add          imid, %rdi
          imul         N2, %rdi
          add          N2o2hi, %rdi
          shl          $2, %rdi
@@ -256,7 +257,6 @@ kN2o2_enter:
          test         n0, n0
          jge          kN2o2_compute
          mov          ihi, %rax
-         add          imid, %rax
          imul         N1N2, %rax
          push         %rax
          xor          k2, k2
@@ -406,16 +406,13 @@ compute_enter:
          jmp          k2_loop_b
 k2_loop_e:
          pop          %rax
-         inc          imid
-         cmp          imid, NMID
-         jne          imid_loop
-         mov          ihi, %rax
-         add          N1NMID, %rax
-         mov          %rax, ihi
+         or           mask1, ihi
+         inc          ihi
+         and          mask2, ihi
          mov          NMID, %rdx
          imul         NHI, %rdx
-         cmp          %rax, %rdx
-         jne          ihi_loop
+         cmp          ihi, %rdx
+         jg           ihi_loop
          pop          %r15
          pop          %r14
          pop          %r13
