@@ -1309,6 +1309,9 @@ void fft_inplace_real(double* x, int N) {
 	 const int khi0 = k2hi(N2/2);
 	 const int klo0 = k2lo(N2/2);
 	 for (int imid = 0; imid < NMID; imid++) {
+
+	 imid + NMIDN1 * ihi
+
 	 int i0 = N1 * (khi0 + N2N1 * (N1 * (imid + NMID * (N1 * (ihi + NHIN1 * klo0)))));;
 	 for (int n0 = 0; n0 < N1; n0++) {
 	 for (int n1 = 0; n1 < N1; n1++) {

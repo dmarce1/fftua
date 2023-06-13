@@ -124,12 +124,12 @@ butterfly4_and_transpose:
          mov          N2o2, %rax
          shr          $2, %rax
          mov          %rax, N2o2hi
+         xor          %rdx, %rdx
          mov          %rdx, ihi
 ihi_loop:
          xor          imid, imid
 imid_loop:
-         mov          N1NMID, %rax
-         imul         ihi, %rax
+         mov          ihi, %rax
          add          imid, %rax
          imul         N2, %rax
          shl          $2, %rax
@@ -190,8 +190,8 @@ k0_compute_enter:
          jge          k0_compute
          mov          NHIoN1, %rdi
          imul         N2o2lo, %rdi
-         add          ihi, %rdi
          imul         N1NMID, %rdi
+         add          ihi, %rdi
          add          imid, %rdi
          imul         N2, %rdi
          add          N2o2hi, %rdi
@@ -256,7 +256,6 @@ kN2o2_enter:
          test         n0, n0
          jge          kN2o2_compute
          mov          ihi, %rax
-         imul         N1NMID, %rax
          add          imid, %rax
          imul         N1N2, %rax
          push         %rax
@@ -411,9 +410,11 @@ k2_loop_e:
          cmp          imid, NMID
          jne          imid_loop
          mov          ihi, %rax
-         inc          %rax
+         add          N1NMID, %rax
          mov          %rax, ihi
-         cmp          %rax, NHIoN1
+         mov          NMID, %rdx
+         imul         NHI, %rdx
+         cmp          %rax, %rdx
          jne          ihi_loop
          pop          %r15
          pop          %r14
