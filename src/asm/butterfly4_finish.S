@@ -7,8 +7,7 @@
 #define  N2           %r11
 #define  N2o2         %r12
 #define  _8N2o2       %r13
-#define  k2max        %r14
-#define  k2           %r15
+#define  k2           %r14
 #define  er0          %ymm0
 #define  er1          %ymm1
 #define  er2          %ymm2
@@ -61,6 +60,22 @@ dI1:     .long        0
          .long        2
          .long        4
          .long        6
+pbytes:  .byte        8
+         .byte        9
+         .byte        10
+         .byte        11
+         .byte        12
+         .byte        13
+         .byte        14
+         .byte        15
+         .byte        0
+         .byte        1
+         .byte        2
+         .byte        3
+         .byte        4
+         .byte        5
+         .byte        6
+         .byte        7
 tw45:    .double      M_SQRT1_2
 none:    .double      -1.0
 
@@ -68,7 +83,6 @@ none:    .double      -1.0
 
 butterfly4_finish:
          push         %rbx
-         push         %r15
          push         %r14
          push         %r13
          push         %r12
@@ -85,26 +99,26 @@ butterfly4_finish:
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
          lea          (%rcx, N2, 8), %rdx
-         movlpd       (%rax), ur0
-         movlpd       (%rbx), ur1
-         movlpd       (%rcx), ur2
-         movlpd       (%rdx), ur3
+         movsd        (%rax), ur0
+         movsd        (%rbx), ur1
+         movsd        (%rcx), ur2
+         movsd        (%rdx), ur3
          vaddsd       ur2, ur0, sr0
          vsubsd       ur2, ur0, sr2
          vaddsd       ur3, ur1, sr1
          vsubsd       ur1, ur3, sr3
          vaddsd       sr1, sr0, ur0
          vsubsd       sr1, sr0, ur2
-         movlpd       ur0, (%rax)
-         movlpd       sr2, (%rbx)
-         movlpd       ur2, (%rcx)
-         movlpd       sr3, (%rdx)
+         movsd        ur0, (%rax)
+         movsd        sr2, (%rbx)
+         movsd        ur2, (%rcx)
+         movsd        sr3, (%rdx)
          cmp          $1, N2
          jle          done
-         movlpd       (%rax, _8N2o2), ur0
-         movlpd       (%rbx, _8N2o2), ur1
-         movlpd       (%rcx, _8N2o2), ur2
-         movlpd       (%rdx, _8N2o2), ur3
+         movsd        (%rax, _8N2o2), ur0
+         movsd        (%rbx, _8N2o2), ur1
+         movsd        (%rcx, _8N2o2), ur2
+         movsd        (%rdx, _8N2o2), ur3
          vaddsd       ur3, ur1, sr0
          vsubsd       ur3, ur1, sr2
          vmulsd       tw45, sr2, sr1
@@ -116,45 +130,32 @@ butterfly4_finish:
          vsubsd       sr1, sr0, ur1
          vsubsd       sr3, sr2, ur2
          vmulsd       none, ur3, ur3
-         movlpd       ur0, (%rax, _8N2o2)
-         movlpd       ur1, (%rbx, _8N2o2)
-         movlpd       ur2, (%rcx, _8N2o2)
-         movlpd       ur3, (%rdx, _8N2o2)
+         movsd        ur0, (%rax, _8N2o2)
+         movsd        ur1, (%rbx, _8N2o2)
+         movsd        ur2, (%rcx, _8N2o2)
+         movsd        ur3, (%rdx, _8N2o2)
          cmp          $2, N2
          jle          done
-         mov          $8, k2max
-         cmp          $8, N2
-         cmovl        N2, k2max
-         shr          k2max
-         mov          $1, k2
-k2scalar:
-         mov          k2, %rax
-         shl          %rax
-         mov          %rax, %rbx
-         mov          %rax, %rcx
-         add          %rax, %rbx
-         add          %rbx, %rcx
-         movlpd       0(W, %rax, 8), sr1
-         movlpd       0(W, %rbx, 8), sr2
-         movlpd       0(W, %rcx, 8), sr3
-         movlpd       8(W, %rax, 8), si1
-         movlpd       8(W, %rbx, 8), si2
-         movlpd       8(W, %rcx, 8), si3
+         movsd        16(W), sr1
+         movsd        32(W), sr2
+         movsd        48(W), sr3
+         movsd        24(W), si1
+         movsd        40(W), si2
+         movsd        56(W), si3
          mov          N2, %rdi
-         sub          k2, %rdi
-         sub          k2, %rdi
-         lea          (X, k2, 8), %rax
+         sub          $2, %rdi
+         lea          8(X), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
          lea          (%rcx, N2, 8), %rdx
-         movlpd       (%rax), ur0
-         movlpd       (%rbx), ur1
-         movlpd       (%rcx), ur2
-         movlpd       (%rdx), ur3
-         movlpd       (%rax, %rdi, 8), ui0
-         movlpd       (%rbx, %rdi, 8), ui1
-         movlpd       (%rcx, %rdi, 8), ui2
-         movlpd       (%rdx, %rdi, 8), ui3
+         movsd        (%rax), ur0
+         movsd        (%rbx), ur1
+         movsd        (%rcx), ur2
+         movsd        (%rdx), ur3
+         movsd        (%rax, %rdi, 8), ui0
+         movsd        (%rbx, %rdi, 8), ui1
+         movsd        (%rcx, %rdi, 8), ui2
+         movsd        (%rdx, %rdi, 8), ui3
          vmulsd       si1, ui1, sr0
          vmulsd       sr1, ui1, si0
          vfmsub231sd  sr1, ur1, sr0
@@ -189,18 +190,94 @@ k2scalar:
          vsubsd       si0, si1, ui2
          vsubsd       si3, sr2, ur3
          vsubsd       si2, sr3, ui3
-         movlpd       ur0, (%rax)
-         movlpd       ur1, (%rbx)
-         movlpd       ui2, (%rcx)
-         movlpd       ui3, (%rdx)
-         movlpd       ur3, (%rax, %rdi, 8)
-         movlpd       ur2, (%rbx, %rdi, 8)
-         movlpd       ui1, (%rcx, %rdi, 8)
-         movlpd       ui0, (%rdx, %rdi, 8)
-         inc          k2
-         cmp          k2, k2max
-         jne          k2scalar
+         movsd        ur0, (%rax)
+         movsd        ur1, (%rbx)
+         movsd        ui2, (%rcx)
+         movsd        ui3, (%rdx)
+         movsd        ur3, (%rax, %rdi, 8)
+         movsd        ur2, (%rbx, %rdi, 8)
+         movsd        ui1, (%rcx, %rdi, 8)
+         movsd        ui0, (%rdx, %rdi, 8)
          cmp          $4, N2
+         jle          done
+         mov          $2, k2
+         movlpd       32(W), sr1
+         movlpd       64(W), sr2
+         movlpd       96(W), sr3
+         movlpd       40(W), si1
+         movlpd       72(W), si2
+         movlpd       104(W), si3
+         vmovhpd      48(W), sr1, sr1
+         vmovhpd      96(W), sr2, sr2
+         vmovhpd      144(W), sr3, sr3
+         vmovhpd      56(W), si1, si1
+         vmovhpd      104(W), si2, si2
+         vmovhpd      152(W), si3, si3
+         mov          N2, %rdi
+         sub          $5, %rdi
+         lea          16(X), %rax
+         lea          (%rax, N2, 8), %rbx
+         lea          (%rbx, N2, 8), %rcx
+         lea          (%rcx, N2, 8), %rdx
+         vmovapd      (%rax), ur0
+         vmovapd      (%rbx), ur1
+         vmovapd      (%rcx), ur2
+         vmovapd      (%rdx), ur3
+         vmovupd      (%rax, %rdi, 8), ui0
+         vmovupd      (%rbx, %rdi, 8), ui1
+         vmovupd      (%rcx, %rdi, 8), ui2
+         vmovupd      (%rdx, %rdi, 8), ui3
+         pshufb       pbytes, ui0
+         pshufb       pbytes, ui1
+         pshufb       pbytes, ui2
+         pshufb       pbytes, ui3
+         vmulpd       si1, ui1, sr0
+         vmulpd       sr1, ui1, si0
+         vfmsub231pd  sr1, ur1, sr0
+         vfmadd231pd  si1, ur1, si0
+         vmovapd      si0, ui1
+         vmovapd      sr0, ur1
+         vmulpd       si2, ui2, sr0
+         vmulpd       sr2, ui2, si0
+         vfmsub231pd  sr2, ur2, sr0
+         vfmadd231pd  si2, ur2, si0
+         vmovapd      si0, ui2
+         vmovapd      sr0, ur2
+         vmulpd       si3, ui3, sr0
+         vmulpd       sr3, ui3, si0
+         vfmsub231pd  sr3, ur3, sr0
+         vfmadd231pd  si3, ur3, si0
+         vmovapd      si0, ui3
+         vmovapd      sr0, ur3
+         vaddpd       ur2, ur0, sr0
+         vaddpd       ui2, ui0, si0
+         vsubpd       ur2, ur0, sr2
+         vsubpd       ui2, ui0, si2
+         vaddpd       ur3, ur1, sr1
+         vaddpd       ui3, ui1, si1
+         vsubpd       ur1, ur3, sr3
+         vsubpd       ui3, ui1, si3
+         vaddpd       sr1, sr0, ur0
+         vaddpd       si1, si0, ui0
+         vaddpd       si3, sr2, ur1
+         vaddpd       sr3, si2, ui1
+         vsubpd       sr1, sr0, ur2
+         vsubpd       si0, si1, ui2
+         vsubpd       si3, sr2, ur3
+         vsubpd       si2, sr3, ui3
+         vmovapd      ur0, (%rax)
+         vmovapd      ur1, (%rbx)
+         vmovapd      ui2, (%rcx)
+         vmovapd      ui3, (%rdx)
+         pshufb       pbytes, ur3
+         pshufb       pbytes, ur2
+         pshufb       pbytes, ui1
+         pshufb       pbytes, ui0
+         vmovupd      ur3, (%rax, %rdi, 8)
+         vmovupd      ur2, (%rbx, %rdi, 8)
+         vmovupd      ui1, (%rcx, %rdi, 8)
+         vmovupd      ui0, (%rdx, %rdi, 8)
+         cmp          $8, N2
          jle          done
          mov          $4, k2
 k2simd:
@@ -289,6 +366,5 @@ done:
          pop          %r12
          pop          %r13
          pop          %r14
-         pop          %r15
          pop          %rbx
          ret

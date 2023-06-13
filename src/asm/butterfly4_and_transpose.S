@@ -127,7 +127,7 @@ butterfly4_and_transpose:
          mov          %rdx, ihi
 ihi_loop:
          xor          imid, imid
-imid_k0:
+imid_loop:
          mov          N1NMID, %rax
          imul         ihi, %rax
          add          imid, %rax
@@ -188,11 +188,6 @@ k0_compute_enter:
          dec          n0
          test         n0, n0
          jge          k0_compute
-         inc          imid
-         cmp          imid, NMID
-         jne          imid_k0
-         xor          imid, imid
-imid_kN2o2:
          mov          NHIoN1, %rdi
          imul         N2o2lo, %rdi
          add          ihi, %rdi
@@ -260,11 +255,6 @@ kN2o2_enter:
          dec          n0
          test         n0, n0
          jge          kN2o2_compute
-         inc          imid
-         cmp          imid, NMID
-         jne          imid_kN2o2
-         xor          imid, imid
-imid_loop:
          mov          ihi, %rax
          imul         N1NMID, %rax
          add          imid, %rax
