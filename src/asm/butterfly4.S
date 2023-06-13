@@ -1,4 +1,4 @@
-#define  STACK_SIZE   $96
+#define  STACK_SIZE   $112
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
@@ -9,17 +9,17 @@
 #define  klo          %r13
 #define  k2           %r14
 #define  er0          %ymm0
-#define  er1          %ymm1
-#define  er2          %ymm2
-#define  er3          %ymm3
-#define  tr0          %ymm4
-#define  tr1          %ymm5
-#define  tr2          %ymm6
-#define  tr3          %ymm7
-#define  ei0          %ymm8
-#define  ei1          %ymm9
-#define  ei2          %ymm10
-#define  ei3          %ymm11
+#define  ei0          %ymm1
+#define  er1          %ymm2
+#define  ei1          %ymm3
+#define  er2          %ymm4
+#define  ei2          %ymm5
+#define  er3          %ymm6
+#define  ei3          %ymm7
+#define  tr0          %ymm8
+#define  tr1          %ymm9
+#define  tr2          %ymm10
+#define  tr3          %ymm11
 #define  ti0          %ymm12
 #define  ti1          %ymm13
 #define  ti2          %ymm14
@@ -36,8 +36,8 @@
 #define  TW1          -80(%rbp)
 #define  TW2          -88(%rbp)
 #define  TW3          -96(%rbp)
-#define  khi0         khi
-#define  klo0         klo
+#define  N2o2hi       -104(%rbp)
+#define  N2o2lo       -112(%rbp)
 
          .global      butterfly4
 
@@ -80,12 +80,19 @@ butterfly4:
          mov          N2, %rcx
          shr          %rcx
          mov          %rcx, N2o2
+         mov          %rcx, %rax
+         mov          %rcx, %rbx
+         and          $3, %rbx
+         shr          $2, %rax
+         mov          %rax, N2o2hi
+         mov          %rbx, N2o2lo
          shr          $2, %rcx
          cmp          $1, %rcx
          mov          $1, %rax
          cmovl        %rax, %rcx
          mov          %rcx, N2oN1o2
          mov          NHI, %rax
+         shl          %rax
          mov          %rax, %rbx
          mov          %rax, %rcx
          add          %rax, %rbx
@@ -96,8 +103,7 @@ butterfly4:
          xor          ihi, ihi
 ihiloop:
          mov          ihi, %rax
-         mov          N2N1, %rbx
-         mul          %rbx
+         imul         N2N1, %rax
          lea          (X, %rax, 8), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
@@ -118,28 +124,20 @@ ihiloop:
          vmovapd      tr3, (%rdx)
          cmp          $1, N2
          jle          done
-         mov          N2o2, %rax
-         mov          %rax, %rbx
-         shr          $2, %rax
-         and          $3, %rbx
-         mov          %rax, khi0
-         mov          %rbx, klo0
-         mov          NHIoN1, %rcx
-         mov          N2, %rbx
-         mov          klo0, %rax
-         mul          %rcx
+         mov          N2o2lo, %rax
+         imul         NHIoN1, %rax
          add          ihi, %rax
-         mul          %rbx
-         add          khi0, %rax
+         imul         N2, %rax
+         add          N2o2hi, %rax
          shl          $2, %rax
          lea          (X, %rax, 8), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
          lea          (%rcx, N2, 8), %rdx
-         vmovupd      (%rax), er0
-         vmovupd      (%rbx), er1
-         vmovupd      (%rcx), er2
-         vmovupd      (%rdx), er3
+         vmovapd      (%rax), er0
+         vmovapd      (%rbx), er1
+         vmovapd      (%rcx), er2
+         vmovapd      (%rdx), er3
          vaddpd       er3, er1, tr0
          vsubpd       er3, er1, tr2
          vmulpd       tw45, tr2, tr1
@@ -166,10 +164,9 @@ khiloop:
          or           klo, k2
          cmp          k2, N2o2
          jle          khiloop_cont
-         cmp          $0, k2
+         test         k2, k2
          je           khiloop_cont
          mov          k2, %rdx
-         shl          %rdx
          mulx         TW1, %rax, %rdi
          mulx         TW2, %rbx, %rdi
          mulx         TW3, %rcx, %rdi
@@ -184,7 +181,7 @@ khiloop:
          mov          %rax, %rdi
          shr          $2, %rax
          and          $3, %rdi
-         mov          klo0, %rsi
+         mov          klo, %rsi
          imul         NHIoN1, %rdi
          imul         NHIoN1, %rsi
          add          ihi, %rdi
@@ -192,7 +189,7 @@ khiloop:
          imul         N2, %rdi
          imul         N2, %rsi
          add          %rax, %rdi
-         add          khi0, %rsi
+         add          khi, %rsi
          shl          $2, %rdi
          shl          $2, %rsi
          sub          %rsi, %rdi

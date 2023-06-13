@@ -184,7 +184,7 @@ k0_compute_enter:
          vmovapd      er2, (%rcx)
          vmovapd      tr3, (%rdx)
          dec          n0
-         cmp          $0, n0
+         test         n0, n0
          jge          k0_compute
          inc          imid
          cmp          imid, NMID
@@ -201,30 +201,29 @@ imid_kN2o2:
          shl          $2, %rdi
          xor          n0, n0
 kN2o2_load:
-         mov          n0, %rdx
-         mulx         N2, %rcx, %rax
-         lea          (X, %rcx, 8), %rax
-         lea          (%rax, %rdi, 8), %rcx
-         mov          N1N2NMID, %rax
-         vmovapd      (%rcx), %ymm0
-         lea          (%rcx, %rax, 8), %rcx
-         vmovapd      (%rcx), %ymm1
-         lea          (%rcx, %rax, 8), %rcx
-         vmovapd      (%rcx), %ymm2
-         lea          (%rcx, %rax, 8), %rcx
-         vmovapd      (%rcx), %ymm3
-         lea          (%rcx, %rax, 8), %rcx
+         mov          n0, %rax
+         imul         N2, %rax
+         lea          (X, %rax, 8), %rax
+         mov          N1N2NMID, %rsi
+         lea          (%rax, %rdi, 8), %rax
+         lea          (%rax, %rsi, 8), %rbx
+         lea          (%rbx, %rsi, 8), %rcx
+         lea          (%rcx, %rsi, 8), %rdx
+         vmovapd      (%rax), er0
+         vmovapd      (%rbx), er1
+         vmovapd      (%rcx), er2
+         vmovapd      (%rdx), er3
+         cmp          $3, n0
+         je           kN2o2_enter
          mov          n0, %rax
          shl          $4, %rax
          lea          (U0, %rax, 8), %rax
-         vmovapd      %ymm0, 0(%rax)
-         vmovapd      %ymm1, 32(%rax)
-         vmovapd      %ymm2, 64(%rax)
-         vmovapd      %ymm3, 96(%rax)
+         vmovapd      er0, 0(%rax)
+         vmovapd      er1, 32(%rax)
+         vmovapd      er2, 64(%rax)
+         vmovapd      er3, 96(%rax)
          inc          n0
-         cmp          N1, n0
-         jne          kN2o2_load
-         xor          n0, n0
+         jmp          kN2o2_load
 kN2o2_compute:
          mov          n0, %rdx
          shl          $7, %rdx
@@ -233,6 +232,7 @@ kN2o2_compute:
          vmovapd      32(%rdx), er1
          vmovapd      64(%rdx), er2
          vmovapd      96(%rdx), er3
+kN2o2_enter:
          vaddpd       er3, er1, tr0
          vsubpd       er3, er1, tr2
          vmulpd       tw45, tr2, tr1
@@ -248,16 +248,16 @@ kN2o2_compute:
          mul          n0
          add          %rdi, %rax
          lea          (X, %rax, 8), %rax
+         lea          (%rax, N2, 8), %rbx
+         lea          (%rbx, N2, 8), %rcx
+         lea          (%rcx, N2, 8), %rdx
          vmovapd      er0, (%rax)
-         lea          (%rax, N2, 8), %rax
-         vmovapd      er1, (%rax)
-         lea          (%rax, N2, 8), %rax
-         vmovapd      er2, (%rax)
-         lea          (%rax, N2, 8), %rax
-         vmovapd      er3, (%rax)
-         inc          n0
-         cmp          N1, n0
-         jne          kN2o2_compute
+         vmovapd      er1, (%rbx)
+         vmovapd      er2, (%rcx)
+         vmovapd      er3, (%rdx)
+         dec          n0
+         test         n0, n0
+         jge          kN2o2_compute
          inc          imid
          cmp          imid, NMID
          jne          imid_kN2o2
@@ -413,7 +413,7 @@ compute_enter:
          vmovapd      ei1, (%rcx, %rsi, 8)
          vmovapd      ei0, (%rdx, %rsi, 8)
          dec          n0
-         cmp          $0, n0
+         test         n0, n0
          jge          compute_loop
          jmp          k2_loop_b
 k2_loop_e:

@@ -232,14 +232,10 @@ k2simd:
          vmovapd      (%rbx), er1
          vmovapd      (%rcx), er2
          vmovapd      (%rdx), er3
-         vmovupd      (%rax, %rdi, 8), ei0
-         vmovupd      (%rbx, %rdi, 8), ei1
-         vmovupd      (%rcx, %rdi, 8), ei2
-         vmovupd      (%rdx, %rdi, 8), ei3
-         vpermpd      prmt_cntrl, ei0, ei0
-         vpermpd      prmt_cntrl, ei1, ei1
-         vpermpd      prmt_cntrl, ei2, ei2
-         vpermpd      prmt_cntrl, ei3, ei3
+         vpermpd      prmt_cntrl, (%rax, %rdi, 8), ei0
+         vpermpd      prmt_cntrl, (%rbx, %rdi, 8), ei1
+         vpermpd      prmt_cntrl, (%rcx, %rdi, 8), ei2
+         vpermpd      prmt_cntrl, (%rdx, %rdi, 8), ei3
          vmulpd       ti1, ei1, tr0
          vmulpd       tr1, ei1, ti0
          vfmsub231pd  tr1, er1, tr0
@@ -280,10 +276,10 @@ k2simd:
          vpermpd      prmt_cntrl, ei0, ei0
          vmovapd      er0, (%rax)
          vmovapd      er1, (%rbx)
-         vmovupd      er2, (%rbx, %rdi, 8)
-         vmovupd      er3, (%rax, %rdi, 8)
          vmovapd      ei3, (%rdx)
          vmovapd      ei2, (%rcx)
+         vmovupd      er2, (%rbx, %rdi, 8)
+         vmovupd      er3, (%rax, %rdi, 8)
          vmovupd      ei1, (%rcx, %rdi, 8)
          vmovupd      ei0, (%rdx, %rdi, 8)
          add          SIMD_SIZE, k2
