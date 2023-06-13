@@ -1,4 +1,4 @@
-#define  STACK_SIZE   $64
+#define  STACK_SIZE   $72
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
@@ -32,6 +32,7 @@
 #define  N2N1         -48(%rbp)
 #define  N2o2         -56(%rbp)
 #define  khi1         -64(%rbp)
+#define  N2oN1o2      -72(%rbp)
 #define  khi0         khi
 #define  klo0         klo
 
@@ -76,7 +77,11 @@ butterfly4:
          mov          N2, %rcx
          shr          %rcx
          mov          %rcx, N2o2
-         mov          %rcx, N2oN1
+         shr          $2, %rcx
+         cmp          $1, %rcx
+         mov          $1, %rax
+         cmovl        %rax, %rcx
+         mov          %rcx, N2oN1o2
          xor          ihi, ihi
 ihiloop0:
          mov          ihi, %rax
@@ -158,8 +163,6 @@ khiloop:
          mov          khi, k2
          shl          $2, k2
          or           klo, k2
-         cmp          k2, N2o2
-         jle          khiloop_cont
          cmp          $0, k2
          je           khiloop_cont
          mov          N2, %rax
@@ -255,7 +258,7 @@ khiloop:
          vmovapd      ei0, (%rdx, %rdi, 8)
 khiloop_cont:
          inc          khi
-         cmp          N2oN1, khi
+         cmp          N2oN1o2, khi
          jne          khiloop
          inc          klo
          cmp          N1, klo
