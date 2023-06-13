@@ -1,4 +1,4 @@
-#define  STACK_SIZE   $1176
+#define  STACK_SIZE   $1320
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
@@ -32,16 +32,20 @@
 #define  N1NMID       -40(%rbp)
 #define  N1N2NMID     -48(%rbp)
 #define  N            -56(%rbp)
-#define  TWHI         -64(%rbp)
+#define  ihi          -64(%rbp)
 #define  N2o2         -72(%rbp)
 #define  cos1         -80(%rbp)
-#define  cos2         -88(%rbp)
-#define  cos3         -96(%rbp)
-#define  sin1         -104(%rbp)
-#define  sin2         -112(%rbp)
-#define  sin3         -120(%rbp)
-#define  ihi          -128(%rbp)
-#define  U0ptr        -1152(%rbp)
+#define  cos2         -112(%rbp)
+#define  cos3         -144(%rbp)
+#define  sin1         -176(%rbp)
+#define  sin2         -208(%rbp)
+#define  sin3         -240(%rbp)
+#define  TW1          -248(%rbp)
+#define  TW2          -256(%rbp)
+#define  TW3          -264(%rbp)
+#define  NHINMIDN2    -272(%rbp)
+#define  U0ptr        -1296(%rbp)
+
 
          .global      butterfly4_and_transpose
 
@@ -92,13 +96,24 @@ butterfly4_and_transpose:
          shl          $2, %rbx
          xor          %rdx, %rdx
          div          %rbx
-         mov          %rax, TWHI
+         shl          %rax
+         mov          %rax, TW1
+         mov          %rax, %rbx
+         add          %rax, %rbx
+         mov          %rbx, TW2
+         add          %rax, %rbx
+         mov          %rbx, TW3
          mov          N2, %rax
          shl          $2, %rax
          mov          %rax, N1N2
          shr          $3, %rax
          mov          %rax, N2o2
          xor          %rdx, %rdx
+         mov          NHI, %rax
+         mul          N2
+         mov          NMID, %rbx
+         mul          %rbx
+         mov          %rax, NHINMIDN2
          mov          %rdx, ihi
 ihi_loop:
          xor          imid, imid
@@ -252,19 +267,21 @@ kN2o2_compute:
          jne          imid_kN2o2
          xor          imid, imid
 imid_loop:
+         mov          ihi, %rdx
+         mulx         N1NMID, %rax, %rbx
+         add          imid, %rax
+         mov          N1N2, %rbx
+         mul          %rbx
+         push         %rax
          xor          k2, k2
 k2_loop_b:
          inc          k2
          cmp          k2, N2o2
          je           k2_loop_e
-         mov          k2, %rbx
-         mov          TWHI, %rax
-         mul          %rbx
-         shl          %rax
-         mov          %rax, %rbx
-         mov          %rax, %rcx
-         add          %rax, %rbx
-         add          %rbx, %rcx
+         mov          k2, %rdx
+         mulx         TW1, %rax, %rdi
+         mulx         TW2, %rbx, %rdi
+         mulx         TW3, %rcx, %rdi
          movq         0(W, %rax, 8), %xmm0
          movq         8(W, %rax, 8), %xmm1
          movq         0(W, %rbx, 8), %xmm2
@@ -277,41 +294,27 @@ k2_loop_b:
          movq         %xmm3, sin2
          movq         %xmm4, cos3
          movq         %xmm5, sin3
-         mov          k2, %rax
          mov          k2, %rbx
-         mov          N2, %rcx
-         sub          k2, %rcx
-         mov          %rcx, %rdx
-         shr          $2, %rax
-         and          $3, %rbx
-         shr          $2, %rcx
+         mov          k2, %rdx
          and          $3, %rdx
-         push         %rcx
-         push         %rdx
-         push         %rax
-         mov          NHIoN1, %rax
-         mul          %rbx
-         add          ihi, %rax
-         mov          N1NMID, %rbx
-         mul          %rbx
-         add          imid, %rax
-         mul          N2
-         pop          %rcx
-         add          %rcx, %rax
+         shr          $2, %rbx
+         mulx         NHINMIDN2, %rax, %rcx
+         add          %rbx, %rax
          shl          $2, %rax
          mov          %rax, %rdi
-         mov          NHIoN1, %rbx
-         pop          %rax
-         mul          %rbx
-         add          ihi, %rax
-         mov          N1NMID, %rbx
-         mul          %rbx
-         add          imid, %rax
-         mul          N2
-         pop          %rcx
-         add          %rcx, %rax
+         mov          N2, %rbx
+         sub          k2, %rbx
+         mov          %rbx, %rdx
+         and          $3, %rdx
+         shr          $2, %rbx
+         mulx         NHINMIDN2, %rax, %rcx
+         add          %rbx, %rax
          shl          $2, %rax
          mov          %rax, %rsi
+         pop          %rdx
+         add          %rdx, %rdi
+         add          %rdx, %rsi
+         push         %rdx
          xor          n0, n0
 load_loop:
          mov          n0, %rdx
@@ -431,6 +434,7 @@ compute_loop:
          jne          compute_loop
          jmp          k2_loop_b
 k2_loop_e:
+         pop          %rax
          inc          imid
          cmp          imid, NMID
          jne          imid_loop
