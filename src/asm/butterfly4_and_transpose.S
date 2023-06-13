@@ -1,4 +1,4 @@
-#define  STACK_SIZE   $1080
+#define  STACK_SIZE   $960
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
@@ -35,18 +35,18 @@
 #define  ihi          -64(%rbp)
 #define  N2o2         -72(%rbp)
 #define  cos1         -80(%rbp)
-#define  cos2         -112(%rbp)
-#define  cos3         -144(%rbp)
-#define  sin1         -176(%rbp)
-#define  sin2         -208(%rbp)
-#define  sin3         -240(%rbp)
-#define  TW1          -248(%rbp)
-#define  TW2          -256(%rbp)
-#define  TW3          -264(%rbp)
-#define  NHINMIDN2    -272(%rbp)
-#define  N2o2hi       -280(%rbp)
-#define  N2o2lo       -288(%rbp)
-#define  U0ptr        -1056(%rbp)
+#define  cos2         -88(%rbp)
+#define  cos3         -96(%rbp)
+#define  sin1         -104(%rbp)
+#define  sin2         -112(%rbp)
+#define  sin3         -120(%rbp)
+#define  TW1          -128(%rbp)
+#define  TW2          -136(%rbp)
+#define  TW3          -144(%rbp)
+#define  NHINMIDN2    -152(%rbp)
+#define  N2o2hi       -160(%rbp)
+#define  N2o2lo       -168(%rbp)
+#define  U0ptr        -936(%rbp)
 
 
          .global      butterfly4_and_transpose

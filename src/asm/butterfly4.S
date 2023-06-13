@@ -166,10 +166,8 @@ khiloop:
          jle          khiloop_cont
          test         k2, k2
          je           khiloop_cont
-         mov          k2, %rdx
-         mulx         TW1, %rax, %rdi
-         mulx         TW2, %rbx, %rdi
-         mulx         TW3, %rcx, %rdi
+         mov          k2, %rax
+         imul         TW1, %rax
          vbroadcastsd 0(W, %rax, 8), tr1
          vbroadcastsd 8(W, %rax, 8), ti1
          mov          N2, %rax
