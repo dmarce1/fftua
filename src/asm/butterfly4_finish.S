@@ -45,21 +45,15 @@
          .global      butterfly4_finish
 
          .data
-
-trash:   .double      99.9
-         .double      99.9
-         .double      99.9
-         .double      99.9
-
          .align       32
 ones:    .quad        0xffffffffffffffff
          .quad        0xffffffffffffffff
          .quad        0xffffffffffffffff
          .quad        0xffffffffffffffff
-dI1:     .long        0
-         .long        2
-         .long        4
-         .long        6
+dI1:     .quad        0
+         .quad        2
+         .quad        4
+         .quad        6
 pbytes:  .byte        8
          .byte        9
          .byte        10
@@ -284,11 +278,11 @@ k2simd:
          mov          k2, %rax
          shl          %rax
          lea          (W, %rax, 8), %rax
-         vmovdqa      dI1, %xmm1
+         vmovdqa      dI1, %ymm1
          vmovdqa      ones, %ymm4
          vmovdqa      %ymm4, %ymm5
-         vgatherdpd   %ymm4, 0(%rax, %xmm1, 8), tr1
-         vgatherdpd   %ymm5, 8(%rax, %xmm1, 8), ti1
+         vgatherqpd   %ymm4, 0(%rax, %ymm1, 8), tr1
+         vgatherqpd   %ymm5, 8(%rax, %ymm1, 8), ti1
          vmulpd       ti1, ti1, tr2
          vmulpd       tr1, ti1, ti2
          vfmsub231pd  tr1, tr1, tr2

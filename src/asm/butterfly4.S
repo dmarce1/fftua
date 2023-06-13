@@ -24,18 +24,14 @@
 #define  ti2          %ymm14
 #define  ti3          %ymm15
 #define  NHI          -8(%rbp)
-#define  klo1         -16(%rbp)
-#define  N            -24(%rbp)
+#define  N            -16(%rbp)
+#define  dN2o2        -24(%rbp)
 #define  NHIoN1       -32(%rbp)
-#define  N2oN1        -40(%rbp)
 #define  N2N1         -48(%rbp)
 #define  N2o2         -56(%rbp)
-#define  khi1         -64(%rbp)
-#define  N2oN1o2      -72(%rbp)
-#define  TW1          -80(%rbp)
-#define  dN2o2        -88(%rbp)
-#define  TW3          -96(%rbp)
-#define  STACK_SIZE   $96
+#define  N2oN1o2      -64(%rbp)
+#define  TW1          -72(%rbp)
+#define  STACK_SIZE   $72
 
          .global      butterfly4
 
@@ -65,7 +61,6 @@ butterfly4:
          mov          %rcx, N2
          shr          $2, %rcx
          shr          $2, %rdx
-         mov          %rcx, N2oN1
          mov          %rdx, NHIoN1
          mov          N2, %rdx
          mov          NHI, %rax
@@ -93,11 +88,7 @@ butterfly4:
          cmovl        %rax, %rcx
          mov          %rcx, N2oN1o2
          mov          NHI, %rax
-         shl          %rax
-         mov          %rax, %rbx
-         mov          %rax, %rcx
-         add          %rax, %rbx
-         add          %rbx, %rcx
+         shl          $4, %rax
          mov          %rax, TW1
          xor          ihi, ihi
 ihiloop:
@@ -158,8 +149,8 @@ khiloop:
          je           khiloop_cont
          mov          k2, %rax
          imul         TW1, %rax
-         vbroadcastsd 0(W, %rax, 8), tr1
-         vbroadcastsd 8(W, %rax, 8), ti1
+         vbroadcastsd 0(W, %rax), tr1
+         vbroadcastsd 8(W, %rax), ti1
          mov          N2, %rax
          sub          k2, %rax
          mov          %rax, %rdi
