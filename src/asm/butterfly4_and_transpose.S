@@ -62,6 +62,8 @@ none:    .double      -1.0
          .double      -1.0
          .double      -1.0
          .double      -1.0
+mask_lo: .quad        512
+mask_hi: .quad        7426
 
 
          .text
@@ -289,23 +291,20 @@ k2_loop_b:
          mov          %rbx, sin2
          mov          %rdx, cos3
          mov          %rcx, sin3
-         mov          N2, %rax
-         mov          k2, %rcx
-         sub          k2, %rax
-         mov          k2, %rdx
-         mov          %rax, %rbx
-         and          $3, %rdx
-         and          $3, %rbx
-         shr          $2, %rcx
-         shr          $2, %rax
-         imul         NHINMIDN2, %rdx
-         imul         NHINMIDN2, %rbx
-         add          %rcx, %rdx
-         add          %rbx, %rax
-         shl          $2, %rdx
-         shl          $2, %rax
-         mov          %rdx, %rdi
-         mov          %rax, %rsi
+         mov          mask_hi, %rax
+         mov          mask_lo, %rsi
+         mov          N2, %rbx
+         sub          k2, %rbx
+         bextr        %rax, k2, %rcx
+         bextr        %rsi, k2, %rdi
+         bextr        %rax, %rbx, %rax
+         bextr        %rsi, %rbx, %rsi
+         imul         NHINMIDN2, %rdi
+         imul         NHINMIDN2, %rsi
+         add          %rcx, %rdi
+         add          %rax, %rsi
+         shl          $2, %rsi
+         shl          $2, %rdi
          pop          %rdx
          add          %rdx, %rdi
          add          %rdx, %rsi
@@ -322,12 +321,12 @@ load_loop:
          lea          (%rbx, %rdx, 8), %rcx
          lea          (%rcx, %rdx, 8), %rdx
          vmovapd      (%rax), %ymm0
-         vmovapd      (%rax, %rsi, 8), %ymm1
          vmovapd      (%rbx), %ymm2
-         vmovapd      (%rbx, %rsi, 8), %ymm3
          vmovapd      (%rcx), %ymm4
-         vmovapd      (%rcx, %rsi, 8), %ymm5
          vmovapd      (%rdx), %ymm6
+         vmovapd      (%rax, %rsi, 8), %ymm1
+         vmovapd      (%rbx, %rsi, 8), %ymm3
+         vmovapd      (%rcx, %rsi, 8), %ymm5
          vmovapd      (%rdx, %rsi, 8), %ymm7
          cmp          $3, n0
          je           compute_enter
