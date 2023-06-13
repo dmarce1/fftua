@@ -46,8 +46,10 @@
 #define  N2o2hi       -160(%rbp)
 #define  N2o2lo       -168(%rbp)
 #define  mask1        -176(%rbp)
-#define  U0ptr        -946(%rbp)
-#define  STACK_SIZE   $968
+#define  dN2o2        -184(%rbp)
+#define  NHIN1N2NMID  -192(%rbp)
+#define  U0ptr        -960(%rbp)
+#define  STACK_SIZE   $984
 
 
          .global      butterfly4_and_transpose
@@ -119,6 +121,8 @@ butterfly4_and_transpose:
          imul         %rbx, %rax
          imul         N2, %rax
          mov          %rax, NHINMIDN2
+         shl          $2, %rax
+         mov          %rax, NHIN1N2NMID
          mov          N2o2, %rax
          and          $3, %rax
          mov          %rax, N2o2lo
@@ -136,6 +140,13 @@ butterfly4_and_transpose:
          mov          %rax, mask1
          not          %rax
          mov          %rax, mask2
+         mov          NHIoN1, %rdi
+         imul         N2o2lo, %rdi
+         imul         N1NMID, %rdi
+         imul         N2, %rdi
+         add          N2o2hi, %rdi
+         shl          $2, %rdi
+         mov          %rdi, dN2o2
          xor          ihi, ihi
 ihi_loop:
          xor          n0, n0
@@ -192,12 +203,7 @@ k0_compute_enter:
          dec          n0
          test         n0, n0
          jge          k0_compute
-         mov          NHIoN1, %rdi
-         imul         N2o2lo, %rdi
-         imul         N1NMID, %rdi
-         imul         N2, %rdi
-         add          N2o2hi, %rdi
-         shl          $2, %rdi
+         mov          dN2o2, %rdi
          add          ihi, %rdi
          xor          n0, n0
 kN2o2_load:
@@ -293,9 +299,8 @@ k2_loop_b:
          add          %rax, %rsi
          shl          $2, %rsi
          shl          $2, %rdi
-         add          ihi, %rdi
-         add          ihi, %rsi
          sub          %rdi, %rsi
+         add          ihi, %rdi
          xor          n0, n0
 load_loop:
          mov          n0, %rdx
@@ -405,10 +410,7 @@ k2_loop_e:
          or           mask1, ihi
          add          N1N2, ihi
          and          mask2, ihi
-         mov          NMID, %rdx
-         imul         NHI, %rdx
-         imul         N1N2, %rdx
-         cmp          ihi, %rdx
+         cmp          ihi, NHIN1N2NMID
          jg           ihi_loop
          pop          %r15
          pop          %r14
