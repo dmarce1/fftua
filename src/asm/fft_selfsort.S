@@ -28,15 +28,15 @@ fft_selfsort:
          call         trivial_butterfly
          shl          $2, NHI
          shl          $2, N2
-         mov          N2, %rdx
-         mov          NHI, %rax
-         mul          %rdx
-         mov          %rax, %rcx
-         shl          $4, %rcx
-         mov          N, %rax
-         xor          %rdx, %rdx
-         div          %rcx
-         mov          %rax, NMID
+         bsf          NHI, %rax
+         bsf          N2, %rbx
+         add          %rbx, %rax
+         add          $4, %rax
+         mov          N, %rcx
+         bsf          %rcx, %rcx
+         sub          %rax, %rcx
+         mov          $1, NMID
+         shl          %cl, NMID
 L0:
          cmp          $0, NMID
          je           L2
@@ -48,15 +48,17 @@ L0:
          call         butterfly4_and_transpose
          shl          $2, NHI
          shl          $2, N2
-         mov          N2, %rdx
-         mov          NHI, %rax
-         mul          %rdx
-         mov          %rax, %rcx
-         shl          $4, %rcx
-         mov          N, %rax
-         xor          %rdx, %rdx
-         div          %rcx
-         mov          %rax, NMID
+         bsf          NHI, %rax
+         bsf          N2, %rbx
+         add          %rbx, %rax
+         add          $4, %rax
+         mov          N, %rcx
+         bsf          %rcx, %rcx
+         sub          %rax, %rcx
+         cmp          $0, %rcx
+         jle          L2
+         mov          $1, NMID
+         shl          %cl, NMID
          jmp          L0
 L2:
          mov          N2, %rax
@@ -65,12 +67,12 @@ L2:
          shr          $2, %rcx
          cmp          %rax, %rcx
          jl           L3
-         mov          N, %rax
-         xor          %rdx, %rdx
-         mov          N2, %rcx
-         shl          $2, %rcx
-         div          %rcx
-         mov          %rax, NHI
+         mov          N, %rcx
+         bsf          N2, %rax
+         bsf          %rcx, %rcx
+         add          $2, %rax
+         mov          $1, NHI
+         shl          %cl, NHI
          mov          X, %rdi
          mov          W, %rsi
          mov          NHI, %rdx
@@ -83,12 +85,6 @@ L3:
          mov          N, %rsi
          shr          $4, %rsi
          call         transpose
-         mov          N, %rax
-         xor          %rdx, %rdx
-         mov          N2, %rcx
-         shl          $2, %rcx
-         div          %rcx
-         mov          %rax, NHI
          mov          X, %rdi
          mov          W, %rsi
          mov          N, %rdx
