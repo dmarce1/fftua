@@ -172,10 +172,6 @@ khiloop:
          mulx         TW3, %rcx, %rdi
          vbroadcastsd 0(W, %rax, 8), tr1
          vbroadcastsd 8(W, %rax, 8), ti1
-         vbroadcastsd 0(W, %rbx, 8), tr2
-         vbroadcastsd 8(W, %rbx, 8), ti2
-         vbroadcastsd 0(W, %rcx, 8), tr3
-         vbroadcastsd 8(W, %rcx, 8), ti3
          mov          N2, %rax
          sub          k2, %rax
          mov          %rax, %rdi
@@ -205,6 +201,14 @@ khiloop:
          vmovapd      (%rbx, %rdi, 8), ei1
          vmovapd      (%rcx, %rdi, 8), ei2
          vmovapd      (%rdx, %rdi, 8), ei3
+         vmulpd       ti1, ti1, tr2
+         vmulpd       tr1, ti1, ti2
+         vfmsub231pd  tr1, tr1, tr2
+         vfmadd231pd  ti1, tr1, ti2
+         vmulpd       ti1, ti2, tr3
+         vmulpd       tr1, ti2, ti3
+         vfmsub231pd  tr1, tr2, tr3
+         vfmadd231pd  ti1, tr2, ti3
          vmulpd       ti1, ei1, tr0
          vmulpd       tr1, ei1, ti0
          vfmsub231pd  tr1, er1, tr0
