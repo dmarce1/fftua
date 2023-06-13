@@ -1,12 +1,13 @@
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
-#define  X            %r8
-#define  W            %r9
-#define  ihi          %r10
-#define  N2           %r11
-#define  khi          %r12
-#define  klo          %r13
-#define  k2           %r14
+#define  N2           %r8
+#define  C            %r9
+#define  S            %r10
+#define  ihi          %r11
+#define  X            %r12
+#define  khi          %r13
+#define  klo          %r14
+#define  k2           %r15
 #define  er0          %ymm0
 #define  ei0          %ymm1
 #define  er1          %ymm2
@@ -55,10 +56,12 @@ butterfly4:
          push         %r12
          push         %r13
          push         %r14
+         push         %r15
+         mov          %rcx, NHI
+         mov          %rdx, S
+         mov          %rsi, C
          mov          %rdi, X
-         mov          %rsi, W
-         mov          %rdx, NHI
-         mov          %rcx, N2
+         mov          NHI, %rdx
          shr          $2, %rcx
          shr          $2, %rdx
          mov          %rdx, NHIoN1
@@ -88,7 +91,7 @@ butterfly4:
          cmovl        %rax, %rcx
          mov          %rcx, N2oN1o2
          mov          NHI, %rax
-         shl          $4, %rax
+         shl          $3, %rax
          mov          %rax, TW1
          xor          ihi, ihi
 ihiloop:
@@ -149,8 +152,8 @@ khiloop:
          je           khiloop_cont
          mov          k2, %rax
          imul         TW1, %rax
-         vbroadcastsd 0(W, %rax), tr1
-         vbroadcastsd 8(W, %rax), ti1
+         vbroadcastsd (C, %rax), tr1
+         vbroadcastsd (S, %rax), ti1
          mov          N2, %rax
          sub          k2, %rax
          mov          %rax, %rdi
@@ -241,6 +244,7 @@ done:
          inc          ihi
          cmp          ihi, NHIoN1
          jne          ihiloop
+         pop          %r15
          pop          %r14
          pop          %r13
          pop          %r12

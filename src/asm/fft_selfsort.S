@@ -1,11 +1,12 @@
-#define  STACK_SIZE   $8
+#define  STACK_SIZE   $24
 #define  N1           $4
 #define  X            %r12
-#define  W            %r13
+#define  C            %r13
+#define  S            %r14
 #define  N2           %r15
-#define  NMID         %r14
-#define  NHI          %rbx
-#define  N            -8(%rbp)
+#define  NHI          -8(%rbp)
+#define  NMID         -16(%rbp)
+#define  N            -24(%rbp)
 
          .global      fft_selfsort
 
@@ -19,14 +20,17 @@ fft_selfsort:
          push         %r14
          push         %r15
          mov          %rdi, X
-         mov          %rsi, W
-         mov          %rdx, N
+         mov          %rsi, C
+         mov          %rdx, S
+         mov          %rcx, N
          mov          $1, N2
          mov          N2, NHI
          mov          X, %rdi
          mov          N, %rsi
          call         trivial_butterfly
-         shl          $2, NHI
+         mov          NHI, %rax
+         shl          $2, %rax
+         mov          %rax, NHI
          shl          $2, N2
          mov          N, %rcx
          bsf          N2, %rax
@@ -36,20 +40,24 @@ fft_selfsort:
          add          %rdx, %rax
          sub          %rax, %rcx
          xor          %rax, %rax
-         mov          $1, NMID
-         shl          %cl, NMID
+         mov          $1, %rdx
+         shl          %cl, %rdx
          cmp          $0, %rcx
-         cmovl        %rax, NMID
+         cmovl        %rax, %rdx
+         mov          %rdx, NMID
 L0:
          cmp          $0, NMID
          je           L2
          mov          X, %rdi
-         mov          W, %rsi
-         mov          NHI, %rdx
-         mov          NMID, %rcx
-         mov          N2, %r8
+         mov          C, %rsi
+         mov          S, %rdx
+         mov          NHI, %rcx
+         mov          NMID, %r8
+         mov          N2, %r9
          call         butterfly4_and_transpose
-         shl          $2, NHI
+         mov          NHI, %rax
+         shl          $2, %rax
+         mov          %rax, NHI
          shl          $2, N2
          mov          N, %rcx
          bsf          N2, %rax
@@ -59,10 +67,11 @@ L0:
          add          %rdx, %rax
          sub          %rax, %rcx
          xor          %rax, %rax
-         mov          $1, NMID
-         shl          %cl, NMID
+         mov          $1, %rdx
+         shl          %cl, %rdx
          cmp          $0, %rcx
-         cmovl        %rax, NMID
+         cmovl        %rax, %rdx
+         mov          %rdx, NMID
          jmp          L0
 L2:
          mov          N2, %rax
@@ -76,12 +85,14 @@ L2:
          bsf          N2, %rax
          add          $2, %rax
          sub          %rax, %rcx
-         mov          $1, NHI
-         shl          %cl, NHI
+         mov          $1, %rdx
+         shl          %cl, %rdx
+         mov          %rdx, NHI
          mov          X, %rdi
-         mov          W, %rsi
-         mov          NHI, %rdx
-         mov          N2, %rcx
+         mov          C, %rsi
+         mov          S, %rdx
+         mov          NHI, %rcx
+         mov          N2, %r8
 	     call         butterfly4
          shl          $2, N2
          jmp          L2
@@ -91,9 +102,10 @@ L3:
          shr          $4, %rsi
          call         transpose
          mov          X, %rdi
-         mov          W, %rsi
-         mov          N, %rdx
-         mov          N2, %rcx
+         mov          C, %rsi
+         mov          S, %rdx
+         mov          N, %rcx
+         mov          N2, %r8
          call         butterfly4_finish
          pop          %r15
          pop          %r14

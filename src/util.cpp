@@ -180,7 +180,41 @@ const std::vector<complex<double>>& twiddles(int N) {
 	}
 }
 
-const std::vector<std::vector<double>>& cos_twiddles(int N1, int N2) {
+
+const std::vector<double>& sin_twiddles(int N) {
+	using entry_type = std::shared_ptr<std::vector<double>>;
+	static std::unordered_map<int, entry_type> cache;
+	auto iter = cache.find(N);
+	if (iter != cache.end()) {
+		return *(iter->second);
+	} else {
+		std::vector<double> W(N);
+		for (int n1 = 0; n1 < N; n1++) {
+			W[n1] = sin(-2.0 * M_PI * n1 / N);
+		}
+		cache[N] = std::make_shared<std::vector<double>>(std::move(W));
+		return *(cache[N]);
+	}
+}
+
+
+const std::vector<double>& cos_twiddles(int N) {
+	using entry_type = std::shared_ptr<std::vector<double>>;
+	static std::unordered_map<int, entry_type> cache;
+	auto iter = cache.find(N);
+	if (iter != cache.end()) {
+		return *(iter->second);
+	} else {
+		std::vector<double> W(N);
+		for (int n1 = 0; n1 < N; n1++) {
+			W[n1] = cos(-2.0 * M_PI * n1 / N);
+		}
+		cache[N] = std::make_shared<std::vector<double>>(std::move(W));
+		return *(cache[N]);
+	}
+}
+
+const std::vector<std::vector<double>>& cos_twiddles2(int N1, int N2) {
 	using entry_type = std::shared_ptr<std::vector<std::vector<double>>>;
 	static std::unordered_map<int, std::unordered_map<int, entry_type>> cache;
 	const int N = N1 * N2;
@@ -199,7 +233,7 @@ const std::vector<std::vector<double>>& cos_twiddles(int N1, int N2) {
 	}
 }
 
-const std::vector<std::vector<double>>& sin_twiddles(int N1, int N2) {
+const std::vector<std::vector<double>>& sin_twiddles2(int N1, int N2) {
 	using entry_type = std::shared_ptr<std::vector<std::vector<double>>>;
 	static std::unordered_map<int, std::unordered_map<int, entry_type>> cache;
 	const int N = N1 * N2;

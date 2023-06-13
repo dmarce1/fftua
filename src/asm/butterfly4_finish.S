@@ -2,12 +2,13 @@
 #define  N1           $4
 #define  SIMD_SIZE    $4
 #define  X            %r8
-#define  W            %r9
+#define  C            %r9
 #define  N            %r10
 #define  N2           %r11
 #define  N2o2         %r12
 #define  _8N2o2       %r13
 #define  k2           %r14
+#define  S            %r15
 #define  er0          %ymm0
 #define  er1          %ymm1
 #define  er2          %ymm2
@@ -46,22 +47,6 @@
 
          .data
          .align       32
-ones:    .quad        0xffffffffffffffff
-         .quad        0xffffffffffffffff
-         .quad        0xffffffffffffffff
-         .quad        0xffffffffffffffff
-dI1:     .quad        0
-         .quad        2
-         .quad        4
-         .quad        6
-dI2:     .quad        0
-         .quad        4
-         .quad        8
-         .quad        12
-dI3:     .quad        0
-         .quad        6
-         .quad        12
-         .quad        18
 pbytes:  .byte        8
          .byte        9
          .byte        10
@@ -85,15 +70,16 @@ none:    .double      -1.0
 
 butterfly4_finish:
          push         %rbx
+         push         %r15
          push         %r14
          push         %r13
          push         %r12
+         mov          %r8, N2
+         mov          %rcx, N
+         mov          %rdx, S
+         mov          %rsi, C
          mov          %rdi, X
-         mov          %rsi, W
-         mov          %rdx, N
-         shr          $2, %rdx
-         mov          %rdx, N2
-         shl          $2, %rdx
+         mov          N, %rdx
          mov          %rdx, _8N2o2
          shr          $3, %rdx
          mov          %rdx, N2o2
@@ -138,12 +124,12 @@ butterfly4_finish:
          movsd        ur3, (%rdx, _8N2o2)
          cmp          $2, N2
          jle          done
-         movsd        16(W), sr1
-         movsd        32(W), sr2
-         movsd        48(W), sr3
-         movsd        24(W), si1
-         movsd        40(W), si2
-         movsd        56(W), si3
+         movsd        8(C), sr1
+         movsd        16(C), sr2
+         movsd        24(C), sr3
+         movsd        8(S), si1
+         movsd        16(S), si2
+         movsd        24(S), si3
          mov          N2, %rdi
          sub          $2, %rdi
          lea          8(X), %rax
@@ -203,18 +189,18 @@ butterfly4_finish:
          cmp          $4, N2
          jle          done
          mov          $2, k2
-         movlpd       32(W), sr1
-         movlpd       64(W), sr2
-         movlpd       96(W), sr3
-         movlpd       40(W), si1
-         movlpd       72(W), si2
-         movlpd       104(W), si3
-         vmovhpd      48(W), sr1, sr1
-         vmovhpd      96(W), sr2, sr2
-         vmovhpd      144(W), sr3, sr3
-         vmovhpd      56(W), si1, si1
-         vmovhpd      104(W), si2, si2
-         vmovhpd      152(W), si3, si3
+         movlpd       16(C), sr1
+         movlpd       32(C), sr2
+         movlpd       48(C), sr3
+         movlpd       16(S), si1
+         movlpd       32(S), si2
+         movlpd       48(S), si3
+         vmovhpd      24(C), sr1, sr1
+         vmovhpd      48(C), sr2, sr2
+         vmovhpd      72(C), sr3, sr3
+         vmovhpd      24(S), si1, si1
+         vmovhpd      48(S), si2, si2
+         vmovhpd      72(S), si3, si3
          mov          N2, %rdi
          sub          $5, %rdi
          lea          16(X), %rax
@@ -283,14 +269,8 @@ butterfly4_finish:
          jle          done
          mov          $4, k2
 k2simd:
-         mov          k2, %rax
-         shl          %rax
-         lea          (W, %rax, 8), %rax
-         vmovdqa      dI1, %ymm1
-         vmovdqa      ones, %ymm4
-         vmovdqa      %ymm4, %ymm5
-         vgatherqpd   %ymm4, 0(%rax, %ymm1, 8), tr1
-         vgatherqpd   %ymm5, 8(%rax, %ymm1, 8), ti1
+         vmovapd      (C, k2, 8), tr1
+         vmovapd      (S, k2, 8), ti1
          vmulpd       ti1, ti1, tr2
          vmulpd       tr1, ti1, ti2
          vfmsub231pd  tr1, tr1, tr2
@@ -368,5 +348,6 @@ done:
          pop          %r12
          pop          %r13
          pop          %r14
+         pop          %r15
          pop          %rbx
          ret

@@ -1164,7 +1164,7 @@ inline __m256& dble2m256(double* x) {
 }
 
 extern "C" {
-void fft_selfsort(double*, double*, int);
+void fft_selfsort(double*, double*, double*, int);
 }
 
 #include "asm.hpp"
@@ -1172,8 +1172,9 @@ void fft_selfsort(double*, double*, int);
 void fft_inplace_real(double* x, int N) {
 	constexpr int N1 = 4;
 	int NHI, NMID, N2, TWHI, KLO, KHI;
-	const auto& w = twiddles(N);
-	fft_selfsort(x, (double*) w.data(), N);
+	const auto& c = cos_twiddles(N);
+	const auto& s = sin_twiddles(N);
+	fft_selfsort(x, (double*) c.data(), (double*) s.data(), N);
 	return;
 
 /*	void butterfly4_and_tranpose(double* X, double* W, int NHI, int NMID, int N2);

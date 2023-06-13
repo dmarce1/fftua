@@ -1,9 +1,9 @@
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
-#define  W            %r9
-#define  N2           %r10
-#define  ihi          %r11
+#define  C            %r9
+#define  S            %r10
+#define  N2           %r11
 #define  k2           %r12
 #define  n0           %r13
 #define  n1           %r14
@@ -44,9 +44,9 @@
 #define  TW2          -144(%rbp)
 #define  TW3          -152(%rbp)
 #define  dN2o2        -160(%rbp)
-#define  U0ptr        -928(%rbp)
-#define  STACK_SIZE   $952
-#define  LOOK_AHEAD   32768
+#define  ihi          -168(%rbp)
+#define  U0ptr        -936(%rbp)
+#define  STACK_SIZE   $960
 
          .global      butterfly4_and_transpose
 
@@ -74,10 +74,11 @@ butterfly4_and_transpose:
          push         %r13
          push         %r14
          push         %r15
-         mov          %r8, N2
-         mov          %rcx, NMID
-         mov          %rdx, NHI
-         mov          %rsi, W
+         mov          %r9, N2
+         mov          %r8, NMID
+         mov          %rcx, NHI
+         mov          %rdx, S
+         mov          %rsi, C
          mov          %rdi, X
          lea          U0ptr, U0
          and          $0xffffffffffffffe0, U0
@@ -99,7 +100,7 @@ butterfly4_and_transpose:
          mov          NMID, %rax
          shl          $2, %rax
          imul         NHI, %rax
-         shl          $4, %rax
+         shl          $3, %rax
          mov          %rax, %rbx
          mov          %rax, TW1
          add          %rax, %rbx
@@ -128,7 +129,8 @@ butterfly4_and_transpose:
          add          %rax, %rdi
          shl          $2, %rdi
          mov          %rdi, dN2o2
-         xor          ihi, ihi
+         xor          %rax, %rax
+         mov          %rax, ihi
 ihi_loop:
          xor          n0, n0
 k0_load:
@@ -136,7 +138,8 @@ k0_load:
          imul         N2
          lea          (X, %rax, 8), %rax
          mov          N1N2NMID, %rsi
-         lea          (%rax, ihi, 8), %rax
+         mov          ihi, %rdx
+         lea          (%rax, %rdx, 8), %rax
          lea          (%rax, %rsi, 8), %rbx
          lea          (%rbx, %rsi, 8), %rcx
          lea          (%rcx, %rsi, 8), %rdx
@@ -254,12 +257,12 @@ k2_loop_b:
          mulx         TW1, %rax, %rdi
          mulx         TW2, %rbx, %rdi
          mulx         TW3, %rcx, %rdi
-         mov          0(W, %rax), %rdi
-         mov          8(W, %rax), %rax
-         mov          0(W, %rbx), %rsi
-         mov          8(W, %rbx), %rbx
-         mov          0(W, %rcx), %rdx
-         mov          8(W, %rcx), %rcx
+         mov          (C, %rax), %rdi
+         mov          (S, %rax), %rax
+         mov          (C, %rbx), %rsi
+         mov          (S, %rbx), %rbx
+         mov          (C, %rcx), %rdx
+         mov          (S, %rcx), %rcx
          mov          %rdi, cos1
          mov          %rax, sin1
          mov          %rsi, cos2
@@ -388,10 +391,12 @@ compute_enter:
          jge          compute_loop
          jmp          k2_loop_b
 k2_loop_e:
-         or           mask1, ihi
-         add          N1N2, ihi
-         and          mask2, ihi
-         cmp          ihi, NHIN1N2NMID
+         mov          ihi, %rax
+         or           mask1, %rax
+         add          N1N2, %rax
+         and          mask2, %rax
+         mov          %rax, ihi
+         cmp          %rax, NHIN1N2NMID
          jg           ihi_loop
          pop          %r15
          pop          %r14
