@@ -1,4 +1,4 @@
-#define  STACK_SIZE   $1320
+#define  STACK_SIZE   $1064
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
@@ -10,12 +10,12 @@
 #define  n1           %r14
 #define  U0           %r15
 #define  er0          %ymm0
-#define  er1          %ymm1
-#define  er2          %ymm2
-#define  er3          %ymm3
-#define  ei0          %ymm4
-#define  ei1          %ymm5
-#define  ei2          %ymm6
+#define  ei0          %ymm1
+#define  er1          %ymm2
+#define  ei1          %ymm3
+#define  er2          %ymm4
+#define  ei2          %ymm5
+#define  er3          %ymm6
 #define  ei3          %ymm7
 #define  tr0          %ymm8
 #define  tr1          %ymm9
@@ -44,7 +44,7 @@
 #define  TW2          -256(%rbp)
 #define  TW3          -264(%rbp)
 #define  NHINMIDN2    -272(%rbp)
-#define  U0ptr        -1296(%rbp)
+#define  U0ptr        -1040(%rbp)
 
 
          .global      butterfly4_and_transpose
@@ -325,13 +325,15 @@ load_loop:
          lea          (%rbx, %rdx, 8), %rcx
          lea          (%rcx, %rdx, 8), %rdx
          vmovapd      (%rax), %ymm0
-         vmovapd      (%rbx), %ymm2
-         vmovapd      (%rcx), %ymm4
-         vmovapd      (%rdx), %ymm6
          vmovapd      (%rax, %rsi, 8), %ymm1
+         vmovapd      (%rbx), %ymm2
          vmovapd      (%rbx, %rsi, 8), %ymm3
+         vmovapd      (%rcx), %ymm4
          vmovapd      (%rcx, %rsi, 8), %ymm5
+         vmovapd      (%rdx), %ymm6
          vmovapd      (%rdx, %rsi, 8), %ymm7
+         cmp          $3, n0
+         je           compute_enter
          mov          n0, %rax
          shl          $5, %rax
          lea          (U0, %rax, 8), %rax
@@ -344,19 +346,11 @@ load_loop:
          vmovapd      %ymm6, 192(%rax)
          vmovapd      %ymm7, 224(%rax)
          inc          n0
-         cmp          N1, n0
-         jne          load_loop
-         xor          n0, n0
+         jmp          load_loop
 compute_loop:
          mov          n0, %rdx
          shl          $8, %rdx
          add          U0, %rdx
-         vbroadcastsd cos1, tr1
-         vbroadcastsd cos2, tr2
-         vbroadcastsd cos3, tr3
-         vbroadcastsd sin1, ti1
-         vbroadcastsd sin2, ti2
-         vbroadcastsd sin3, ti3
          vmovapd      (%rdx), er0
          vmovapd      32(%rdx), ei0
          vmovapd      64(%rdx), er1
@@ -365,6 +359,13 @@ compute_loop:
          vmovapd      160(%rdx), ei2
          vmovapd      192(%rdx), er3
          vmovapd      224(%rdx), ei3
+compute_enter:
+         vbroadcastsd cos1, tr1
+         vbroadcastsd cos2, tr2
+         vbroadcastsd cos3, tr3
+         vbroadcastsd sin1, ti1
+         vbroadcastsd sin2, ti2
+         vbroadcastsd sin3, ti3
          vmulpd       ti1, ei1, tr0
          vmulpd       tr1, ei1, ti0
          vfmsub231pd  tr1, er1, tr0
@@ -414,9 +415,9 @@ compute_loop:
          vmovapd      er2, (%rbx, %rsi, 8)
          vmovapd      ei1, (%rcx, %rsi, 8)
          vmovapd      ei0, (%rdx, %rsi, 8)
-         inc          n0
-         cmp          N1, n0
-         jne          compute_loop
+         dec          n0
+         cmp          $0, n0
+         jge          compute_loop
          jmp          k2_loop_b
 k2_loop_e:
          pop          %rax

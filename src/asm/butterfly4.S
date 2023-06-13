@@ -1,4 +1,4 @@
-#define  STACK_SIZE   $72
+#define  STACK_SIZE   $96
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
@@ -33,6 +33,9 @@
 #define  N2o2         -56(%rbp)
 #define  khi1         -64(%rbp)
 #define  N2oN1o2      -72(%rbp)
+#define  TW1          -80(%rbp)
+#define  TW2          -88(%rbp)
+#define  TW3          -96(%rbp)
 #define  khi0         khi
 #define  klo0         klo
 
@@ -82,8 +85,16 @@ butterfly4:
          mov          $1, %rax
          cmovl        %rax, %rcx
          mov          %rcx, N2oN1o2
+         mov          NHI, %rax
+         mov          %rax, %rbx
+         mov          %rax, %rcx
+         add          %rax, %rbx
+         add          %rbx, %rcx
+         mov          %rax, TW1
+         mov          %rbx, TW2
+         mov          %rcx, TW3
          xor          ihi, ihi
-ihiloop0:
+ihiloop:
          mov          ihi, %rax
          mov          N2N1, %rbx
          mul          %rbx
@@ -105,9 +116,6 @@ ihiloop0:
          vmovapd      tr2, (%rbx)
          vmovapd      er2, (%rcx)
          vmovapd      tr3, (%rdx)
-         inc          ihi
-         cmp          ihi, NHIoN1
-         jne          ihiloop0
          cmp          $1, N2
          jle          done
          mov          N2o2, %rax
@@ -116,8 +124,6 @@ ihiloop0:
          and          $3, %rbx
          mov          %rax, khi0
          mov          %rbx, klo0
-         xor          ihi, ihi
-ihiloop1:
          mov          NHIoN1, %rcx
          mov          N2, %rbx
          mov          klo0, %rax
@@ -149,13 +155,8 @@ ihiloop1:
          vmovapd      er1, (%rbx)
          vmovapd      er2, (%rcx)
          vmovapd      er3, (%rdx)
-         inc          ihi
-         cmp          ihi, NHIoN1
-         jne          ihiloop1
          cmp          $2, N2
          jle          done
-         xor          ihi, ihi
-ihiloop2:
          xor          klo, klo
 kloloop:
          xor          khi, khi
@@ -163,46 +164,39 @@ khiloop:
          mov          khi, k2
          shl          $2, k2
          or           klo, k2
+         cmp          k2, N2o2
+         jle          khiloop_cont
          cmp          $0, k2
          je           khiloop_cont
-         mov          N2, %rax
-         sub          k2, %rax
-         mov          %rax, %rbx
-         shr          $2, %rax
-         and          $3, %rbx
-         mov          %rax, khi1
-         mov          %rbx, klo1
-         mov          NHI, %rax
-         mov          k2, %rbx
-         mul          %rbx
-         shl          %rax
-         mov          %rax, %rbx
-         mov          %rax, %rcx
-         add          %rax, %rbx
-         add          %rbx, %rcx
+         mov          k2, %rdx
+         shl          %rdx
+         mulx         TW1, %rax, %rdi
+         mulx         TW2, %rbx, %rdi
+         mulx         TW3, %rcx, %rdi
          vbroadcastsd 0(W, %rax, 8), tr1
          vbroadcastsd 8(W, %rax, 8), ti1
          vbroadcastsd 0(W, %rbx, 8), tr2
          vbroadcastsd 8(W, %rbx, 8), ti2
          vbroadcastsd 0(W, %rcx, 8), tr3
          vbroadcastsd 8(W, %rcx, 8), ti3
-         mov          NHIoN1, %rcx
-         mov          N2, %rbx
-         mov          klo1, %rax
-         mul          %rcx
-         add          ihi, %rax
-         mul          %rbx
-         add          khi1, %rax
-         shl          $2, %rax
+         mov          N2, %rax
+         sub          k2, %rax
          mov          %rax, %rdi
-         mov          klo0, %rax
-         mul          %rcx
-         add          ihi, %rax
-         mul          %rbx
-         add          khi0, %rax
-         shl          $2, %rax
-         sub          %rax, %rdi
-         lea          (X, %rax, 8), %rax
+         shr          $2, %rax
+         and          $3, %rdi
+         mov          klo0, %rsi
+         imul         NHIoN1, %rdi
+         imul         NHIoN1, %rsi
+         add          ihi, %rdi
+         add          ihi, %rsi
+         imul         N2, %rdi
+         imul         N2, %rsi
+         add          %rax, %rdi
+         add          khi0, %rsi
+         shl          $2, %rdi
+         shl          $2, %rsi
+         sub          %rsi, %rdi
+         lea          (X, %rsi, 8), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
          lea          (%rcx, N2, 8), %rdx
@@ -266,7 +260,7 @@ khiloop_cont:
 done:
          inc          ihi
          cmp          ihi, NHIoN1
-         jne          ihiloop2
+         jne          ihiloop
          pop          %r14
          pop          %r13
          pop          %r12

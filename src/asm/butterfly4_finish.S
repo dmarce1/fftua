@@ -61,14 +61,6 @@ dI1:     .long        0
          .long        2
          .long        4
          .long        6
-dI2:     .long        0
-         .long        4
-         .long        8
-         .long        12
-dI3:     .long        0
-         .long        6
-         .long        12
-         .long        18
 tw45:    .double      M_SQRT1_2
 none:    .double      -1.0
 
@@ -93,44 +85,44 @@ butterfly4_finish:
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
          lea          (%rcx, N2, 8), %rdx
-         movq         (%rax), ur0
-         movq         (%rbx), ur1
-         movq         (%rcx), ur2
-         movq         (%rdx), ur3
+         movlpd       (%rax), ur0
+         movlpd       (%rbx), ur1
+         movlpd       (%rcx), ur2
+         movlpd       (%rdx), ur3
          vaddsd       ur2, ur0, sr0
          vsubsd       ur2, ur0, sr2
          vaddsd       ur3, ur1, sr1
          vsubsd       ur1, ur3, sr3
          vaddsd       sr1, sr0, ur0
          vsubsd       sr1, sr0, ur2
-         movq         ur0, (%rax)
-         movq         sr2, (%rbx)
-         movq         ur2, (%rcx)
-         movq         sr3, (%rdx)
+         movlpd       ur0, (%rax)
+         movlpd       sr2, (%rbx)
+         movlpd       ur2, (%rcx)
+         movlpd       sr3, (%rdx)
          cmp          $1, N2
          jle          done
-         movq         (%rax, _8N2o2), ur0
-         movq         (%rbx, _8N2o2), ur1
-         movq         (%rcx, _8N2o2), ur2
-         movq         (%rdx, _8N2o2), ur3
+         movlpd       (%rax, _8N2o2), ur0
+         movlpd       (%rbx, _8N2o2), ur1
+         movlpd       (%rcx, _8N2o2), ur2
+         movlpd       (%rdx, _8N2o2), ur3
          vaddsd       ur3, ur1, sr0
          vsubsd       ur3, ur1, sr2
          vmulsd       tw45, sr2, sr1
          vmulsd       tw45, sr0, sr3
-         movq         ur0, sr0
-         movq         ur2, sr2
+         movsd        ur0, sr0
+         movsd        ur2, sr2
          vaddsd       sr1, sr0, ur0
          vaddsd       sr3, sr2, ur3
          vsubsd       sr1, sr0, ur1
          vsubsd       sr3, sr2, ur2
          vmulsd       none, ur3, ur3
-         movq         ur0, (%rax, _8N2o2)
-         movq         ur1, (%rbx, _8N2o2)
-         movq         ur2, (%rcx, _8N2o2)
-         movq         ur3, (%rdx, _8N2o2)
+         movlpd       ur0, (%rax, _8N2o2)
+         movlpd       ur1, (%rbx, _8N2o2)
+         movlpd       ur2, (%rcx, _8N2o2)
+         movlpd       ur3, (%rdx, _8N2o2)
          cmp          $2, N2
          jle          done
-         movq         $8, k2max
+         mov          $8, k2max
          cmp          $8, N2
          cmovl        N2, k2max
          shr          k2max
@@ -142,45 +134,45 @@ k2scalar:
          mov          %rax, %rcx
          add          %rax, %rbx
          add          %rbx, %rcx
-         movq         0(W, %rax, 8), sr1
-         movq         0(W, %rbx, 8), sr2
-         movq         0(W, %rcx, 8), sr3
-         movq         8(W, %rax, 8), si1
-         movq         8(W, %rbx, 8), si2
-         movq         8(W, %rcx, 8), si3
-         movq         N2, %rdi
+         movlpd       0(W, %rax, 8), sr1
+         movlpd       0(W, %rbx, 8), sr2
+         movlpd       0(W, %rcx, 8), sr3
+         movlpd       8(W, %rax, 8), si1
+         movlpd       8(W, %rbx, 8), si2
+         movlpd       8(W, %rcx, 8), si3
+         mov          N2, %rdi
          sub          k2, %rdi
          sub          k2, %rdi
          lea          (X, k2, 8), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
          lea          (%rcx, N2, 8), %rdx
-         movq         (%rax), ur0
-         movq         (%rbx), ur1
-         movq         (%rcx), ur2
-         movq         (%rdx), ur3
-         movq         (%rax, %rdi, 8), ui0
-         movq         (%rbx, %rdi, 8), ui1
-         movq         (%rcx, %rdi, 8), ui2
-         movq         (%rdx, %rdi, 8), ui3
+         movlpd       (%rax), ur0
+         movlpd       (%rbx), ur1
+         movlpd       (%rcx), ur2
+         movlpd       (%rdx), ur3
+         movlpd       (%rax, %rdi, 8), ui0
+         movlpd       (%rbx, %rdi, 8), ui1
+         movlpd       (%rcx, %rdi, 8), ui2
+         movlpd       (%rdx, %rdi, 8), ui3
          vmulsd       si1, ui1, sr0
          vmulsd       sr1, ui1, si0
          vfmsub231sd  sr1, ur1, sr0
          vfmadd231sd  si1, ur1, si0
-         movq         si0, ui1
-         movq         sr0, ur1
+         movsd        si0, ui1
+         movsd        sr0, ur1
          vmulsd       si2, ui2, sr0
          vmulsd       sr2, ui2, si0
          vfmsub231sd  sr2, ur2, sr0
          vfmadd231sd  si2, ur2, si0
-         movq         si0, ui2
-         movq         sr0, ur2
+         movsd        si0, ui2
+         movsd        sr0, ur2
          vmulsd       si3, ui3, sr0
          vmulsd       sr3, ui3, si0
          vfmsub231sd  sr3, ur3, sr0
          vfmadd231sd  si3, ur3, si0
-         movq         si0, ui3
-         movq         sr0, ur3
+         movsd        si0, ui3
+         movsd        sr0, ur3
          vaddsd       ur2, ur0, sr0
          vaddsd       ui2, ui0, si0
          vsubsd       ur2, ur0, sr2
@@ -197,14 +189,14 @@ k2scalar:
          vsubsd       si0, si1, ui2
          vsubsd       si3, sr2, ur3
          vsubsd       si2, sr3, ui3
-         movq         ur0, (%rax)
-         movq         ur1, (%rbx)
-         movq         ui2, (%rcx)
-         movq         ui3, (%rdx)
-         movq         ur3, (%rax, %rdi, 8)
-         movq         ur2, (%rbx, %rdi, 8)
-         movq         ui1, (%rcx, %rdi, 8)
-         movq         ui0, (%rdx, %rdi, 8)
+         movlpd       ur0, (%rax)
+         movlpd       ur1, (%rbx)
+         movlpd       ui2, (%rcx)
+         movlpd       ui3, (%rdx)
+         movlpd       ur3, (%rax, %rdi, 8)
+         movlpd       ur2, (%rbx, %rdi, 8)
+         movlpd       ui1, (%rcx, %rdi, 8)
+         movlpd       ui0, (%rdx, %rdi, 8)
          inc          k2
          cmp          k2, k2max
          jne          k2scalar
@@ -214,28 +206,20 @@ k2scalar:
 k2simd:
          mov          k2, %rax
          shl          %rax
-         mov          %rax, %rbx
-         mov          %rax, %rcx
-         add          %rax, %rbx
-         add          %rbx, %rcx
          lea          (W, %rax, 8), %rax
-         lea          (W, %rbx, 8), %rbx
-         lea          (W, %rcx, 8), %rcx
          vmovdqa      dI1, %xmm1
-         vmovdqa      dI2, %xmm2
-         vmovdqa      dI3, %xmm3
          vmovdqa      ones, %ymm4
          vmovdqa      %ymm4, %ymm5
-         vmovdqa      %ymm4, %ymm6
-         vmovdqa      %ymm4, %ymm7
-         vmovdqa      %ymm4, %ymm8
-         vmovdqa      %ymm4, %ymm9
          vgatherdpd   %ymm4, 0(%rax, %xmm1, 8), tr1
          vgatherdpd   %ymm5, 8(%rax, %xmm1, 8), ti1
-         vgatherdpd   %ymm6, 0(%rbx, %xmm2, 8), tr2
-         vgatherdpd   %ymm7, 8(%rbx, %xmm2, 8), ti2
-         vgatherdpd   %ymm8, 0(%rcx, %xmm3, 8), tr3
-         vgatherdpd   %ymm9, 8(%rcx, %xmm3, 8), ti3
+         vmulpd       ti1, ti1, tr2
+         vmulpd       tr1, ti1, ti2
+         vfmsub231pd  tr1, tr1, tr2
+         vfmadd231pd  ti1, tr1, ti2
+         vmulpd       ti1, ti2, tr3
+         vmulpd       tr1, ti2, ti3
+         vfmsub231pd  tr1, tr2, tr3
+         vfmadd231pd  ti1, tr2, ti3
          mov          N2, %rdi
          sub          k2, %rdi
          sub          k2, %rdi
