@@ -46,7 +46,7 @@
 #define  dN2o2        -160(%rbp)
 #define  U0ptr        -928(%rbp)
 #define  STACK_SIZE   $952
-
+#define  LOOK_AHEAD   32768
 
          .global      butterfly4_and_transpose
 

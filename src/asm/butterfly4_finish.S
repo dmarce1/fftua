@@ -54,6 +54,14 @@ dI1:     .quad        0
          .quad        2
          .quad        4
          .quad        6
+dI2:     .quad        0
+         .quad        4
+         .quad        8
+         .quad        12
+dI3:     .quad        0
+         .quad        6
+         .quad        12
+         .quad        18
 pbytes:  .byte        8
          .byte        9
          .byte        10

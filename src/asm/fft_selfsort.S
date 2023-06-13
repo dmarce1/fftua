@@ -28,15 +28,18 @@ fft_selfsort:
          call         trivial_butterfly
          shl          $2, NHI
          shl          $2, N2
-         bsf          NHI, %rax
-         bsf          N2, %rbx
-         add          %rbx, %rax
-         add          $4, %rax
          mov          N, %rcx
+         bsf          N2, %rax
+         bsf          NHI, %rdx
          bsf          %rcx, %rcx
+         add          $4, %rax
+         add          %rdx, %rax
          sub          %rax, %rcx
+         xor          %rax, %rax
          mov          $1, NMID
          shl          %cl, NMID
+         cmp          $0, %rcx
+         cmovl        %rax, NMID
 L0:
          cmp          $0, NMID
          je           L2
@@ -48,17 +51,18 @@ L0:
          call         butterfly4_and_transpose
          shl          $2, NHI
          shl          $2, N2
-         bsf          NHI, %rax
-         bsf          N2, %rbx
-         add          %rbx, %rax
-         add          $4, %rax
          mov          N, %rcx
+         bsf          N2, %rax
+         bsf          NHI, %rdx
          bsf          %rcx, %rcx
+         add          $4, %rax
+         add          %rdx, %rax
          sub          %rax, %rcx
-         cmp          $0, %rcx
-         jle          L2
+         xor          %rax, %rax
          mov          $1, NMID
          shl          %cl, NMID
+         cmp          $0, %rcx
+         cmovl        %rax, NMID
          jmp          L0
 L2:
          mov          N2, %rax
@@ -68,9 +72,10 @@ L2:
          cmp          %rax, %rcx
          jl           L3
          mov          N, %rcx
-         bsf          N2, %rax
          bsf          %rcx, %rcx
+         bsf          N2, %rax
          add          $2, %rax
+         sub          %rax, %rcx
          mov          $1, NHI
          shl          %cl, NHI
          mov          X, %rdi
