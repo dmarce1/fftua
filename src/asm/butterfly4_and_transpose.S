@@ -280,18 +280,18 @@ k2_loop_b:
          mulx         TW1, %rax, %rdi
          mulx         TW2, %rbx, %rdi
          mulx         TW3, %rcx, %rdi
-         movq         0(W, %rax), %xmm0
-         movq         8(W, %rax), %xmm1
-         movq         0(W, %rbx), %xmm2
-         movq         8(W, %rbx), %xmm3
-         movq         0(W, %rcx), %xmm4
-         movq         8(W, %rcx), %xmm5
-         movq         %xmm0, cos1
-         movq         %xmm1, sin1
-         movq         %xmm2, cos2
-         movq         %xmm3, sin2
-         movq         %xmm4, cos3
-         movq         %xmm5, sin3
+         mov          0(W, %rax), %rdi
+         mov          8(W, %rax), %rax
+         mov          0(W, %rbx), %rsi
+         mov          8(W, %rbx), %rbx
+         mov          0(W, %rcx), %rdx
+         mov          8(W, %rcx), %rcx
+         mov          %rdi, cos1
+         mov          %rax, sin1
+         mov          %rsi, cos2
+         mov          %rbx, sin2
+         mov          %rdx, cos3
+         mov          %rcx, sin3
          mov          N2, %rax
          mov          k2, %rcx
          sub          k2, %rax
@@ -399,8 +399,6 @@ compute_loop:
          vsubpd       ti0, ti1, ei2
          vsubpd       ti3, tr2, er3
          vsubpd       ti2, tr3, ei3
-
-
          mov          n0, %rax
          imul         N1N2NMID, %rax
          add          %rdi, %rax
@@ -408,7 +406,6 @@ compute_loop:
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
          lea          (%rcx, N2, 8), %rdx
-
          vmovapd      er0, (%rax)
          vmovapd      er1, (%rbx)
          vmovapd      ei2, (%rcx)
