@@ -1,4 +1,4 @@
-#define  STACK_SIZE   $1064
+#define  STACK_SIZE   $1080
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
 #define  X            %r8
@@ -44,7 +44,9 @@
 #define  TW2          -256(%rbp)
 #define  TW3          -264(%rbp)
 #define  NHINMIDN2    -272(%rbp)
-#define  U0ptr        -1040(%rbp)
+#define  N2o2hi       -280(%rbp)
+#define  N2o2lo       -288(%rbp)
+#define  U0ptr        -1056(%rbp)
 
 
          .global      butterfly4_and_transpose
@@ -78,16 +80,12 @@ butterfly4_and_transpose:
          mov          %rdi, X
          lea          U0ptr, U0
          and          $0xffffffffffffffe0, U0
-
-
          mov          NHI, %rax
          shr          $2, %rax
          mov          %rax, NHIoN1
-
          mov          NMID, %rbx
          shl          $2, %rbx
          mov          %rbx, N1NMID
-
          mov          N2, %rax
          imul         %rbx, %rax
          mov          %rax, N1N2NMID
@@ -118,6 +116,12 @@ butterfly4_and_transpose:
          imul         %rbx, %rax
          imul         N2, %rax
          mov          %rax, NHINMIDN2
+         mov          N2o2, %rax
+         and          $3, %rax
+         mov          %rax, N2o2lo
+         mov          N2o2, %rax
+         shr          $2, %rax
+         mov          %rax, N2o2hi
          mov          %rdx, ihi
 ihi_loop:
          xor          imid, imid
@@ -130,30 +134,29 @@ imid_k0:
          mov          %rax, %rdi
          xor          n0, n0
 k0_load:
-         mov          n0, %rcx
-         imul         N2, %rcx
-         lea          (X, %rcx, 8), %rax
-         lea          (%rax, %rdi, 8), %rcx
-         mov          N1N2NMID, %rax
-         vmovapd      (%rcx), %ymm0
-         lea          (%rcx, %rax, 8), %rcx
-         vmovapd      (%rcx), %ymm1
-         lea          (%rcx, %rax, 8), %rcx
-         vmovapd      (%rcx), %ymm2
-         lea          (%rcx, %rax, 8), %rcx
-         vmovapd      (%rcx), %ymm3
-         lea          (%rcx, %rax, 8), %rcx
+         mov          n0, %rax
+         imul         N2
+         lea          (X, %rax, 8), %rax
+         mov          N1N2NMID, %rsi
+         lea          (%rax, %rdi, 8), %rax
+         lea          (%rax, %rsi, 8), %rbx
+         lea          (%rbx, %rsi, 8), %rcx
+         lea          (%rcx, %rsi, 8), %rdx
+         vmovapd      (%rax), er0
+         vmovapd      (%rbx), er1
+         vmovapd      (%rcx), er2
+         vmovapd      (%rdx), er3
+         cmp          $3, n0
+         je           k0_compute_enter
          mov          n0, %rax
          shl          $4, %rax
          lea          (U0, %rax, 8), %rax
-         vmovapd      %ymm0, 0(%rax)
-         vmovapd      %ymm1, 32(%rax)
-         vmovapd      %ymm2, 64(%rax)
-         vmovapd      %ymm3, 96(%rax)
+         vmovapd      er0, 0(%rax)
+         vmovapd      er1, 32(%rax)
+         vmovapd      er2, 64(%rax)
+         vmovapd      er3, 96(%rax)
          inc          n0
-         cmp          N1, n0
-         jne          k0_load
-         xor          n0, n0
+         jmp          k0_load
 k0_compute:
          mov          n0, %rdx
          shl          $7, %rdx
@@ -162,6 +165,7 @@ k0_compute:
          vmovapd      32(%rdx), er1
          vmovapd      64(%rdx), er2
          vmovapd      96(%rdx), er3
+k0_compute_enter:
          vaddpd       er2, er0, tr0
          vsubpd       er2, er0, tr2
          vaddpd       er3, er1, tr1
@@ -172,36 +176,29 @@ k0_compute:
          imul         n0, %rax
          add          %rdi, %rax
          lea          (X, %rax, 8), %rax
+         lea          (%rax, N2, 8), %rbx
+         lea          (%rbx, N2, 8), %rcx
+         lea          (%rcx, N2, 8), %rdx
          vmovapd      er0, (%rax)
-         lea          (%rax, N2, 8), %rax
-         vmovapd      tr2, (%rax)
-         lea          (%rax, N2, 8), %rax
-         vmovapd      er2, (%rax)
-         lea          (%rax, N2, 8), %rax
-         vmovapd      tr3, (%rax)
-         inc          n0
-         cmp          N1, n0
-         jne          k0_compute
+         vmovapd      tr2, (%rbx)
+         vmovapd      er2, (%rcx)
+         vmovapd      tr3, (%rdx)
+         dec          n0
+         cmp          $0, n0
+         jge          k0_compute
          inc          imid
          cmp          imid, NMID
          jne          imid_k0
          xor          imid, imid
 imid_kN2o2:
-         mov          N2o2, %rax
-         mov          N2o2, %rbx
-         shr          $2, %rax
-         and          $3, %rbx
-         push         %rax
-         mov          NHIoN1, %rax
-         mul          %rbx
-         add          ihi, %rax
-         imul         N1NMID, %rax
-         add          imid, %rax
-         mul          N2
-         pop          %rcx
-         add          %rcx, %rax
-         shl          $2, %rax
-         mov          %rax, %rdi
+         mov          NHIoN1, %rdi
+         imul         N2o2lo, %rdi
+         add          ihi, %rdi
+         imul         N1NMID, %rdi
+         add          imid, %rdi
+         imul         N2, %rdi
+         add          N2o2hi, %rdi
+         shl          $2, %rdi
          xor          n0, n0
 kN2o2_load:
          mov          n0, %rdx
