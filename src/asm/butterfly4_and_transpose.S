@@ -24,32 +24,28 @@
 #define  ti1          %ymm13
 #define  ti2          %ymm14
 #define  ti3          %ymm15
-#define  NHI          -8(%rbp)
-#define  N1N2         -16(%rbp)
-#define  NMID         -24(%rbp)
-#define  NHIoN1       -32(%rbp)
-#define  N1NMID       -40(%rbp)
+#define  N            -8(%rbp)
+#define  N2o2         -16(%rbp)
+#define  NHI          -24(%rbp)
+#define  N1N2         -32(%rbp)
+#define  NMID         -40(%rbp)
 #define  N1N2NMID     -48(%rbp)
-#define  N            -56(%rbp)
-#define  mask2        -64(%rbp)
-#define  N2o2         -72(%rbp)
-#define  cos1         -80(%rbp)
-#define  cos2         -88(%rbp)
-#define  cos3         -96(%rbp)
-#define  sin1         -104(%rbp)
-#define  sin2         -112(%rbp)
-#define  sin3         -120(%rbp)
-#define  TW1          -128(%rbp)
-#define  TW2          -136(%rbp)
-#define  TW3          -144(%rbp)
-#define  NHINMIDN2    -152(%rbp)
-#define  N2o2hi       -160(%rbp)
-#define  N2o2lo       -168(%rbp)
-#define  mask1        -176(%rbp)
-#define  dN2o2        -184(%rbp)
-#define  NHIN1N2NMID  -192(%rbp)
-#define  U0ptr        -960(%rbp)
-#define  STACK_SIZE   $984
+#define  NHINMIDN2    -56(%rbp)
+#define  NHIN1N2NMID  -64(%rbp)
+#define  mask1        -72(%rbp)
+#define  mask2        -80(%rbp)
+#define  cos1         -88(%rbp)
+#define  cos2         -96(%rbp)
+#define  cos3         -104(%rbp)
+#define  sin1         -112(%rbp)
+#define  sin2         -120(%rbp)
+#define  sin3         -128(%rbp)
+#define  TW1          -136(%rbp)
+#define  TW2          -144(%rbp)
+#define  TW3          -152(%rbp)
+#define  dN2o2        -160(%rbp)
+#define  U0ptr        -928(%rbp)
+#define  STACK_SIZE   $952
 
 
          .global      butterfly4_and_transpose
@@ -85,50 +81,31 @@ butterfly4_and_transpose:
          mov          %rdi, X
          lea          U0ptr, U0
          and          $0xffffffffffffffe0, U0
-         mov          NHI, %rax
-         shr          $2, %rax
-         mov          %rax, NHIoN1
-         mov          NMID, %rbx
-         shl          $2, %rbx
-         mov          %rbx, N1NMID
          mov          N2, %rax
+         shl          $2, %rax
+         mov          %rax, N1N2
+         mov          NMID, %rbx
          imul         %rbx, %rax
          mov          %rax, N1N2NMID
+         shr          $2, %rax
          mov          NHI, %rbx
          imul         %rbx, %rax
+         mov          %rax, NHINMIDN2
          shl          $2, %rax
-         mov          %rax, N
-         mov          N, %rax
+         mov          %rax, NHIN1N2NMID
          mov          N2, %rbx
-         shl          $2, %rbx
-         xor          %rdx, %rdx
-         div          %rbx
+         shr          %rbx
+         mov          %rbx, N2o2
+         mov          NMID, %rax
+         shl          $2, %rax
+         imul         NHI, %rax
          shl          $4, %rax
-         mov          %rax, TW1
          mov          %rax, %rbx
+         mov          %rax, TW1
          add          %rax, %rbx
          mov          %rbx, TW2
          add          %rax, %rbx
          mov          %rbx, TW3
-         mov          N2, %rax
-         shl          $2, %rax
-         mov          %rax, N1N2
-         shr          $3, %rax
-         mov          %rax, N2o2
-         xor          %rdx, %rdx
-         mov          NHI, %rax
-         mov          NMID, %rbx
-         imul         %rbx, %rax
-         imul         N2, %rax
-         mov          %rax, NHINMIDN2
-         shl          $2, %rax
-         mov          %rax, NHIN1N2NMID
-         mov          N2o2, %rax
-         and          $3, %rax
-         mov          %rax, N2o2lo
-         mov          N2o2, %rax
-         shr          $2, %rax
-         mov          %rax, N2o2hi
          mov          NMID, %rdx
          bsf          %rdx, %rcx
          mov          N2, %rdx
@@ -140,11 +117,15 @@ butterfly4_and_transpose:
          mov          %rax, mask1
          not          %rax
          mov          %rax, mask2
-         mov          NHIoN1, %rdi
-         imul         N2o2lo, %rdi
-         imul         N1NMID, %rdi
+         mov          NHI, %rdi
+         mov          N2o2, %rax
+         and          $3, %rax
+         imul         %rax, %rdi
+         imul         NMID, %rdi
          imul         N2, %rdi
-         add          N2o2hi, %rdi
+         mov          N2o2, %rax
+         shr          $2, %rax
+         add          %rax, %rdi
          shl          $2, %rdi
          mov          %rdi, dN2o2
          xor          ihi, ihi
