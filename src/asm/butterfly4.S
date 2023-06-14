@@ -28,11 +28,13 @@
 #define  N            -16(%rbp)
 #define  dN2o2        -24(%rbp)
 #define  NHIoN1       -32(%rbp)
-#define  N2N1         -48(%rbp)
+#define  logN2N1      -48(%rbp)
 #define  N2o2         -56(%rbp)
 #define  N2oN1o2      -64(%rbp)
-#define  TW1          -72(%rbp)
-#define  STACK_SIZE   $72
+#define  logTW1       -72(%rbp)
+#define  logNHIoN1    -80(%rbp)
+#define  logN2        -88(%rbp)
+#define  STACK_SIZE   $88
 
          .global      butterfly4
 
@@ -65,6 +67,8 @@ butterfly4:
          shr          $2, %rcx
          shr          $2, %rdx
          mov          %rdx, NHIoN1
+         bsf          %rdx, %rdx
+         mov          %rdx, logNHIoN1
          mov          N2, %rdx
          mov          NHI, %rax
          mul          %rdx
@@ -72,7 +76,8 @@ butterfly4:
          mov          %rax, N
          mov          N2, %rbx
          shl          $2, %rbx
-         mov          %rbx, N2N1
+         bsf          %rbx, %rbx
+         mov          %rbx, logN2N1
          mov          N2, %rcx
          shr          %rcx
          mov          %rcx, N2o2
@@ -92,11 +97,15 @@ butterfly4:
          mov          %rcx, N2oN1o2
          mov          NHI, %rax
          shl          $3, %rax
-         mov          %rax, TW1
+         bsf          %rax, %rax
+         mov          %rax, logTW1
+         bsf          N2, %rax
+         mov          %rax, logN2
          xor          ihi, ihi
 ihiloop:
          mov          ihi, %rax
-         imul         N2N1, %rax
+         mov          logN2N1, %rcx
+         shl          %rcx, %rax
          lea          (X, %rax, 8), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
@@ -151,21 +160,24 @@ khiloop:
          test         k2, k2
          je           khiloop_cont
          mov          k2, %rax
-         imul         TW1, %rax
+         mov          logTW1, %rcx
+         shl          %rcx, %rax
          vbroadcastsd (C, %rax), tr1
          vbroadcastsd (S, %rax), ti1
+         mov          logNHIoN1, %rcx
          mov          N2, %rax
          sub          k2, %rax
          mov          %rax, %rdi
          shr          $2, %rax
          and          $3, %rdi
          mov          klo, %rsi
-         imul         NHIoN1, %rdi
-         imul         NHIoN1, %rsi
+         shl          %rcx, %rdi
+         shl          %rcx, %rsi
+         mov          logN2, %rcx
          add          ihi, %rdi
          add          ihi, %rsi
-         imul         N2, %rdi
-         imul         N2, %rsi
+         shl          %rcx, %rdi
+         shl          %rcx, %rsi
          add          %rax, %rdi
          add          khi, %rsi
          shl          $2, %rdi

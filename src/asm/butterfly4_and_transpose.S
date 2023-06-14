@@ -30,7 +30,7 @@
 #define  N1N2         -32(%rbp)
 #define  NMID         -40(%rbp)
 #define  N1N2NMID     -48(%rbp)
-#define  NHINMIDN2    -56(%rbp)
+#define  logNHINMIDN2 -56(%rbp)
 #define  NHIN1N2NMID  -64(%rbp)
 #define  mask1        -72(%rbp)
 #define  mask2        -80(%rbp)
@@ -46,8 +46,10 @@
 #define  dN2o2        -160(%rbp)
 #define  ihi          -168(%rbp)
 #define  N2           -176(%rbp)
-#define  U0ptr        -944(%rbp)
-#define  STACK_SIZE   $968
+#define  logN1N2NMID  -184(%rbp)
+#define  logN2        -192(%rbp)
+#define  U0ptr        -962(%rbp)
+#define  STACK_SIZE   $984
 
          .global      butterfly4_and_transpose
 
@@ -87,10 +89,13 @@ butterfly4_and_transpose:
          mov          NMID, %rbx
          imul         %rbx, %rax
          mov          %rax, N1N2NMID
+         bsf          %rax, %rbx
+         mov          %rbx, logN1N2NMID
          shr          $2, %rax
          mov          NHI, %rbx
          imul         %rbx, %rax
-         mov          %rax, NHINMIDN2
+         bsf          %rax, %rbx
+         mov          %rbx, logNHINMIDN2
          shl          $2, %rax
          mov          %rax, NHIN1N2NMID
          mov          N2, %rbx
@@ -113,7 +118,7 @@ butterfly4_and_transpose:
          add          %rbx, %rcx
          add          $2, %rcx
          mov          $3, %rax
-         shl          %cl, %rax
+         shl          %rcx, %rax
          mov          %rax, mask1
          not          %rax
          mov          %rax, mask2
@@ -128,13 +133,16 @@ butterfly4_and_transpose:
          add          %rax, %rdi
          shl          $2, %rdi
          mov          %rdi, dN2o2
+         bsf          N2, %rdx
+         mov          %rdx, logN2
          xor          %rax, %rax
          mov          %rax, ihi
 ihi_loop:
          xor          n0, n0
 k0_load:
-         mov          n0, %rdx
-         mulx         N2, %rax, %rsi
+         mov          n0, %rax
+         mov          logN2, %rcx
+         shl          %rcx, %rax
          lea          (X, %rax, 8), %rax
          mov          N1N2NMID, %rsi
          mov          ihi, %rdx
@@ -172,8 +180,9 @@ k0_compute_enter:
          vsubpd       er1, er3, tr3
          vaddpd       tr1, tr0, er0
          vsubpd       tr1, tr0, er2
-         mov          N1N2NMID, %rax
-         imul         n0, %rax
+         mov          logN1N2NMID, %rcx
+         mov          n0, %rax
+         shl          %rcx, %rax
          add          ihi, %rax
          lea          (X, %rax, 8), %rax
          mov          N2, %rdx
@@ -192,7 +201,8 @@ k0_compute_enter:
          xor          n0, n0
 kN2o2_load:
          mov          n0, %rax
-         imul         N2, %rax
+         mov          logN2, %rcx
+         shl          %rcx, %rax
          lea          (X, %rax, 8), %rax
          mov          N1N2NMID, %rsi
          lea          (%rax, %rdi, 8), %rax
@@ -234,8 +244,9 @@ kN2o2_enter:
          vsubpd       tr1, tr0, er1
          vsubpd       tr3, tr2, er2
          vmulpd       none, er3, er3
-         mov          N1N2NMID, %rax
-         mul          n0
+         mov          logN1N2NMID, %rcx
+         mov          n0, %rax
+         shl          %rcx, %rax
          add          %rdi, %rax
          lea          (X, %rax, 8), %rax
          mov          N2, %rdx
@@ -282,8 +293,9 @@ k2hi_loop_b:
          mov          %rbx, sin2
          mov          %rdx, cos3
          mov          %rcx, sin3
+         mov          logNHINMIDN2, %rcx
          mov          k2lo, %rdi
-         imul         NHINMIDN2, %rdi
+         shl          %rcx, %rdi
          add          k2hi, %rdi
          shl          $2, %rdi
          mov          N2, %rsi
@@ -291,15 +303,15 @@ k2hi_loop_b:
          mov          %rsi, %rax
          shr          $2, %rax
          and          $3, %rsi
-         imul         NHINMIDN2, %rsi
+         shl          %rcx, %rsi
          add          %rax, %rsi
          shl          $2, %rsi
          sub          %rdi, %rsi
          add          ihi, %rdi
          xor          n0, n0
 load_loop:
-         mov          n0, %rdx
-         mulx         N2, %rax, %rcx
+         mov          n0, %rax
+         imul         N2, %rax
          add          %rdi, %rax
          mov          N1N2NMID, %rdx
          lea          (X, %rax, 8), %rax
@@ -382,8 +394,9 @@ compute_enter:
          vsubpd       ti0, ti1, ei2
          vsubpd       ti3, tr2, er3
          vsubpd       ti2, tr3, ei3
+         mov          logN1N2NMID, %rcx
          mov          n0, %rax
-         imul         N1N2NMID, %rax
+         shl          %rcx, %rax
          add          %rdi, %rax
          lea          (X, %rax, 8), %rax
          mov          N2, %rdx
