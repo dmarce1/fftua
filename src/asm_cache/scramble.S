@@ -32,6 +32,6 @@ fft_scramble:
          mov            X, %rdi
          mov            N1, %rsi
          mov            N1, %rdx
-         imul           N2, %rsi
+         imul           N2, %rdx
          call           fft_scramble_hi
          ret
