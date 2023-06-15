@@ -101,6 +101,8 @@ butterfly4:
          mov          %rax, logTW1
          bsf          N2, %rax
          mov          %rax, logN2
+         xor          klo, klo
+kloloop:
          xor          ihi, ihi
 ihiloop:
          mov          ihi, %rax
@@ -148,8 +150,6 @@ ihiloop:
          vmovapd      er3, (%rdx, %rdi)
          cmp          $2, N2
          jle          done
-         xor          klo, klo
-kloloop:
          xor          khi, khi
 khiloop:
          mov          khi, k2
@@ -249,13 +249,13 @@ khiloop_cont:
          inc          khi
          cmp          N2oN1o2, khi
          jne          khiloop
-         inc          klo
-         cmp          N1, klo
-         jne          kloloop
 done:
          inc          ihi
          cmp          ihi, NHIoN1
          jne          ihiloop
+         inc          klo
+         cmp          N1, klo
+         jne          kloloop
          pop          %r15
          pop          %r14
          pop          %r13
