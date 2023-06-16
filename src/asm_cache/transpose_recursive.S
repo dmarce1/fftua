@@ -3,7 +3,7 @@
 #define  Ix           %r10
 #define  Iy           %r11
 #define  N1N2         %r15
-#define  M0           $2
+#define  M0           $4
 #define  STACK_SIZE   $16
 #define  N1           -8(%rbp)
 #define  N2           -16(%rbp)
@@ -52,13 +52,8 @@ loop0:   mov          Ix, %rsi
          add          Iy, %rsi
          add          Ix, %rdi
          xor          %r13, %r13
-loop1:   xor          %rax, %rax
-         mov          %r13, %r14
-         inc          %r14
-         cmp          M0, %r14
-         jge          endloop
-loop2:
-         mov          %r13, %rax
+loop1:   xor          %r14, %r14
+loop2:   mov          %r13, %rax
          mov          %r14, %rbx
          imul         N1N2, %rax
          imul         N1N2, %rbx
@@ -66,13 +61,15 @@ loop2:
          add          %r13, %rbx
          add          %rsi, %rax
          add          %rdi, %rbx
+         cmp          %rax, %rbx
+         jle          skip
          lea          (X, %rax, 8), %rax
          lea          (X, %rbx, 8), %rbx
          mov          (%rax), %rcx
          mov          (%rbx), %rdx
          mov          %rcx, (%rbx)
          mov          %rdx, (%rax)
-         inc          %r14
+skip:    inc          %r14
          cmp          M0, %r14
          jl           loop2
 endloop: inc          %r13
@@ -82,14 +79,29 @@ endloop: inc          %r13
          cmp          %r12, N2
          jg           loop0
          ret
-further: shr          M
+further: cmp          Ix, Iy
+         je           xyeq
+         shr          M
          call         recurse
+         add          M, Iy
+         call         recurse
+         sub          M, Iy
          add          M, Ix
          call         recurse
          add          M, Iy
          call         recurse
-         sub          M, Ix
          sub          M, Iy
+         sub          M, Ix
+         shl          M
+         ret
+xyeq:    shr          M
+         call         recurse
+         add          M, Iy
+         call         recurse
+         add          M, Ix
+         call         recurse
+         sub          M, Iy
+         sub          M, Ix
          shl          M
          ret
 

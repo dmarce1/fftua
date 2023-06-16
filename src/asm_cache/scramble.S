@@ -29,7 +29,7 @@ fft_scramble1:
          mov            N1, %rsi
          mov            N1, %rdx
          imul           N2, %rdx
-   //      call           fft_scramble_hi
+         call           fft_scramble_hi
          mov            X, %rdi
          mov            N1, %rsi
          mov            N2, %rdx
@@ -38,7 +38,7 @@ fft_scramble1:
          mov            N1, %rsi
          mov            N1, %rdx
          imul           N2, %rdx
-     //    call           fft_scramble_hi
+         call           fft_scramble_hi
          pop            %rbx
          pop            %r12
          pop            %r13

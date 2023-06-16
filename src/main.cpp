@@ -71,7 +71,66 @@ void fft_4step(double* X, int N);
 void fft_inplace(double* x, int N);
 void fft_inplace_real(double* x, int N);
 
+extern "C" {
+void fft_scramble1(double* X, int N);
+}
+void test_twiddles();
+
+
+extern "C" {
+void twiddle_gen_next(__m256d* C, __m256d* S, void *ptr);
+void twiddle_gen_init(void* ptr, int N);
+void fft_simd_scramble1(double*, int N);
+void fft_transpose_hilo(double*, int, int);
+}
+
+
+void test_twiddles() {
+	void* gen;
+	const int N = 128*1024*1024;
+	posix_memalign(&gen, 32, 4 * 32 * ilogb(N) + 32);
+	twiddle_gen_init(gen, N);
+	__m256d C, S;
+	for( int n = 1; n < N; n++) {
+		twiddle_gen_next(&C, &S, gen);
+		auto phi = 2.0 * M_PI * n / N;
+//		auto phi = 2.0 * M_PI / (1 << (ilogb(N)-n));
+		printf( "%i %e %e %e %e\n", n, C[0], S[0], cos(phi)-C[0], sin(-phi)-S[0]);
+	}
+	free(gen);
+}
+
+void test_time(double* x, int N) {
+//	fft_simd_scramble(x, N);
+//	fft_simd_scramble(x, N);
+	fft_scramble1(x, N);
+}
+
 int main(int argc, char **argv) {
+//	test_twiddles();
+//	return 0;
+	constexpr int N = 16*1024*1024;
+	timer tm;
+	std::vector<double> x(N);
+	for( int n = 0; n < N; n++) {
+		x[n] = n;
+	}
+	tm.start();
+	fft_scramble1(x.data(), N);
+	tm.stop();
+	printf( "%e\n", tm.read());
+	for( int n = 0; n < N; n++) {
+		continue;
+		int i = n;
+		int k = 0;
+		for( int j = 0; j < ilogb(N); j++) {
+			k <<= 1;
+			k |= 1 & i;
+			i >>= 1;
+		}
+	//	printf( "%i %i %i\n", n, lround(x[n]), k);
+	}
+	return 0;
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	timer tm3, tm4;
 	double t3 = 0.0;
@@ -97,13 +156,14 @@ int main(int argc, char **argv) {
 //				x[0] = y[0] = 1.0;
 				if (i == 0) {
 					fftw_real(Y, y);
-					fft_inplace_real(x.data(), N);
+					test_time(x.data(), N);
 				} else {
 
 					auto b = fftw_real(Y, y);
 					timer tm;
 					tm.start();
-					fft_inplace_real(x.data(), N);
+//					fft_inplace_real(x.data(), N);
+					test_time(x.data(), N);
 					tm.stop();
 					X[0].real() = x[0];
 					X[0].imag() = 0.0;
