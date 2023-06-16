@@ -69,6 +69,8 @@ loop2:   mov          %r13, %rax
          mov          (%rbx), %rdx
          mov          %rcx, (%rbx)
          mov          %rdx, (%rax)
+         mov          %r13, %rax
+         mov          %r14, %rbx
 skip:    inc          %r14
          cmp          M0, %r14
          jl           loop2
@@ -79,7 +81,10 @@ endloop: inc          %r13
          cmp          %r12, N2
          jg           loop0
          ret
-further: cmp          Ix, Iy
+
+
+further:
+         cmp          Ix, Iy
          je           xyeq
          shr          M
          call         recurse

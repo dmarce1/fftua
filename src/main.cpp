@@ -109,7 +109,7 @@ void test_time(double* x, int N) {
 int main(int argc, char **argv) {
 //	test_twiddles();
 //	return 0;
-	constexpr int N = 16*1024*1024;
+	constexpr int N = 128*1024*1024;
 	timer tm;
 	std::vector<double> x(N);
 	for( int n = 0; n < N; n++) {
@@ -120,7 +120,6 @@ int main(int argc, char **argv) {
 	tm.stop();
 	printf( "%e\n", tm.read());
 	for( int n = 0; n < N; n++) {
-		continue;
 		int i = n;
 		int k = 0;
 		for( int j = 0; j < ilogb(N); j++) {
