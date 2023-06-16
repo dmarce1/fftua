@@ -41,8 +41,8 @@ L0:      cmp          I, J
          add          NLO, L
 L1:      vmovapd      (X, %rax, 8), %ymm0
          vmovapd      (X, %rdx, 8), %ymm1
-         vmovapd     %ymm1, (X, %rax, 8)
-         vmovapd     %ymm0, (X, %rdx, 8)
+         vmovapd      %ymm1, (X, %rax, 8)
+         vmovapd      %ymm0, (X, %rdx, 8)
          add          $4, %rax
          add          $4, %rdx
          cmp          %rax, L

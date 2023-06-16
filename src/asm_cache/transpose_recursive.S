@@ -81,10 +81,7 @@ endloop: inc          %r13
          cmp          %r12, N2
          jg           loop0
          ret
-
-
-further:
-         cmp          Ix, Iy
+further: cmp          Ix, Iy
          je           xyeq
          shr          M
          call         recurse

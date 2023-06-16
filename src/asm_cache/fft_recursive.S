@@ -124,7 +124,30 @@ recurse: cmp          N1, NLO
          shr          %rax
          cmp          k2, %rax
          jl           done
-         mov          k2, %rax
+         je           N2o2
+         cmp          $0, k2
+         jne          k2rest
+         xor          ilo, ilo
+k0loop:  lea          (X, ilo, 8), %rax
+         lea          (%rax, NLO, 2), %rbx
+         lea          (%rbx, NLO, 2), %rcx
+         lea          (%rcx, NLO, 2), %rdx
+         vmovapd      (%rax), er0
+         vmovapd      (%rbx), er2
+         vmovapd      (%rcx), er1
+         vmovapd      (%rdx), er3
+         vaddpd       er2, er0, tr0
+         vsubpd       er2, er0, tr2
+         vaddpd       er3, er1, tr1
+         vsubpd       er1, er3, tr3
+         vaddpd       tr1, tr0, er0
+         vsubpd       tr1, tr0, er2
+         vmovapd      er0, (%rax)
+         vmovapd      er2, (%rbx)
+         vmovapd      tr2, (%rcx)
+         vmovapd      tr3, (%rdx)
+N2o2:
+k2rest:  mov          k2, %rax
          imul         NLO, %rax
          imul         $2, %rax, %rbx
          imul         $3, %rax, %rcx
@@ -160,12 +183,12 @@ k2loop:  vbroadcastsd cos1, tr1
          lea          (%r13, NLO, 2), %r14
          lea          (%r14, NLO, 2), %r15
          vmovapd      (%rax), er0
-         vmovapd      (%rbx), er2
-         vmovapd      (%rcx), ei1
-         vmovapd      (%rdx), ei3
-         vmovapd      (%r12), er0
-         vmovapd      (%r13), er2
-         vmovapd      (%r14), ei1
+         vmovapd      (%rbx), er1
+         vmovapd      (%rcx), er2
+         vmovapd      (%rdx), er3
+         vmovapd      (%r12), ei0
+         vmovapd      (%r13), ei1
+         vmovapd      (%r14), ei2
          vmovapd      (%r15), ei3
          vmulpd       ti1, ei1, tr0
          vmulpd       tr1, ei1, ti0
@@ -202,13 +225,13 @@ k2loop:  vbroadcastsd cos1, tr1
          vsubpd       ti3, tr2, er3
          vsubpd       ti2, tr3, ei3
          vmovapd      er0, (%rax)
-         vmovapd      er2, (%rbx)
-         vmovapd      ei1, (%rcx)
-         vmovapd      ei3, (%rdx)
-         vmovapd      er3, (%rax, %rsi, 8)
-         vmovapd      er1, (%rbx, %rsi, 8)
-         vmovapd      ei2, (%rcx, %rsi, 8)
-         vmovapd      ei0, (%rdx, %rsi, 8)
+         vmovapd      ei3, (%rbx)
+         vmovapd      er2, (%rcx)
+         vmovapd      ei1, (%rdx)
+         vmovapd      er1, (%r12)
+         vmovapd      ei2, (%r13)
+         vmovapd      er3, (%r14)
+         vmovapd      ei0, (%r15)
          add          $4, ilo
          cmp          ilo, NLO
          jg           k2loop

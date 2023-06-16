@@ -9,6 +9,7 @@
 #define  Cos          %ymm13
 #define  Sin          %ymm14
 #define  Cos2         %ymm15
+#define  Sin2         %ymm11
 
          .global      twiddle_gen_next
          .global      twiddle_gen_init
@@ -38,6 +39,7 @@ half:    .double      0.5
 twiddle_gen_next:
          mov          (%rdx), %rcx
          bsf          8(%rdx), %rax
+         shr          %rax
          shl          $5, %rax
          lea          32(%rdx), dC
          lea          (dC, %rax), dS
@@ -46,6 +48,7 @@ twiddle_gen_next:
          inc          %rcx
          mov          %rcx, (%rdx)
          bsf          %rcx, %rax
+         shr          %rax
          shl          $5, %rax
          vmovapd      (C, %rax), Cos
          vmovapd      (S, %rax), Sin
@@ -68,6 +71,7 @@ twiddle_gen_init:
          mov          %rax, (%rdi)
          mov          %rsi, 8(%rdi)
          bsf          %rsi, %rsi
+         shr          %rsi
          shl          $5, %rsi
          lea          32(%rdi), dC
          lea          (dC, %rsi), dS
@@ -77,23 +81,27 @@ twiddle_gen_init:
          vmovapd      one, %ymm1
          vmovapd      half, %ymm12
          vmovapd      none, %ymm10
-         vmovapd      %ymm10, Cos
-         vmovapd      %ymm0, Sin
-         sub          $32, %rsi
-         vmovapd      Cos, (dC, %rsi)
-         vmovapd      Sin, (dS, %rsi)
-         vmovapd      %ymm1, (C, %rsi)
-         vmovapd      %ymm0, (S, %rsi)
-         sub          $32, %rsi
-         js           L200
          vmovapd      %ymm0, Cos
          vmovapd      %ymm10, Sin
+         sub          $32, %rsi
 L100:    vmovapd      Cos, (dC, %rsi)
          vmovapd      Sin, (dS, %rsi)
          vmovapd      %ymm1, (C, %rsi)
          vmovapd      %ymm0, (S, %rsi)
          sub          $32, %rsi
          js           L200
+         vaddpd       %ymm10, Cos, Sin2
+         vmulpd       %ymm12, Sin2, Sin2
+         vsqrtpd      Sin2, Sin2
+         vmovapd      Sin2, Sin
+         vaddpd       %ymm1, Cos, Cos2
+         vmulpd       %ymm12, Cos2, Cos2
+         vsqrtpd      Cos2, Cos2
+         vmovapd      Cos2, Cos
+         vaddpd       %ymm10, Cos, Sin2
+         vmulpd       %ymm12, Sin2, Sin2
+         vsqrtpd      Sin2, Sin2
+         vmovapd      Sin2, Sin
          vaddpd       %ymm1, Cos, Cos2
          vmulpd       %ymm12, Cos2, Cos2
          vsqrtpd      Cos2, Cos2

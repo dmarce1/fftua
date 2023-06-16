@@ -87,10 +87,14 @@ void fft_transpose_hilo(double*, int, int);
 
 void test_twiddles() {
 	void* gen;
-	const int N = 128*1024*1024;
+	const int N = 1024*1024;
 	posix_memalign(&gen, 32, 4 * 32 * ilogb(N) + 32);
 	twiddle_gen_init(gen, N);
 	__m256d C, S;
+	for( int n = 0; n < 100; n++) {
+	//	printf( "%e\n", *((double*)(gen)+n));
+	}
+//	return;
 	for( int n = 1; n < N; n++) {
 		twiddle_gen_next(&C, &S, gen);
 		auto phi = 2.0 * M_PI * n / N;
@@ -107,8 +111,8 @@ void test_time(double* x, int N) {
 }
 
 int main(int argc, char **argv) {
-//	test_twiddles();
-//	return 0;
+	test_twiddles();
+	return 0;
 	constexpr int N = 128*1024*1024;
 	timer tm;
 	std::vector<double> x(N);
@@ -127,9 +131,9 @@ int main(int argc, char **argv) {
 			k |= 1 & i;
 			i >>= 1;
 		}
-	//	printf( "%i %i %i\n", n, lround(x[n]), k);
+//		printf( "%i %i %i\n", n, lround(x[n]), k);
 	}
-	return 0;
+//	return 0;
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	timer tm3, tm4;
 	double t3 = 0.0;
@@ -137,7 +141,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 16; N <= 4*1024*1024; N *= 4) {
+	for (int N = 64; N <= 4*1024*1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
