@@ -35,15 +35,14 @@ L0:      cmp          I, J
          mov          J, J0
          imul         NLO, I0
          imul         NLO, J0
-         xor          L, L
          mov          I0, %rax
          mov          J0, %rdx
          mov          I0, L
          add          NLO, L
 L1:      vmovapd      (X, %rax, 8), %ymm0
          vmovapd      (X, %rdx, 8), %ymm1
-         vmovntpd     %ymm1, (X, %rax, 8)
-         vmovntpd     %ymm0, (X, %rdx, 8)
+         vmovapd     %ymm1, (X, %rax, 8)
+         vmovapd     %ymm0, (X, %rdx, 8)
          add          $4, %rax
          add          $4, %rdx
          cmp          %rax, L

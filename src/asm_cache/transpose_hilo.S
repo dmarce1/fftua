@@ -5,25 +5,29 @@
 #define  A            %r12
 #define  N1N2         %r14
 #define  N1           %r15
-#define  Mask         %ymm9
-#define  Indices      %ymm8
+#define  Mask         %ymm14
+#define  Indices      %ymm15
 #define  N2           -8(%rbp)
-#define  Aptr         -1032(%rbp)
-#define  STACK_SIZE   $1046
+#define  tmp3         -16(%rbp)
+#define  tmp2         -24(%rbp)
+#define  tmp1         -32(%rbp)
+#define  tmp0         -40(%rbp)
+#define  Aptr         -552(%rbp)
+#define  STACK_SIZE   $576
 
          .global      fft_transpose_hilo
 
          .data
 
          .align       32
-indices: .quad        0
-         .quad        4
-         .quad        8
-         .quad        12
 mask:    .double      -1.0
          .double      -1.0
          .double      -1.0
          .double      -1.0
+indices: .long        0
+         .long        4
+         .long        8
+         .long        12
 
          .text
 
@@ -39,10 +43,18 @@ fft_transpose_hilo:
          mov          %rdx, N2
          imul         %rsi, %rdx
          mov          %rdx, N1N2
+         xor          %rax, %rax
+         mov          %rax, tmp0
+         add          %rdx, %rax
+         mov          %rax, tmp1
+         add          %rdx, %rax
+         mov          %rax, tmp2
+         add          %rdx, %rax
+         mov          %rax, tmp3
+         vmovdqu      tmp0, Indices
          lea          Aptr, A
          and          $0xffffffffffffffe0, A
          vmovapd      mask, Mask
-         vmovdqa      indices, Indices
          xor          I, I
 L0:      xor          J, J
 L10:     mov          I, %rsi
@@ -51,26 +63,19 @@ L10:     mov          I, %rsi
          imul         N1, %rax
          add          %rax, %rsi
          add          I, %rsi
-         lea          (X, %rsi, 8), %rax
+         lea          (X, %rsi, 8), %rsi
+         vmovapd      Mask, %ymm4
+         vmovapd      Mask, %ymm5
+         vmovapd      Mask, %ymm6
+         vmovapd      Mask, %ymm7
+         vgatherqpd   %ymm4, (%rsi, Indices, 8), %ymm0
+         vgatherqpd   %ymm5, 8(%rsi, Indices, 8), %ymm1
+         vgatherqpd   %ymm6, 16(%rsi, Indices, 8), %ymm2
+         vgatherqpd   %ymm7, 24(%rsi, Indices, 8), %ymm3
+         lea          (%rsi), %rax
          lea          (%rax, N1N2, 8), %rbx
          lea          (%rbx, N1N2, 8), %rcx
          lea          (%rcx, N1N2, 8), %rdx
-         vmovapd      (%rax), %ymm0
-         vmovapd      (%rbx), %ymm1
-         vmovapd      (%rcx), %ymm2
-         vmovapd      (%rdx), %ymm3
-         vmovapd      %ymm0, (A)
-         vmovapd      %ymm1, 32(A)
-         vmovapd      %ymm2, 64(A)
-         vmovapd      %ymm3, 96(A)
-         vmovapd      Mask, %ymm10
-         vmovapd      Mask, %ymm11
-         vmovapd      Mask, %ymm12
-         vmovapd      Mask, %ymm13
-         vgatherqpd   %ymm10, (A, Indices, 8), %ymm0
-         vgatherqpd   %ymm11, 8(A, Indices, 8), %ymm1
-         vgatherqpd   %ymm12, 16(A, Indices, 8), %ymm2
-         vgatherqpd   %ymm13, 24(A, Indices, 8), %ymm3
          vmovapd      %ymm0, (%rax)
          vmovapd      %ymm1, (%rbx)
          vmovapd      %ymm2, (%rcx)
@@ -91,62 +96,40 @@ L20:     add          $4, K
          imul         N1, %rax
          add          %rax, %rdi
          add          I, %rdi
-         lea          (X, %rsi, 8), %rax
+         lea          (X, %rsi, 8), %rsi
+         lea          (X, %rdi, 8), %rdi
+         vmovapd      Mask, %ymm4
+         vmovapd      Mask, %ymm5
+         vmovapd      Mask, %ymm6
+         vmovapd      Mask, %ymm7
+         vmovapd      Mask, %ymm8
+         vmovapd      Mask, %ymm9
+         vmovapd      Mask, %ymm10
+         vmovapd      Mask, %ymm11
+         vgatherqpd   %ymm4, (%rdi, Indices, 8), %ymm0
+         vgatherqpd   %ymm5, 8(%rdi, Indices, 8), %ymm1
+         vgatherqpd   %ymm6, 16(%rdi, Indices, 8), %ymm2
+         vgatherqpd   %ymm7, 24(%rdi, Indices, 8), %ymm3
+         vgatherqpd   %ymm8, (%rsi, Indices, 8), %ymm4
+         vgatherqpd   %ymm9, 8(%rsi, Indices, 8), %ymm5
+         vgatherqpd   %ymm10, 16(%rsi, Indices, 8), %ymm6
+         vgatherqpd   %ymm11, 24(%rsi, Indices, 8), %ymm7
+         lea          (%rsi), %rax
          lea          (%rax, N1N2, 8), %rbx
          lea          (%rbx, N1N2, 8), %rcx
          lea          (%rcx, N1N2, 8), %rdx
-         vmovapd      (%rax), %ymm0
-         vmovapd      (%rbx), %ymm1
-         vmovapd      (%rcx), %ymm2
-         vmovapd      (%rdx), %ymm3
-         push         %rdx
-         push         %rcx
-         push         %rbx
-         push         %rax
-         lea          (X, %rdi, 8), %rax
+         vmovapd      %ymm0, (%rax)
+         vmovapd      %ymm1, (%rbx)
+         vmovapd      %ymm2, (%rcx)
+         vmovapd      %ymm3, (%rdx)
+         lea          (%rdi), %rax
          lea          (%rax, N1N2, 8), %rbx
          lea          (%rbx, N1N2, 8), %rcx
          lea          (%rcx, N1N2, 8), %rdx
-         vmovapd      (%rax), %ymm4
-         vmovapd      (%rbx), %ymm5
-         vmovapd      (%rcx), %ymm6
-         vmovapd      (%rdx), %ymm7
-         vmovapd      %ymm0, (A)
-         vmovapd      %ymm1, 32(A)
-         vmovapd      %ymm2, 64(A)
-         vmovapd      %ymm3, 96(A)
-         vmovapd      %ymm4, 128(A)
-         vmovapd      %ymm5, 160(A)
-         vmovapd      %ymm6, 192(A)
-         vmovapd      %ymm7, 224(A)
-         vmovapd      Mask, %ymm10
-         vmovapd      Mask, %ymm11
-         vmovapd      Mask, %ymm12
-         vmovapd      Mask, %ymm13
-         vgatherqpd   %ymm10, (A, Indices, 8), %ymm0
-         vgatherqpd   %ymm11, 8(A, Indices, 8), %ymm1
-         vgatherqpd   %ymm12, 16(A, Indices, 8), %ymm2
-         vgatherqpd   %ymm13, 24(A, Indices, 8), %ymm3
-         vmovapd      Mask, %ymm10
-         vmovapd      Mask, %ymm11
-         vmovapd      Mask, %ymm12
-         vmovapd      Mask, %ymm13
-         vgatherqpd   %ymm10, 128(A, Indices, 8), %ymm4
-         vgatherqpd   %ymm11, 136(A, Indices, 8), %ymm5
-         vgatherqpd   %ymm12, 144(A, Indices, 8), %ymm6
-         vgatherqpd   %ymm13, 152(A, Indices, 8), %ymm7
-         vmovntpd     %ymm0, (%rax)
-         vmovntpd     %ymm1, (%rbx)
-         vmovntpd     %ymm2, (%rcx)
-         vmovntpd     %ymm3, (%rdx)
-         pop          %rax
-         pop          %rbx
-         pop          %rcx
-         pop          %rdx
-         vmovntpd     %ymm4, (%rax)
-         vmovntpd     %ymm5, (%rbx)
-         vmovntpd     %ymm6, (%rcx)
-         vmovntpd     %ymm7, (%rdx)
+         vmovapd      %ymm4, (%rax)
+         vmovapd      %ymm5, (%rbx)
+         vmovapd      %ymm6, (%rcx)
+         vmovapd      %ymm7, (%rdx)
          jmp          L20
 L100:    inc          J
          cmp          J, N2
@@ -161,4 +144,9 @@ L100:    inc          J
          pop          %rbx
          leave
          ret
+
+
+
+
+
 
