@@ -114,18 +114,17 @@ void test_time(double* x, int N) {
 int main(int argc, char **argv) {
 	//test_twiddles();
 	//return 0;
-	constexpr int N = 128*1024*1024;
+	constexpr int N = 16;
 	timer tm;
 	std::vector<double> x(N);
 	for( int n = 0; n < N; n++) {
 		x[n] = n;
 	}
 	tm.start();
-//	fft_scramble1(x.data(), N);
+	fft_scramble(x.data(), N);
 	tm.stop();
 	printf( "%e\n", tm.read());
 	for( int n = 0; n < N; n++) {
-		continue;
 		int i = n;
 		int k = 0;
 		for( int j = 0; j < ilogb(N); j++) {
@@ -133,7 +132,7 @@ int main(int argc, char **argv) {
 			k |= 1 & i;
 			i >>= 1;
 		}
-//		printf( "%i %i %i\n", n, lround(x[n]), k);
+		printf( "%i %i %i\n", n, lround(x[n]), k);
 	}
 //	return 0;
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -149,15 +148,15 @@ int main(int argc, char **argv) {
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 101; i++) {
+			for (int i = 0; i < 2; i++) {
 				std::vector<double> x(N);
 				std::vector<double> y(N);
 				std::vector<complex<double>> X(N / 2 + 1);
 				std::vector<complex<double>> Y(N / 2 + 1);
 				for (int n = 0; n < N; n++) {
-					x[n] = (y[n] = rand1());
+					x[n] = (y[n] =0);
 				}
-				//x[0] = y[0] = 1.0;
+				x[0] = y[0] = 1.0;
 //				x[0] = y[0] = 1.0;
 				const auto& c = cos_twiddles(N);
 				const auto& s = sin_twiddles(N);
@@ -170,7 +169,7 @@ int main(int argc, char **argv) {
 					timer tm;
 					tm.start();
 					fft_recursive(x.data(), c.data(), s.data(), N);
-					test_time(x.data(), N);
+					//test_time(x.data(), N);
 					tm.stop();
 					X[0].real() = x[0];
 					X[0].imag() = 0.0;
@@ -191,11 +190,11 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-				//		printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+						printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
-		//	abort();
+			abort();
 			std::string f;
 			for (auto i = pfac.begin(); i != pfac.end(); i++) {
 				f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";

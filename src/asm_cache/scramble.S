@@ -15,6 +15,8 @@ fft_scramble:
          push           %rbx
          mov            %rdi, X
          mov            %rsi, N
+         cmp            $4, N
+         je             four
          bsf            N, %rcx
          shr            %rcx
          mov            $1, N1
@@ -39,7 +41,12 @@ fft_scramble:
          mov            N1, %rdx
          imul           N2, %rdx
          call           fft_scramble_hi
-         pop            %rbx
+         jmp            done
+ four:   mov            8(X), %rax
+         mov            16(X), %rbx
+         mov            %rbx, 8(X)
+         mov            %rax, 16(X)
+done:    pop            %rbx
          pop            %r12
          pop            %r13
          pop            %r14

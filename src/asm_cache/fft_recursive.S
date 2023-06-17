@@ -2,10 +2,10 @@
 #define  N1           $4
 #define  ilo          %r8
 #define  k2           %r9
-#define  X            %r10
-#define  N            %r11
-#define  NLO          %r12
-#define  N2           %r13
+#define  NLO          %r10
+#define  N2           %r11
+#define  X            %r12
+#define  N            %r13
 #define  C            %r14
 #define  S            %r15
 #define  er0          %ymm0
@@ -46,16 +46,14 @@
 #define  sin1         -32(%rbp)
 #define  sin2         -40(%rbp)
 #define  sin3         -48(%rbp)
-#define  mask         -56(%rbp)
 #define  prmt_cntrl   $27
-#define  STACK_SIZE   $56
+#define  STACK_SIZE   $48
 
          .global      fft_recursive
 
          .data
 
          .align       32
-
 tw45:    .double      M_SQRT1_2
          .double      M_SQRT1_2
          .double      M_SQRT1_2
@@ -64,6 +62,10 @@ none:    .double      -1.0
          .double      -1.0
          .double      -1.0
          .double      -1.0
+trash:   .double      -99.0
+         .double      -99.0
+         .double      -99.0
+         .double      -99.0
 pbytes:  .byte        8
          .byte        9
          .byte        10
@@ -80,7 +82,6 @@ pbytes:  .byte        8
          .byte        5
          .byte        6
          .byte        7
-
          .text
 
 fft_recursive:
@@ -99,17 +100,11 @@ fft_recursive:
          mov          $1, N2
          xor          k2, k2
          call         recurse
+         mov          X, %rdi
+         mov          N, %rsi
          call         fft_scramble
          mov          N, N2
          shr          $2, N2
-         bsf          N2, %rcx
-         shr          %rcx
-         mov          $1, %rdx
-         shl          %rcx, %rdx
-         dec          %rdx
-         not          %rdx
-         mov          %rdx, mask
-         mov          $4, k2
          lea          (X), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
@@ -151,16 +146,12 @@ fft_recursive:
          movsd        ur3, (%rdx, N)
          cmp          $2, N2
          jle          done0
-         mov          $1, %rax
-         and          mask, %rax
-         imul         $2, %rax, %rbx
-         imul         $3, %rax, %rcx
-         movsd        (C, %rax, 8), sr1
-         movsd        (C, %rbx, 8), sr2
-         movsd        (C, %rcx, 8), sr3
-         movsd        (S, %rax, 8), si1
-         movsd        (S, %rbx, 8), si2
-         movsd        (S, %rcx, 8), si3
+         movsd        8(C), sr1
+         movsd        16(C), sr2
+         movsd        24(C), sr3
+         movsd        8(S), si1
+         movsd        16(S), si2
+         movsd        24(S), si3
          mov          N2, %rdi
          sub          $2, %rdi
          lea          8(X), %rax
@@ -169,7 +160,7 @@ fft_recursive:
          lea          (%rcx, N2, 8), %rdx
          movsd        (%rax), ur0
          movsd        (%rbx), ur2
-         movsd        (%rcx), ur2
+         movsd        (%rcx), ur1
          movsd        (%rdx), ur3
          movsd        (%rax, %rdi, 8), ui0
          movsd        (%rbx, %rdi, 8), ui2
@@ -219,22 +210,18 @@ fft_recursive:
          movsd        ui0, (%rdx, %rdi, 8)
          cmp          $4, N2
          jle          done0
-         mov          $2, %rax
-         and          mask, %rax
-         imul         $2, %rax, %rbx
-         imul         $3, %rax, %rcx
-         movlpd       (C, %rax, 8), sr1
-         movlpd       (C, %rbx, 8), sr2
-         movlpd       (C, %rcx, 8), sr3
-         movlpd       (S, %rax, 8), si1
-         movlpd       (S, %rbx, 8), si2
-         movlpd       (S, %rcx, 8), si3
-         vmovhpd      (C, %rax, 8), sr1, sr1
-         vmovhpd      (C, %rbx, 8), sr2, sr2
-         vmovhpd      (C, %rcx, 8), sr3, sr3
-         vmovhpd      (S, %rax, 8), si1, si1
-         vmovhpd      (S, %rbx, 8), si2, si2
-         vmovhpd      (S, %rcx, 8), si3, si3
+         movlpd       16(C), sr1
+         movlpd       32(C), sr2
+         movlpd       48(C), sr3
+         movlpd       16(S), si1
+         movlpd       32(S), si2
+         movlpd       48(S), si3
+         vmovhpd      24(C), sr1, sr1
+         vmovhpd      48(C), sr2, sr2
+         vmovhpd      72(C), sr3, sr3
+         vmovhpd      24(S), si1, si1
+         vmovhpd      48(S), si2, si2
+         vmovhpd      72(S), si3, si3
          mov          N2, %rdi
          sub          $5, %rdi
          lea          16(X), %rax
@@ -242,12 +229,12 @@ fft_recursive:
          lea          (%rbx, N2, 8), %rcx
          lea          (%rcx, N2, 8), %rdx
          vmovapd      (%rax), ur0
-         vmovapd      (%rbx), ur1
-         vmovapd      (%rcx), ur2
+         vmovapd      (%rbx), ur2
+         vmovapd      (%rcx), ur1
          vmovapd      (%rdx), ur3
          vmovupd      (%rax, %rdi, 8), ui0
-         vmovupd      (%rbx, %rdi, 8), ui1
-         vmovupd      (%rcx, %rdi, 8), ui2
+         vmovupd      (%rbx, %rdi, 8), ui2
+         vmovupd      (%rcx, %rdi, 8), ui1
          vmovupd      (%rdx, %rdi, 8), ui3
          pshufb       pbytes, ui0
          pshufb       pbytes, ui1
@@ -302,32 +289,31 @@ fft_recursive:
          cmp          $8, N2
          jle          done0
          mov          $4, k2
-final:   mov          k2, %rax
-         and          mask, %rax
-         imul         $2, %rax, %rbx
-         imul         $3, %rax, %rcx
-         vbroadcastsd (C, %rax, 8), tr1
-         vbroadcastsd (C, %rbx, 8), tr2
-         vbroadcastsd (C, %rcx, 8), tr3
-         vbroadcastsd (S, %rax, 8), ti1
-         vbroadcastsd (S, %rbx, 8), ti2
-         vbroadcastsd (S, %rcx, 8), ti3
-         lea          (X, ilo, 8), %rax
+final:   vmovapd      (C, k2, 8), tr1
+         vmovapd      (S, k2, 8), ti1
+         vmulpd       ti1, ti1, tr2
+         vmulpd       tr1, ti1, ti2
+         vfmsub231pd  tr1, tr1, tr2
+         vfmadd231pd  ti1, tr1, ti2
+         vmulpd       ti1, ti2, tr3
+         vmulpd       tr1, ti2, ti3
+         vfmsub231pd  tr1, tr2, tr3
+         vfmadd231pd  ti1, tr2, ti3
+         lea          (X, k2, 8), %rax
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
          lea          (%rcx, N2, 8), %rdx
-         lea          (%rdx, N2, 8), %r12
-         lea          (%r12, N2, 8), %r13
-         lea          (%r13, N2, 8), %r14
-         lea          (%r14, N2, 8), %r15
+         mov          N2, %rdi
+         sub          $3, %rdi
+         shl          $3, %rdi
          vmovapd      (%rax), er0
          vmovapd      (%rbx), er2
          vmovapd      (%rcx), er1
          vmovapd      (%rdx), er3
-         vmovapd      (%r12), ei0
-         vmovapd      (%r13), ei2
-         vmovapd      (%r14), ei1
-         vmovapd      (%r15), ei3
+         vpermpd      prmt_cntrl, (%rax, %rdi), ei0
+         vpermpd      prmt_cntrl, (%rbx, %rdi), ei2
+         vpermpd      prmt_cntrl, (%rcx, %rdi), ei1
+         vpermpd      prmt_cntrl, (%rdx, %rdi), ei3
          vmulpd       ti1, ei1, tr0
          vmulpd       tr1, ei1, ti0
          vfmsub231pd  tr1, er1, tr0
@@ -362,14 +348,18 @@ final:   mov          k2, %rax
          vsubpd       ti0, ti1, ei2
          vsubpd       ti3, tr2, er3
          vsubpd       ti2, tr3, ei3
+         vpermpd      prmt_cntrl, er3, er3
+         vpermpd      prmt_cntrl, er2, er2
+         vpermpd      prmt_cntrl, ei1, ei1
+         vpermpd      prmt_cntrl, ei0, ei0
          vmovapd      er0, (%rax)
-         vmovapd      ei3, (%rbx)
-         vmovapd      er2, (%rcx)
-         vmovapd      ei1, (%rdx)
-         vmovapd      er1, (%r12)
-         vmovapd      ei2, (%r13)
-         vmovapd      er3, (%r14)
-         vmovapd      ei0, (%r15)
+         vmovapd      er1, (%rbx)
+         vmovapd      ei2, (%rcx)
+         vmovapd      ei3, (%rdx)
+         vmovupd      er3, (%rax, %rdi)
+         vmovupd      er2, (%rbx, %rdi)
+         vmovupd      ei1, (%rcx, %rdi)
+         vmovupd      ei0, (%rdx, %rdi)
          add          $4, k2
          cmp          k2, N2
          jg           final
@@ -381,7 +371,7 @@ done0:   pop          %r15
          leave
          ret
 recurse: cmp          $1, NLO
-         jle          half_tw
+         je           done1
          cmp          $0, k2
          je           keq0
          mov          N2, %rax
@@ -397,8 +387,8 @@ keq0lp:  lea          (X, ilo, 8), %rax
          lea          (%rbx, NLO, 8), %rcx
          lea          (%rcx, NLO, 8), %rdx
          vmovapd      (%rax), er0
-         vmovapd      (%rbx), er2
-         vmovapd      (%rcx), er1
+         vmovapd      (%rbx), er1
+         vmovapd      (%rcx), er2
          vmovapd      (%rdx), er3
          vaddpd       er2, er0, tr0
          vsubpd       er2, er0, tr2
@@ -420,8 +410,8 @@ N2o2lp:  lea          (X, ilo, 8), %rax
          lea          (%rbx, NLO, 8), %rcx
          lea          (%rcx, NLO, 8), %rdx
          vmovapd      (%rax), er0
-         vmovapd      (%rbx), er2
-         vmovapd      (%rcx), er1
+         vmovapd      (%rbx), er1
+         vmovapd      (%rcx), er2
          vmovapd      (%rdx), er3
          vaddpd       er3, er1, tr0
          vsubpd       er3, er1, tr2
@@ -458,10 +448,6 @@ k2rest:  mov          k2, %rax
          movsd        %xmm3, sin1
          movsd        %xmm4, sin2
          movsd        %xmm5, sin3
-         push         %r15
-         push         %r14
-         push         %r13
-         push         %r12
          xor          ilo, ilo
 k2loop:  vbroadcastsd cos1, tr1
          vbroadcastsd cos2, tr2
@@ -473,18 +459,16 @@ k2loop:  vbroadcastsd cos1, tr1
          lea          (%rax, NLO, 8), %rbx
          lea          (%rbx, NLO, 8), %rcx
          lea          (%rcx, NLO, 8), %rdx
-         lea          (%rdx, NLO, 8), %r12
-         lea          (%r12, NLO, 8), %r13
-         lea          (%r13, NLO, 8), %r14
-         lea          (%r14, NLO, 8), %r15
+         mov          NLO, %rsi
+         shl          $2, %rsi
          vmovapd      (%rax), er0
-         vmovapd      (%rbx), er2
-         vmovapd      (%rcx), er1
+         vmovapd      (%rbx), er1
+         vmovapd      (%rcx), er2
          vmovapd      (%rdx), er3
-         vmovapd      (%r12), ei0
-         vmovapd      (%r13), ei2
-         vmovapd      (%r14), ei1
-         vmovapd      (%r15), ei3
+         vmovapd      (%rax, %rsi, 8), ei0
+         vmovapd      (%rbx, %rsi, 8), ei1
+         vmovapd      (%rcx, %rsi, 8), ei2
+         vmovapd      (%rdx, %rsi, 8), ei3
          vmulpd       ti1, ei1, tr0
          vmulpd       tr1, ei1, ti0
          vfmsub231pd  tr1, er1, tr0
@@ -520,130 +504,62 @@ k2loop:  vbroadcastsd cos1, tr1
          vsubpd       ti3, tr2, er3
          vsubpd       ti2, tr3, ei3
          vmovapd      er0, (%rax)
-         vmovapd      ei3, (%rbx)
-         vmovapd      er2, (%rcx)
-         vmovapd      ei1, (%rdx)
-         vmovapd      er1, (%r12)
-         vmovapd      ei2, (%r13)
-         vmovapd      er3, (%r14)
-         vmovapd      ei0, (%r15)
+         vmovapd      ei3, (%rax, %rsi, 8)
+         vmovapd      er2, (%rbx)
+         vmovapd      ei1, (%rbx, %rsi, 8)
+         vmovapd      er1, (%rcx)
+         vmovapd      ei2, (%rcx, %rsi, 8)
+         vmovapd      er3, (%rdx)
+         vmovapd      ei0, (%rdx, %rsi, 8)
          add          $4, ilo
          cmp          ilo, NLO
          jg           k2loop
-         pop          %r12
-         pop          %r13
-         pop          %r14
-         pop          %r15
-         jmp          rcalls
-half_tw: mov          k2, %rax
-         bsf          N2, %rcx
-         mov          k2, %rdx
-         and          $1, %rdx
-         shr          %rcx
-         add          %rdx, %rcx
-         mov          $1, %rax
-         shl          %rcx, %rax
-         dec          %rax
-         and          k2, %rax
-         imul         NLO, %rax
-         imul         $2, %rax, %rbx
-         imul         $3, %rax, %rcx
-         vbroadcastsd (C, %rax, 8), tr1
-         vbroadcastsd (C, %rbx, 8), tr2
-         vbroadcastsd (C, %rcx, 8), tr3
-         vbroadcastsd (S, %rax, 8), ti1
-         vbroadcastsd (S, %rbx, 8), ti2
-         vbroadcastsd (S, %rcx, 8), ti3
-         push         %r15
-         push         %r14
-         push         %r13
-         push         %r12
-         xor          ilo, ilo
-twloop:  lea          (X, ilo, 8), %rax
-         lea          (%rax, N2, 8), %rbx
-         lea          (%rbx, N2, 8), %rcx
-         lea          (%rcx, N2, 8), %rdx
-         lea          (%rdx, N2, 8), %r12
-         lea          (%r12, N2, 8), %r13
-         lea          (%r13, N2, 8), %r14
-         lea          (%r14, N2, 8), %r15
-         vmovapd      (%rbx), er2
-         vmovapd      (%rcx), er1
-         vmovapd      (%rdx), er3
-         vmovapd      (%r13), ei2
-         vmovapd      (%r14), ei1
-         vmovapd      (%r15), ei3
-         vmulpd       ti1, ei1, tr0
-         vmulpd       tr1, ei1, ti0
-         vfmsub231pd  tr1, er1, tr0
-         vfmadd231pd  ti1, er1, ti0
-         vmovapd      ti0, ei1
-         vmovapd      tr0, er1
-         vmulpd       ti2, ei2, tr0
-         vmulpd       tr2, ei2, ti0
-         vfmsub231pd  tr2, er2, tr0
-         vfmadd231pd  ti2, er2, ti0
-         vmovapd      ti0, ei2
-         vmovapd      tr0, er2
-         vmulpd       ti3, ei3, tr0
-         vmulpd       tr3, ei3, ti0
-         vfmsub231pd  tr3, er3, tr0
-         vfmadd231pd  ti3, er3, ti0
-         vmovapd      ti0, ei3
-         vmovapd      tr0, er3
-         vmovapd      er2, (%rbx)
-         vmovapd      er1, (%rcx)
-         vmovapd      er3, (%rdx)
-         vmovapd      ei2, (%r13)
-         vmovapd      ei3, (%r14)
-         vmovapd      ei1, (%r15)
-         add          $4, ilo
-         cmp          ilo, NLO
-         jg           twloop
-         pop          %r12
-         pop          %r13
-         pop          %r14
-         pop          %r15
-         jmp          done1
-rcalls:  push         X
+rcalls:  cmp          $4, NLO
+         jle          done1
+         push         X
          push         k2
-         mov          N2, %rax
-         dec          %rax
-         mov          %rax, %rdx
-         mov          %rax, %rbx
-         not          %rbx
-         inc          %rax
-         and          %rbx, %rax
-         or           k2, %rsi
-         mov          %rax, %rsi
+         bsf          N2, %rcx
+         mov          $1, %rdx
+         mov          k2, %rax
+         shl          %rcx, %rdx
          or           %rdx, %rax
-         inc          %rax
-         and          %rbx, %rax
-         or           k2, %rax
-         mov          %rax, %rcx
+         shl          %rdx
          or           %rdx, %rax
-         inc          %rax
-         and          %rbx, %rax
-         or           k2, %rax
          push         %rax
-         push         %rcx
-         push         %rsi
+         mov          $1, %rdx
+         mov          k2, %rax
+         shl          %rcx, %rdx
+         or           %rdx, %rax
+         push         %rax
+         mov          $1, %rdx
+         mov          k2, %rax
+         shl          %rcx, %rdx
+         shl          %rdx
+         or           %rdx, %rax
+         push         %rax
          shl          $2, N2
          shr          $2, NLO
          call         recurse
+         shl          $2, NLO
          pop          k2
          lea          (X, NLO, 8), X
-         call         recurse
-         pop          k2
-         lea          (X, NLO, 8), X
-         call         recurse
-         pop          k2
-         lea          (X, NLO, 8), X
+         shr          $2, NLO
          call         recurse
          shl          $2, NLO
-         shr          $2, N2
+         pop          k2
+         lea          (X, NLO, 8), X
+         shr          $2, NLO
+         call         recurse
+         shl          $2, NLO
+         pop          k2
+         lea          (X, NLO, 8), X
+         shr          $2, NLO
+         call         recurse
+         shl          $2, NLO
          pop          k2
          pop          X
+         shl          $2, NLO
+         shr          $2, N2
 done1:   ret
 
 
