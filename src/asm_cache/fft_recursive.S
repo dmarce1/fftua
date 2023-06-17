@@ -507,16 +507,13 @@ k2loop:  vbroadcastsd cos1, tr1
          vsubpd       ti0, ti1, ei2
          vsubpd       ti3, tr2, er3
          vsubpd       ti2, tr3, ei3
-        // 1 3 5 7 9 11 13 15
-       //  1 9 5 13  3 11 7 15
-      //   er0 er1 er2 er3 ei3 ei2 ei1 ei0
          vmovapd      er0, (%rax)
-         vmovapd      er2, (%rax, %rsi, 8)
          vmovapd      ei3, (%rbx)
+         vmovapd      er2, (%rax, %rsi, 8)
          vmovapd      ei1, (%rbx, %rsi, 8)
          vmovapd      er1, (%rcx)
-         vmovapd      er3, (%rcx, %rsi, 8)
          vmovapd      ei2, (%rdx)
+         vmovapd      er3, (%rcx, %rsi, 8)
          vmovapd      ei0, (%rdx, %rsi, 8)
          add          $4, ilo
          cmp          ilo, NLO
@@ -565,7 +562,6 @@ rcalls:  cmp          $4, NLO
          shl          $2, NLO
          pop          k2
          pop          X
-         shl          $2, NLO
          shr          $2, N2
 done1:   ret
 
