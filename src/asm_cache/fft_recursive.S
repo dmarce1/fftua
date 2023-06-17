@@ -2,10 +2,10 @@
 #define  N1           $4
 #define  ilo          %r8
 #define  k2           %r9
-#define  depth        %r13
-#define  X            %r11
-#define  N            %r12
-#define  NLO          %r10
+#define  X            %r10
+#define  N            %r11
+#define  NLO          %r12
+#define  N2           %r13
 #define  C            %r14
 #define  S            %r15
 #define  er0          %ymm0
@@ -30,8 +30,7 @@
 #define  sin1         -32(%rbp)
 #define  sin2         -40(%rbp)
 #define  sin3         -48(%rbp)
-#define  N2           -56(%rbp)
-#define  STACK_SIZE   $56
+#define  STACK_SIZE   $48
 
          .global      fft_recursive
 
@@ -57,14 +56,12 @@ fft_recursive:
          push         %r14
          push         %r15
          mov          %rdi, X
-         mov          %rsi, N
-         mov          %rdx, C
-         mov          %rcx, S
+         mov          %rsi, C
+         mov          %rdx, S
+         mov          %rcx, N
          mov          N, NLO
          shr          $2, NLO
-         mov          $1, %rax
-         mov          %rax, N2
-         xor          depth, depth
+         mov          $1, N2
          xor          k2, k2
          call         recurse
          pop          %r15
@@ -76,32 +73,30 @@ fft_recursive:
          ret
 recurse: cmp          N1, NLO
          jle          done
-         push         k2
-         mov          k2, %rdx
-         mov          depth, %rcx
-         shr          $2, %rcx
-         mov          $1, %rax
-         mov          $1, %rbx
-         shl          %rcx, %rax
-         inc          %rcx
-         shl          %rcx, %rax
-         or           %rax, k2
-         or           %rbx, k2
          push         X
          push         k2
-         not          %rax
-         and          %rax, k2
-         push         k2
-         not          %rax
+         mov          N2, %rax
+         dec          %rax
+         mov          %rax, %rdx
+         mov          %rax, %rbx
          not          %rbx
-         or           %rax, k2
-         and          %rbx, k2
-         push         k2
-         mov          %rdx, k2
-         mov          N2, %rax
-         shl          $2, %rax
-         mov          N2, %rax
-         inc          depth
+         inc          %rax
+         and          %rbx, %rax
+         or           k2, %rsi
+         mov          %rax, %rsi
+         or           %rdx, %rax
+         inc          %rax
+         and          %rbx, %rax
+         or           k2, %rax
+         mov          %rax, %rcx
+         or           %rdx, %rax
+         inc          %rax
+         and          %rbx, %rax
+         or           k2, %rax
+         push         %rax
+         push         %rcx
+         push         %rsi
+         shl          $2, N2
          shr          $2, NLO
          call         recurse
          pop          k2
@@ -114,21 +109,20 @@ recurse: cmp          N1, NLO
          lea          (X, NLO, 2), X
          call         recurse
          shl          $2, NLO
-         mov          N2, %rax
-         shr          $2, %rax
-         mov          N2, %rax
-         dec          depth
+         shr          $2, N2
          pop          k2
          pop          X
+         cmp          $0, k2
+         je           keq0
          mov          N2, %rax
          shr          %rax
          cmp          k2, %rax
          jl           done
-         je           N2o2
+         je           keqN2o2
          cmp          $0, k2
-         jne          k2rest
-         xor          ilo, ilo
-k0loop:  lea          (X, ilo, 8), %rax
+         jmp          k2rest
+keq0:    xor          ilo, ilo
+keq0lp:  lea          (X, ilo, 8), %rax
          lea          (%rax, NLO, 2), %rbx
          lea          (%rbx, NLO, 2), %rcx
          lea          (%rcx, NLO, 2), %rdx
@@ -146,7 +140,38 @@ k0loop:  lea          (X, ilo, 8), %rax
          vmovapd      er2, (%rbx)
          vmovapd      tr2, (%rcx)
          vmovapd      tr3, (%rdx)
-N2o2:
+         add          $4, ilo
+         cmp          ilo, NLO
+         jg           keq0lp
+         jmp          done
+keqN2o2: xor          ilo, ilo
+N2o2lp:  lea          (X, ilo, 8), %rax
+         lea          (%rax, NLO, 2), %rbx
+         lea          (%rbx, NLO, 2), %rcx
+         lea          (%rcx, NLO, 2), %rdx
+         vmovapd      (%rax), er0
+         vmovapd      (%rbx), er2
+         vmovapd      (%rcx), er1
+         vmovapd      (%rdx), er3
+         vaddpd       er3, er1, tr0
+         vsubpd       er3, er1, tr2
+         vmulpd       tw45, tr2, tr1
+         vmulpd       tw45, tr0, tr3
+         vmovapd      er0, tr0
+         vmovapd      er2, tr2
+         vaddpd       tr1, tr0, er0
+         vaddpd       tr3, tr2, er3
+         vsubpd       tr1, tr0, er1
+         vsubpd       tr3, tr2, er2
+         vmulpd       none, er3, er3
+         vmovapd      er0, (%rax)
+         vmovapd      er2, (%rbx)
+         vmovapd      er1, (%rcx)
+         vmovapd      er3, (%rdx)
+         add          $4, ilo
+         cmp          ilo, NLO
+         jg           N2o2lp
+         jmp          done
 k2rest:  mov          k2, %rax
          imul         NLO, %rax
          imul         $2, %rax, %rbx
@@ -235,11 +260,11 @@ k2loop:  vbroadcastsd cos1, tr1
          add          $4, ilo
          cmp          ilo, NLO
          jg           k2loop
-done:    pop          %r12
+         pop          %r12
          pop          %r13
          pop          %r14
          pop          %r15
-         ret
+done:    ret
 
 
 
