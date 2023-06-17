@@ -72,7 +72,7 @@ void fft_inplace(double* x, int N);
 void fft_inplace_real(double* x, int N);
 
 extern "C" {
-void fft_scramble1(double* X, int N);
+void fft_scramble(double* X, int N);
 }
 void test_twiddles();
 
@@ -80,8 +80,9 @@ void test_twiddles();
 extern "C" {
 void twiddle_gen_next(__m256d* C, __m256d* S, void *ptr);
 void twiddle_gen_init(void* ptr, int N);
-void fft_simd_scramble1(double*, int N);
+void fft_simd_scramble(double*, int N);
 void fft_transpose_hilo(double*, int, int);
+void fft_recursive(double* X, const double* C, const double* S, int N);
 }
 
 
@@ -107,12 +108,12 @@ void test_twiddles() {
 void test_time(double* x, int N) {
 //	fft_simd_scramble(x, N);
 //	fft_simd_scramble(x, N);
-	fft_scramble1(x, N);
+	fft_scramble(x, N);
 }
 
 int main(int argc, char **argv) {
-	test_twiddles();
-	return 0;
+	//test_twiddles();
+	//return 0;
 	constexpr int N = 128*1024*1024;
 	timer tm;
 	std::vector<double> x(N);
@@ -120,10 +121,11 @@ int main(int argc, char **argv) {
 		x[n] = n;
 	}
 	tm.start();
-	fft_scramble1(x.data(), N);
+//	fft_scramble1(x.data(), N);
 	tm.stop();
 	printf( "%e\n", tm.read());
 	for( int n = 0; n < N; n++) {
+		continue;
 		int i = n;
 		int k = 0;
 		for( int j = 0; j < ilogb(N); j++) {
@@ -157,15 +159,17 @@ int main(int argc, char **argv) {
 				}
 				//x[0] = y[0] = 1.0;
 //				x[0] = y[0] = 1.0;
+				const auto& c = cos_twiddles(N);
+				const auto& s = sin_twiddles(N);
 				if (i == 0) {
 					fftw_real(Y, y);
-					test_time(x.data(), N);
+					fft_recursive(x.data(), c.data(), s.data(), N);
 				} else {
 
 					auto b = fftw_real(Y, y);
 					timer tm;
 					tm.start();
-//					fft_inplace_real(x.data(), N);
+					fft_recursive(x.data(), c.data(), s.data(), N);
 					test_time(x.data(), N);
 					tm.stop();
 					X[0].real() = x[0];

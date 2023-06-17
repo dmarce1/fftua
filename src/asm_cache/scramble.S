@@ -3,11 +3,11 @@
 #define  N1             %r14
 #define  N2             %r15
 
-         .global        fft_scramble1
+         .global        fft_scramble
 
          .text
 
-fft_scramble1:
+fft_scramble:
          push           %r15
          push           %r14
          push           %r13
