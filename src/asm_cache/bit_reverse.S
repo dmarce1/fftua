@@ -274,7 +274,7 @@ fft_bit_reverse:
           mov           -7(%rbp), %bl
           mov           -6(%rbp), %cl
           mov           -5(%rbp), %dl
-          mov           (table), %rdi
+          lea           (table), %rdi
           mov           (%rdi, %rax), %al
           mov           (%rdi, %rbx), %bl
           mov           (%rdi, %rcx), %cl
@@ -284,9 +284,8 @@ fft_bit_reverse:
           mov           %cl, -7(%rbp)
           mov           %dl, -8(%rbp)
           mov           -8(%rbp), %rax
-          mov           $32, %rdx
-          mov           %rsi, %rcx
-          sub           %rdx, %rcx
+          mov           $32, %rcx
+          sub           %rsi, %rcx
           shr           %rcx, %rax
           pop           %rbx
           leave

@@ -111,17 +111,22 @@ void test_time(double* x, int N) {
 	fft_scramble(x, N);
 }
 
+extern "C" {
+int fft_bit_reverse(int, int);
+
+}
+
 int main(int argc, char **argv) {
 	//test_twiddles();
 	//return 0;
-	constexpr int N = 16;
+	constexpr int N = 256;
 	timer tm;
 	std::vector<double> x(N);
 	for( int n = 0; n < N; n++) {
 		x[n] = n;
 	}
 	tm.start();
-	fft_scramble(x.data(), N);
+//	fft_scramble(x.data(), N);
 	tm.stop();
 	printf( "%e\n", tm.read());
 	for( int n = 0; n < N; n++) {
@@ -132,9 +137,9 @@ int main(int argc, char **argv) {
 			k |= 1 & i;
 			i >>= 1;
 		}
-		printf( "%i %i %i\n", n, lround(x[n]), k);
+		printf( "          .byte          %i %i\n", k, fft_bit_reverse(n,8));
 	}
-//	return 0;
+	return 0;
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	timer tm3, tm4;
 	double t3 = 0.0;
@@ -142,7 +147,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 256; N <= 4*1024*1024; N *= 4) {
+	for (int N = 64; N <= 4*1024*1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;

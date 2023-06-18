@@ -459,12 +459,16 @@ k2loop:  vbroadcastsd cos1, tr1
          vbroadcastsd sin1, ti1
          vbroadcastsd sin2, ti2
          vbroadcastsd sin3, ti3
+
+         mov          N2, %rax
+         mov          k2, %rsi
+         dec          %rax
+
+
          lea          (X, ilo, 8), %rax
          lea          (%rax, NLO, 8), %rbx
          lea          (%rbx, NLO, 8), %rcx
          lea          (%rcx, NLO, 8), %rdx
-         mov          NLO, %rsi
-         shl          $2, %rsi
          vmovapd      (%rax), er0
          vmovapd      (%rbx), er1
          vmovapd      (%rcx), er2
@@ -508,12 +512,12 @@ k2loop:  vbroadcastsd cos1, tr1
          vsubpd       ti3, tr2, er3
          vsubpd       ti2, tr3, ei3
          vmovapd      er0, (%rax)
-         vmovapd      ei3, (%rbx)
-         vmovapd      er2, (%rax, %rsi, 8)
-         vmovapd      ei1, (%rbx, %rsi, 8)
+         vmovapd      ei2, (%rbx)
          vmovapd      er1, (%rcx)
-         vmovapd      ei2, (%rdx)
-         vmovapd      er3, (%rcx, %rsi, 8)
+         vmovapd      ei3, (%rdx)
+         vmovapd      er3, (%rax, %rsi, 8)
+         vmovapd      ei1, (%rbx, %rsi, 8)
+         vmovapd      er2, (%rcx, %rsi, 8)
          vmovapd      ei0, (%rdx, %rsi, 8)
          add          $4, ilo
          cmp          ilo, NLO
