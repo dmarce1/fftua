@@ -31,6 +31,11 @@ on:        .double       -1.0, -1.0, -1.0, -1.0
 fft_twiddles:
            push          %r13
            push          %r14
+           mov           %r8, N2
+           mov           %rcx, N1
+           mov           %rdx, S
+           mov           %rsi, C
+           mov           %rdi, X
            xor           k2, k2
 k2loop:    mov           $1, n1
            vmovapd       (C, k2, 8), cos0
