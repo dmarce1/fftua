@@ -1,80 +1,79 @@
-// void fft_no2_post( double* X, int N1, int N2, double T1, double T2 );
-// void fft_no2_pre( double* X, const double* C, const double* S, int N1, int N2, double* rc );
-// void fft_recursive_hi( double* X, const double* C, const double* S, int N, int M );
-// void fft_transpose_imag( double* X, int N1, int N2 );
-// void fft_real2complex( double* X, int N1, int N2 );
-// void fft_transpose( double* X, const double* C, const double* S, int N1, int N2 );
-// void fft_twiddles( double* X, const double* C, const double* S, int N1, int N2 );
-
-#define    X             %r10
-#define    C             %r11
-#define    S             %r12
-#define    N             %r13
-#define    N1            %r14
-#define    N2            %r15
-#define    T1            -8(%rbp)
-#define    T2            -16(%rbp)
+#define    T2            -8(%rbp)
+#define    T1            -16(%rbp)
 #define    Tptr          -16(%rbp)
-#define    STACK_SIZE    $16
+#define    C1            -24(%rbp)
+#define    S1            -32(%rbp)
+#define    C2            -40(%rbp)
+#define    S2            -48(%rbp)
+#define    N1            -56(%rbp)
+#define    N2            -64(%rbp)
+#define    N             -72(%rbp)
+#define    X             -80(%rbp)
+#define    STACK_SIZE    $80
 
            .global       fft_6step
 
            .text
 
-fft_6step: push          %r12
-           push          %r13
-           push          %r14
-           push          %r15
+fft_6step: enter         STACK_SIZE, $0
+           push          %rbx
            mov           %rdi, X
-           mov           %rsi, N
-           mov           %rdx, C
-           mov           %rcx, S
-           bsf           N, %rax
-           mov           %rax, %rbx
-           shr           %rbx
-           sub           %rbx, %rax
-           mov           $1, N1
-           mov           %rax, %rcx
-           shl           %rcx, N1
-           mov           $1, N2
-           mov           %rax, %rcx
-           shl           %rcx, N2
+           mov           %rsi, C1
+           mov           %rdx, S1
+           mov           %rcx, C2
+           mov           %r8, S2
+           mov           %r9, N1
+           mov           16(%rbp), %rax
+           mov           %rax, N2
+           imul          N1, %rax
+           mov           N, %rax
            mov           X, %rdi
            mov           N2, %rsi
            mov           N1, %rdx
            call          fft_scramble_hi
            mov           X, %rdi
-           mov           C, %rsi
-           mov           S, %rdx
+           mov           C2, %rsi
+           mov           S2, %rdx
            mov           N2, %rcx
            mov           N1, %r8
            call          fft_recursive_hi
            mov           X, %rdi
-           mov           C, %rsi
-           mov           S, %rdx
+           mov           C2, %rsi
+           mov           S2, %rdx
            mov           N1, %rcx
            mov           N2, %r8
            call          fft_twiddles
            mov           X, %rdi
-           mov           C, %rsi
-           mov           S, %rdx
+           mov           C2, %rsi
+           mov           S2, %rdx
            mov           N1, %rcx
            mov           N2, %r8
            lea           Tptr, %r9
            call          fft_no2_pre
-           mov           X, %rdi
-           mov           C, %rsi
-           mov           S, %rdx
            mov           N1, %rcx
-           mov           N2, %r8
+           imul          N2, %rcx
+           bsf           %rcx, %rcx
+           mov           %rcx, %rdx
+           shr           %rcx
+           mov           $1, %rax
+           shl           %rcx, %rax
+           mov           %rax, %rsi
+           mov           %rdx, %rcx
+           imul          %rax, %rax
+           bsf           %rax, %rax
+           sub           %rax, %rcx
+           mov           $1, %rbx
+           shl           %rcx, %rbx
+           mov           %rbx, %rdx
+           mov           X, %rdi
            call          fft_transpose_recursive
            mov           X, %rdi
            mov           N2, %rsi
            mov           N1, %rdx
            call          fft_scramble_hi
            mov           X, %rdi
-           mov           C, %rsi
-           mov           S, %rdx
+           mov           C1, %rsi
+           mov           S1, %rdx
            mov           N2, %rcx
            mov           N1, %r8
            call          fft_recursive_hi
@@ -92,8 +91,6 @@ fft_6step: push          %r12
            mov           N1, %rsi
            mov           N2, %rdx
            call          fft_transpose_imag
-           pop           %r15
-           pop           %r14
-           pop           %r13
-           pop           %r12
+           pop           %rbx
+           leave
            ret

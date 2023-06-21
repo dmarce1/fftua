@@ -16,6 +16,8 @@
            .align        32
 none:      .double       -1.0, -1.0, -1.0, -1.0
 
+           .text
+
 fft_transpose_imag:
            push          %r12
            push          %r13
@@ -25,13 +27,45 @@ fft_transpose_imag:
            mov           %rdi, X
            mov           %rsi, N1
            mov           %rdx, N2
+           mov           N1, %rax
+           imul          N2, %rax
+           mov           %rax, N
+           mov           N2, N2o2
+           shr           N2o2
+           mov           N1, N1o2
+           shr           N1o2
            vmovapd       none, %ymm3
            xor           k1, k1
 k1loop:    mov           N2o2, k2
            inc           k2
-k2loop:    mov           N2, %rax
+scalar:    mov           N2, %rax
            imul          k1, %rax
-           mov           k1, %rdx
+           mov           %rax, %rdx
+           add           k2, %rax
+           add           k2, %rdx
+           mov           N, %rbx
+           sub           %rdx, %rbx
+           mov           %rbx, %rcx
+           sub           $3, %rbx
+           add           k2, %rcx
+           add           k2, %rcx
+           movsd         (X, %rax, 8), %xmm0
+           movsd         (X, %rbx, 8), %xmm1
+           movsd         (X, %rcx, 8), %xmm2
+           vmulsd        %xmm3, %xmm2, %xmm2
+           movsd         %xmm1, (X, %rax, 8)
+           movsd         %xmm2, (X, %rbx, 8)
+           movsd         %xmm0, (X, %rcx, 8)
+           inc           k2
+           mov           k2, %rax
+           sub           N2o2, %rax
+           cmp           $4, %rax
+           jne           scalar
+simd_b:    cmp           N2, k2
+           jge           simd_e
+           mov           N2, %rax
+           imul          k1, %rax
+           mov           %rax, %rdx
            add           k2, %rax
            add           k2, %rdx
            mov           N, %rbx
@@ -41,16 +75,17 @@ k2loop:    mov           N2, %rax
            add           k2, %rcx
            add           k2, %rcx
            vmovapd       (X, %rax, 8), %ymm0
-           vmovupd       (X, %rbx, 8), %ymm1
+           vpermpd       prmt_cntrl, (X, %rbx, 8), %ymm1
            vmovapd       (X, %rcx, 8), %ymm2
            vmulpd        %ymm3, %ymm2, %ymm2
+           vpermpd       prmt_cntrl, %ymm2, %ymm2
            vmovapd       %ymm1, (X, %rax, 8)
            vmovupd       %ymm2, (X, %rbx, 8)
            vmovapd       %ymm0, (X, %rcx, 8)
            add           $4, k2
-           cmp           N2, k2
-           jne           k2loop
-           inc           k1
+           jmp           simd_b
+simd_e:    inc           k1
+           cmp           k1, N1o2
            jne           k1loop
            pop           %rbx
            pop           %r15

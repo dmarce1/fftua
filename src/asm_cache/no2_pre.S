@@ -1,5 +1,5 @@
-#define    rptr          %r8
-#define    X             %r9
+#define    X             %r8
+#define    rptr          %r9
 #define    C             %r10
 #define    S             %r11
 #define    N1            %r12
@@ -29,7 +29,6 @@ fft_no2_pre:
            enter         STACK_SIZE, $0
            push          %r12
            push          %r13
-           mov           %r9, rptr
            mov           %r8, N2
            mov           %rcx, N1
            mov           %rdx, C

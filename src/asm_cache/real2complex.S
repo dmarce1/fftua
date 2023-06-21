@@ -13,6 +13,14 @@
 #define    xix           %ymm5
 #define    xry           %ymm6
 #define    xiy           %ymm7
+#define    srex           %xmm0
+#define    srey           %xmm1
+#define    simx           %xmm2
+#define    simy           %xmm3
+#define    sxrx           %xmm4
+#define    sxix           %xmm5
+#define    sxry           %xmm6
+#define    sxiy           %xmm7
 #define    prmt_cntrl    $27
 
 
@@ -28,9 +36,43 @@ fft_real2complex:
            mov           %rdi, X
            mov           %rsi, N1
            mov           %rdx, N2
+           mov           N1, N
+           imul          N2, N
            mov           $1, k1
 k1loop:    mov           $1, k2
-k2loop:    mov           N2, %rdx
+scalar:    mov           N2, %rdx
+           imul          k1, %rdx
+           mov           k2, %rax
+           add           %rdx, %rax
+           mov           N, %rbx
+           sub           %rax, %rbx
+           mov           %rax, %rcx
+           sub           k2, %rcx
+           sub           k2, %rcx
+           mov           N, %rdx
+           sub           %rcx, %rdx
+           movsd         (X, %rax, 8), srex
+           movsd         (X, %rbx, 8), srey
+           movsd         (X, %rcx, 8), simx
+           movsd         (X, %rdx, 8), simy
+           movsd         srex, sxrx
+           movsd         srey, sxix
+           movsd         srex, sxry
+           movsd         simx, sxiy
+           vsubsd        simy, sxrx, sxrx
+           vaddsd        simx, sxix, sxix
+           vaddsd        simy, sxry, sxry
+           vsubsd        srey, sxiy, sxiy
+           movsd         sxrx, (X, %rax, 8)
+           movsd         sxix, (X, %rbx, 8)
+           movsd         sxry, (X, %rcx, 8)
+           movsd         sxiy, (X, %rdx, 8)
+           inc           k2
+           cmp           $4, k2
+           jne           scalar
+simd_b:    cmp           k2, N2
+           jle           simd_e
+		   mov           N2, %rdx
            imul          k1, %rdx
            mov           k2, %rax
            add           %rdx, %rax
@@ -59,12 +101,11 @@ k2loop:    mov           N2, %rdx
            vpermpd       prmt_cntrl, xiy, xiy
            vmovapd       xrx, (X, %rax, 8)
            vmovapd       xix, (X, %rbx, 8)
-           vmovapd       xry, (X, %rcx, 8)
-           vmovapd       xiy, (X, %rdx, 8)
+           vmovupd       xry, (X, %rcx, 8)
+           vmovupd       xiy, (X, %rdx, 8)
            add           $4, k2
-           cmp           k2, N2
-           jne           k2loop
-           inc           k1
+           jmp           simd_b
+simd_e:    inc           k1
            cmp           k1, N1
            jne           k1loop
            pop           %rbx
