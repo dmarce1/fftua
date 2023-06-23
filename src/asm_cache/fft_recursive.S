@@ -1,5 +1,6 @@
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
+#define  X0           %rsi
 #define  ilo          %r8
 #define  k2           %r9
 #define  NLO          %r10
@@ -42,9 +43,7 @@
 #define  sr3          %xmm14
 #define  si3          %xmm15
 #define  xtwo         %xmm14
-#define  X0           -8(%rbp)
 #define  prmt_cntrl   $27
-#define  STACK_SIZE   $8
 
          .global      fft_recursive
 
@@ -82,7 +81,6 @@ pbytes:  .byte        8
          .text
 
 fft_recursive:
-         enter        STACK_SIZE, $0
          push         %rbx
          push         %r12
          push         %r13
@@ -367,7 +365,6 @@ done0:   pop          %r15
          pop          %r13
          pop          %r12
          pop          %rbx
-         leave
          ret
 recurse: cmp          $1, NLO
          je           done1
