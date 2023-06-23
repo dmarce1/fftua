@@ -23,6 +23,10 @@
 #define  cos2         %ymm11
 #define  sin1         %ymm12
 #define  sin2         %ymm13
+#define  tr1          %ymm10
+#define  tr2          %ymm11
+#define  ti1          %ymm12
+#define  ti2          %ymm13
 #define  tr3          %ymm14
 #define  ytwo         %ymm15
 #define  ur0          %xmm0
@@ -39,6 +43,10 @@
 #define  tcos2        %xmm11
 #define  tsin1        %xmm12
 #define  tsin2        %xmm13
+#define  sr1          %xmm10
+#define  sr2          %xmm11
+#define  si1          %xmm12
+#define  si2          %xmm13
 #define  sr3          %xmm14
 #define  xtwo         %xmm15
 #define  prmt_cntrl   $27
@@ -76,6 +84,8 @@ pbytes:  .byte        8
          .byte        5
          .byte        6
          .byte        7
+
+
          .text
 
 fft_recursive:
@@ -116,11 +126,11 @@ fft_recursive:
          movsd        (%rcx), ur1
          movsd        (%rdx), ur3
          vaddsd       ur2, ur0, sr0
-         vsubsd       ur2, ur0, tcos2
-         vaddsd       ur3, ur1, tcos1
+         vsubsd       ur2, ur0, sr2
+         vaddsd       ur3, ur1, sr1
          vsubsd       ur1, ur3, sr3
-         vaddsd       tcos1, sr0, ur0
-         vsubsd       tcos1, sr0, ur2
+         vaddsd       sr1, sr0, ur0
+         vsubsd       sr1, sr0, ur2
          movsd        ur0, (%rax)
          movsd        tcos2, (%rbx)
          movsd        ur2, (%rcx)
@@ -132,15 +142,15 @@ fft_recursive:
          movsd        (%rcx, N), ur1
          movsd        (%rdx, N), ur3
          vaddsd       ur3, ur1, sr0
-         vsubsd       ur3, ur1, tcos2
-         vmulsd       tw45, tcos2, tcos1
+         vsubsd       ur3, ur1, sr2
+         vmulsd       tw45, sr2, sr1
          vmulsd       tw45, sr0, sr3
          movsd        ur0, sr0
          movsd        ur2, tcos2
-         vaddsd       tcos1, sr0, ur0
-         vaddsd       sr3, tcos2, ur3
-         vsubsd       tcos1, sr0, ur1
-         vsubsd       sr3, tcos2, ur2
+         vaddsd       sr1, sr0, ur0
+         vaddsd       sr3, sr2, ur3
+         vsubsd       sr1, sr0, ur1
+         vsubsd       sr3, sr2, ur2
          vmulsd       none, ur3, ur3
          movsd        ur0, (%rax, N)
          movsd        ur1, (%rbx, N)
@@ -362,8 +372,9 @@ done0:   pop          %r15
          pop          %r12
          pop          %rbx
          ret
-recurse: cmp          $1, NLO
-         je           done1
+recurse: bsf          NLO, %rax
+         bt           $0, %rax
+         jc           radix2
          cmp          $0, k2
          je           keq0
          mov          N2, %rax
@@ -381,14 +392,14 @@ keq0lp:  lea          (X, ilo, 8), %rax
          vmovapd      (%rcx), er2
          vmovapd      (%rdx), er3
          vaddpd       er2, er0, tr0
-         vsubpd       er2, er0, cos2
-         vaddpd       er3, er1, cos1
+         vsubpd       er2, er0, tr2
+         vaddpd       er3, er1, tr1
          vsubpd       er1, er3, tr3
-         vaddpd       cos1, tr0, er0
-         vsubpd       cos1, tr0, er2
+         vaddpd       tr1, tr0, er0
+         vsubpd       tr1, tr0, er2
          vmovapd      er0, (%rax)
          vmovapd      er2, (%rbx)
-         vmovapd      cos2, (%rcx)
+         vmovapd      tr2, (%rcx)
          vmovapd      tr3, (%rdx)
          add          $4, ilo
          cmp          ilo, NLO
@@ -404,15 +415,15 @@ N2o2lp:  lea          (X, ilo, 8), %rax
          vmovapd      (%rcx), er2
          vmovapd      (%rdx), er3
          vaddpd       er3, er1, tr0
-         vsubpd       er3, er1, cos2
-         vmulpd       tw45, cos2, cos1
+         vsubpd       er3, er1, tr2
+         vmulpd       tw45, tr2, tr1
          vmulpd       tw45, tr0, tr3
          vmovapd      er0, tr0
-         vmovapd      er2, cos2
-         vaddpd       cos1, tr0, er0
-         vaddpd       tr3, cos2, er3
-         vsubpd       cos1, tr0, er1
-         vsubpd       tr3, cos2, er2
+         vmovapd      er2, tr2
+         vaddpd       tr1, tr0, er0
+         vaddpd       tr3, tr2, er3
+         vsubpd       tr1, tr0, er1
+         vsubpd       tr3, tr2, er2
          vmulpd       none, er3, er3
          vmovapd      er0, (%rax)
          vmovapd      er2, (%rbx)
@@ -460,6 +471,8 @@ L100:    or           %rbx, %rdi
 skipneg: vmovapd      two, ytwo
 		 mov          k2, %rax
          imul         NLO, %rax
+         imul         $2, %rax, %rbx
+         imul         $3, %rax, %rcx
          vbroadcastsd (C, %rax, 8), cos1
          vbroadcastsd (S, %rax, 8), sin1
          vmulpd       sin1, sin1, cos2
@@ -568,6 +581,62 @@ rcalls:  cmp          $4, NLO
          pop          X
          shl          $2, NLO
          shr          $2, N2
+         jmp          done1
+radix2:  xor          ilo, ilo
+         shl          NLO
+loop_r2: lea          (X, ilo, 8), %rax
+         lea          32(X, ilo, 8), %rbx
+         lea          64(X, ilo, 8), %rcx
+         lea          96(X, ilo, 8), %rdx
+         vmovapd      (%rax), %ymm0
+         vmovapd      (%rbx), %ymm2
+         vmovapd      (%rcx), %ymm4
+         vmovapd      (%rdx), %ymm6
+         vmovapd      (%rax, NLO, 8), %ymm1
+         vmovapd      (%rbx, NLO, 8), %ymm3
+         vmovapd      (%rcx, NLO, 8), %ymm5
+         vmovapd      (%rdx, NLO, 8), %ymm7
+         vaddpd       %ymm1, %ymm0, %ymm8
+         vaddpd       %ymm3, %ymm2, %ymm10
+         vaddpd       %ymm5, %ymm4, %ymm12
+         vaddpd       %ymm7, %ymm6, %ymm14
+         vsubpd       %ymm1, %ymm0, %ymm9
+         vsubpd       %ymm3, %ymm2, %ymm11
+         vsubpd       %ymm5, %ymm4, %ymm13
+         vsubpd       %ymm7, %ymm6, %ymm15
+         vmovapd      %ymm8, (%rax)
+         vmovapd      %ymm10, (%rbx)
+         vmovapd      %ymm12, (%rcx)
+         vmovapd      %ymm14, (%rdx)
+         vmovapd      %ymm9, (%rax, NLO, 8)
+         vmovapd      %ymm11, (%rbx, NLO, 8)
+         vmovapd      %ymm13, (%rcx, NLO, 8)
+         vmovapd      %ymm15, (%rdx, NLO, 8)
+         add          $16, ilo
+         cmp          ilo, NLO
+         jne          loop_r2
+         push         X
+         push         k2
+         bsf          N2, %rcx
+         mov          NLO, %rdx
+         neg          %rdx
+         mov          $1, %rax
+         shl          %rcx, %rax
+         or           k2, %rax
+         lea          (X, NLO, 8), X
+         push         X
+         push         %rax
+         lea          (X, %rdx, 8), X
+         shl          N2
+         shr          $2, NLO
+         call         recurse
+         pop          k2
+         pop          X
+         call         recurse
+         pop          k2
+         pop          X
+         shl          $2, NLO
+         shr          N2
 done1:   ret
 
 
