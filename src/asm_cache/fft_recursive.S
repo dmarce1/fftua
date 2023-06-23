@@ -479,22 +479,24 @@ L100:    or           %rbx, %rdi
          mov          N2, %rax
          sub          k2, %rax
          mov          %rax, k2
-skipneg: mov          k2, %rax
+skipneg: push         %rdi
+         mov          k2, %rax
          imul         NLO, %rax
          imul         $2, %rax, %rbx
          imul         $3, %rax, %rcx
-         movsd        (C, %rax, 8), %xmm0
-         movsd        (C, %rbx, 8), %xmm1
-         movsd        (C, %rcx, 8), %xmm2
-         movsd        (S, %rax, 8), %xmm3
-         movsd        (S, %rbx, 8), %xmm4
-         movsd        (S, %rcx, 8), %xmm5
-         movsd        %xmm0, cos1
-         movsd        %xmm1, cos2
-         movsd        %xmm2, cos3
-         movsd        %xmm3, sin1
-         movsd        %xmm4, sin2
-         movsd        %xmm5, sin3
+         movq         (C, %rax, 8), %rdx
+         movq         (C, %rbx, 8), %rdi
+         movq         (C, %rcx, 8), %rsi
+         movq         (S, %rax, 8), %rax
+         movq         (S, %rbx, 8), %rbx
+         movq         (S, %rcx, 8), %rcx
+         movq         %rdx, cos1
+         movq         %rdi, cos2
+         movq         %rsi, cos3
+         movq         %rax, sin1
+         movq         %rbx, sin2
+         movq         %rcx, sin3
+         pop          %rdi
          xor          ilo, ilo
 k2loop:  vbroadcastsd cos1, tr1
          vbroadcastsd cos2, tr2
