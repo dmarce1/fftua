@@ -24,8 +24,7 @@
 #define  sin1         %ymm12
 #define  sin2         %ymm13
 #define  tr3          %ymm14
-#define  ti3          %ymm15
-#define  ytwo         %ymm14
+#define  ytwo         %ymm15
 #define  ur0          %xmm0
 #define  ui0          %xmm1
 #define  ur1          %xmm2
@@ -41,8 +40,7 @@
 #define  tsin1        %xmm12
 #define  tsin2        %xmm13
 #define  sr3          %xmm14
-#define  si3          %xmm15
-#define  xtwo         %xmm14
+#define  xtwo         %xmm15
 #define  prmt_cntrl   $27
 
          .global      fft_recursive
@@ -172,7 +170,7 @@ fft_recursive:
          movsd        (%rdx, %rdi, 8), ui3
          movsd        ur0, sr0
          movsd        ui0, si0
-         movsd        two, xtwo
+         vmovapd      two, ytwo
          vfmadd231sd  tsin2, ui2, sr0
          vfnmadd231sd tsin2, ur2, si0
          vfnmadd132sd tcos2, sr0, ur2
@@ -239,7 +237,6 @@ fft_recursive:
          pshufb       pbytes, ui1
          pshufb       pbytes, ui2
          pshufb       pbytes, ui3
-         vmovapd      two, xtwo
          vmovapd      ur0, sr0
          vmovapd      ui0, si0
          vfmadd231pd  tsin2, ui2, sr0
@@ -286,7 +283,6 @@ fft_recursive:
          vmovupd      ui0, (%rdx, %rdi, 8)
          cmp          $8, N2
          jle          done0
-         vmovapd      two, ytwo
          mov          $4, k2
 final:   vmovapd      (C, k2, 8), cos1
          vmovapd      (S, k2, 8), sin1
@@ -461,7 +457,8 @@ L100:    or           %rbx, %rdi
          mov          N2, %rax
          sub          k2, %rax
          mov          %rax, k2
-skipneg: mov          k2, %rax
+skipneg: vmovapd      two, ytwo
+		 mov          k2, %rax
          imul         NLO, %rax
          imul         $2, %rax, %rbx
          imul         $3, %rax, %rcx
@@ -471,7 +468,6 @@ skipneg: mov          k2, %rax
          vmulpd       cos1, sin1, sin2
          vfmsub231pd  cos1, cos1, cos2
          vfmadd231pd  sin1, cos1, sin2
-         vmovapd      two, ytwo
          xor          ilo, ilo
 k2loop:  lea          (X, ilo, 8), %rax
          lea          (%rax, NLO, 8), %rbx
@@ -537,6 +533,7 @@ rcalls:  cmp          $4, NLO
          bsf          N2, %rcx
          imul         $3, NLO, %rbx
          mov          NLO, %rdx
+         shl          %rdx
          neg          %rdx
          mov          $3, %rax
          shl          %rcx, %rax
@@ -548,7 +545,6 @@ rcalls:  cmp          $4, NLO
          shl          %rcx, %rax
          or           k2, %rax
          lea          (X, %rdx, 8), X
-         lea          (X, %rdx, 8), X
          push         X
          push         %rax
          mov          $1, %rax
@@ -557,7 +553,6 @@ rcalls:  cmp          $4, NLO
          lea          (X, NLO, 8), X
          push         X
          push         %rax
-         lea          (X, %rdx, 8), X
          lea          (X, %rdx, 8), X
          shl          $2, N2
          shr          $2, NLO
