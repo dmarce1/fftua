@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 		}
 		printf( "          .byte          %i %i\n", k, fft_bit_reverse(n,8));
 	}
-	return 0;
+//	return 0;
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 	timer tm3, tm4;
 	double t3 = 0.0;
@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 64; N <= 4*1024*1024; N *= 4) {
+	for (int N = 16; N <= 4*1024*1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
 				for (int n = 0; n < N; n++) {
 					x[n] = (y[n] =rand1());
 				}
-				x[0] = y[0] = 1.0;
+				x[4] = y[4] = 1.0;
 //				x[0] = y[0] = 1.0;
 				const auto& c = cos_twiddles(N);
 				const auto& s = sin_twiddles(N);
@@ -195,11 +195,11 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-						printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+			//			printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
-			abort();
+		//	abort();
 			std::string f;
 			for (auto i = pfac.begin(); i != pfac.end(); i++) {
 				f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";

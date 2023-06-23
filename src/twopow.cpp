@@ -1167,7 +1167,6 @@ extern "C" {
 void fft_selfsort(double*, double*, double*, int);
 }
 
-#include "asm.hpp"
 
 void fft_inplace_real(double* x, int N) {
 	constexpr int N1 = 4;

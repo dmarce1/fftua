@@ -4,17 +4,17 @@
 #define  k2           %r9
 #define  NLO          %r10
 #define  N2           %r11
-#define  X            %r12
-#define  N            %r13
+#define  N            %r12
+#define  X            %r13
 #define  C            %r14
 #define  S            %r15
 #define  er0          %ymm0
-#define  ei0          %ymm1
-#define  er1          %ymm2
-#define  ei1          %ymm3
-#define  er2          %ymm4
-#define  ei2          %ymm5
-#define  er3          %ymm6
+#define  er1          %ymm1
+#define  er2          %ymm2
+#define  er3          %ymm3
+#define  ei0          %ymm4
+#define  ei1          %ymm5
+#define  ei2          %ymm6
 #define  ei3          %ymm7
 #define  tr0          %ymm8
 #define  tr1          %ymm9
@@ -46,8 +46,9 @@
 #define  sin1         -32(%rbp)
 #define  sin2         -40(%rbp)
 #define  sin3         -48(%rbp)
+#define  X0           -56(%rbp)
 #define  prmt_cntrl   $27
-#define  STACK_SIZE   $48
+#define  STACK_SIZE   $56
 
          .global      fft_recursive
 
@@ -99,10 +100,19 @@ fft_recursive:
          shr          $2, NLO
          mov          $1, N2
          xor          k2, k2
+         mov          X, X0
          call         recurse
          mov          X, %rdi
          mov          N, %rsi
+         push         %r8
+         push         %r9
+         push         %r10
+         push         %r11
          call         fft_scramble
+         pop          %r11
+         pop          %r10
+         pop          %r9
+         pop          %r8
          mov          N, N2
          shr          $2, N2
          lea          (X), %rax
@@ -381,9 +391,7 @@ recurse: cmp          $1, NLO
          mov          N2, %rax
          shr          %rax
          cmp          k2, %rax
-         jl           rcalls
          je           keqN2o2
-         cmp          $0, k2
          jmp          k2rest
 keq0:    xor          ilo, ilo
 keq0lp:  lea          (X, ilo, 8), %rax
@@ -436,7 +444,42 @@ N2o2lp:  lea          (X, ilo, 8), %rax
          cmp          ilo, NLO
          jg           N2o2lp
          jmp          rcalls
-k2rest:  mov          k2, %rax
+k2rest:  mov          N2, %rdx
+         dec          %rdx
+         mov          X, %rdi
+         sub          X0, %rdi
+         shr          $5, %rdi
+         bsf          NLO, %rcx
+         shr          %rcx, %rdi
+         mov          %rdi, %rax
+         not          %rdi
+         and          %rdx, %rdi
+         bsf          N2, %rcx
+         dec          %rcx
+         mov          $1, %rbx
+         shl          %rcx, %rbx
+L50:     test         %rbx, %rdi
+         jz           L100
+         xor          %rbx, %rdi
+         shr          %rbx
+         jmp          L50
+L100:    or           %rbx, %rdi
+         sub          %rax, %rdi
+         jl           rcalls
+         imul         NLO, %rdi
+         shl          $2, %rdi
+         mov          N2, %rax
+         shr          %rax
+         push         X
+         push         k2
+         cmp          k2, %rax
+         jg           skipneg
+         lea          (X, %rdi, 8), X
+         neg          %rdi
+         mov          N2, %rax
+         sub          k2, %rax
+         mov          %rax, k2
+skipneg: mov          k2, %rax
          imul         NLO, %rax
          imul         $2, %rax, %rbx
          imul         $3, %rax, %rcx
@@ -459,12 +502,6 @@ k2loop:  vbroadcastsd cos1, tr1
          vbroadcastsd sin1, ti1
          vbroadcastsd sin2, ti2
          vbroadcastsd sin3, ti3
-
-         mov          N2, %rax
-         mov          k2, %rsi
-         dec          %rax
-
-
          lea          (X, ilo, 8), %rax
          lea          (%rax, NLO, 8), %rbx
          lea          (%rbx, NLO, 8), %rcx
@@ -473,10 +510,10 @@ k2loop:  vbroadcastsd cos1, tr1
          vmovapd      (%rbx), er1
          vmovapd      (%rcx), er2
          vmovapd      (%rdx), er3
-         vmovapd      (%rax, %rsi, 8), ei0
-         vmovapd      (%rbx, %rsi, 8), ei1
-         vmovapd      (%rcx, %rsi, 8), ei2
-         vmovapd      (%rdx, %rsi, 8), ei3
+         vmovapd      (%rax, %rdi, 8), ei0
+         vmovapd      (%rbx, %rdi, 8), ei1
+         vmovapd      (%rcx, %rdi, 8), ei2
+         vmovapd      (%rdx, %rdi, 8), ei3
          vmulpd       ti1, ei1, tr0
          vmulpd       tr1, ei1, ti0
          vfmsub231pd  tr1, er1, tr0
@@ -511,61 +548,67 @@ k2loop:  vbroadcastsd cos1, tr1
          vsubpd       ti0, ti1, ei2
          vsubpd       ti3, tr2, er3
          vsubpd       ti2, tr3, ei3
+  //       er0 er1 er3 er2 ei2 ei3 ei1 ei0
+  //       er0 ei2 er3 ei1 er1 ei3 er2 ei0
+   //      er0 ei0 er1 ei1 er2 ei2 er3 ei3
+//         vmovapd      trash, er3
          vmovapd      er0, (%rax)
          vmovapd      ei2, (%rbx)
          vmovapd      er1, (%rcx)
          vmovapd      ei3, (%rdx)
-         vmovapd      er3, (%rax, %rsi, 8)
-         vmovapd      ei1, (%rbx, %rsi, 8)
-         vmovapd      er2, (%rcx, %rsi, 8)
-         vmovapd      ei0, (%rdx, %rsi, 8)
+         vmovapd      er3, (%rax, %rdi, 8)
+         vmovapd      ei1, (%rbx, %rdi, 8)
+         vmovapd      er2, (%rcx, %rdi, 8)
+         vmovapd      ei0, (%rdx, %rdi, 8)
          add          $4, ilo
          cmp          ilo, NLO
          jg           k2loop
+         pop          k2
+         pop          X
 rcalls:  cmp          $4, NLO
          jle          done1
          push         X
          push         k2
          bsf          N2, %rcx
-         mov          $1, %rdx
-         mov          k2, %rax
-         shl          %rcx, %rdx
-         or           %rdx, %rax
-         shl          %rdx
-         or           %rdx, %rax
+         imul         $3, NLO, %rbx
+         mov          NLO, %rdx
+         neg          %rdx
+         mov          $3, %rax
+         shl          %rcx, %rax
+         or           k2, %rax
+         lea          (X, %rbx, 8), X
+         push         X
          push         %rax
-         mov          $1, %rdx
-         mov          k2, %rax
-         shl          %rcx, %rdx
-         or           %rdx, %rax
+         mov          $2, %rax
+         shl          %rcx, %rax
+         or           k2, %rax
+         lea          (X, %rdx, 8), X
+         lea          (X, %rdx, 8), X
+         push         X
          push         %rax
-         mov          $1, %rdx
-         mov          k2, %rax
-         shl          %rcx, %rdx
-         shl          %rdx
-         or           %rdx, %rax
+         mov          $1, %rax
+         shl          %rcx, %rax
+         or           k2, %rax
+         lea          (X, NLO, 8), X
+         push         X
          push         %rax
+         lea          (X, %rdx, 8), X
+         lea          (X, %rdx, 8), X
          shl          $2, N2
          shr          $2, NLO
          call         recurse
-         shl          $2, NLO
-         pop          k2
-         lea          (X, NLO, 8), X
-         shr          $2, NLO
-         call         recurse
-         shl          $2, NLO
-         pop          k2
-         lea          (X, NLO, 8), X
-         shr          $2, NLO
-         call         recurse
-         shl          $2, NLO
-         pop          k2
-         lea          (X, NLO, 8), X
-         shr          $2, NLO
-         call         recurse
-         shl          $2, NLO
          pop          k2
          pop          X
+         call         recurse
+         pop          k2
+         pop          X
+         call         recurse
+         pop          k2
+         pop          X
+         call         recurse
+         pop          k2
+         pop          X
+         shl          $2, NLO
          shr          $2, N2
 done1:   ret
 
