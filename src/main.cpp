@@ -82,7 +82,7 @@ void twiddle_gen_next(__m256d* C, __m256d* S, void *ptr);
 void twiddle_gen_init(void* ptr, int N);
 void fft_simd_scramble(double*, int N);
 void fft_transpose_hilo(double*, int, int);
-void fft_recursive(double* X, const double* C, const double* S, int N);
+void fft_recursive(double* X, const double* C, int N);
 }
 
 
@@ -167,13 +167,13 @@ int main(int argc, char **argv) {
 				const auto& s = sin_twiddles(N);
 				if (i == 0) {
 					fftw_real(Y, y);
-					fft_recursive(x.data(), c.data(), s.data(), N);
+					fft_recursive(x.data(), c.data(), N);
 				} else {
 
 					auto b = fftw_real(Y, y);
 					timer tm;
 					tm.start();
-					fft_recursive(x.data(), c.data(), s.data(), N);
+					fft_recursive(x.data(), c.data(), N);
 					//test_time(x.data(), N);
 					tm.stop();
 					X[0].real() = x[0];

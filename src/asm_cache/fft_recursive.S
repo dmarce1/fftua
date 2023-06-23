@@ -1,6 +1,5 @@
 #define  M_SQRT1_2    0.70710678118654752440
 #define  N1           $4
-#define  X0           %rsi
 #define  ilo          %r8
 #define  k2           %r9
 #define  NLO          %r10
@@ -8,7 +7,7 @@
 #define  N            %r12
 #define  X            %r13
 #define  C            %r14
-#define  S            %r15
+#define  X0           %r15
 #define  er0          %ymm0
 #define  er1          %ymm1
 #define  er2          %ymm2
@@ -96,8 +95,7 @@ fft_recursive:
          push         %r15
          mov          %rdi, X
          mov          %rsi, C
-         mov          %rdx, S
-         mov          %rcx, N
+         mov          %rdx, N
          mov          N, NLO
          shr          $2, NLO
          mov          $1, N2
@@ -159,7 +157,7 @@ fft_recursive:
          cmp          $2, N2
          jle          done0
          movsd        8(C), tcos1
-         movsd        8(S), tsin1
+         movsd        8(C, N, 2), tsin1
          vmulsd       tsin1, tsin1, tcos2
          vmulsd       tcos1, tsin1, tsin2
          vfmsub231sd  tcos1, tcos1, tcos2
@@ -222,9 +220,9 @@ fft_recursive:
          cmp          $4, N2
          jle          done0
          movlpd       16(C), tcos1
-         movlpd       16(S), tsin1
+         movlpd       16(C, N, 2), tsin1
          vmovhpd      24(C), tcos1, tcos1
-         vmovhpd      24(S), tsin1, tsin1
+         vmovhpd      24(C, N, 2), tsin1, tsin1
          vmulpd       sin1, sin1, cos2
          vmulpd       cos1, sin1, sin2
          vfmsub231pd  cos1, cos1, cos2
@@ -294,8 +292,12 @@ fft_recursive:
          cmp          $8, N2
          jle          done0
          mov          $4, k2
-final:   vmovapd      (C, k2, 8), cos1
-         vmovapd      (S, k2, 8), sin1
+final:
+         mov          N, %rax
+         shr          $2, %rax
+         add          k2, %rax
+         vmovapd      (C, k2, 8), cos1
+         vmovapd      (C, %rax, 8), sin1
          vmulpd       sin1, sin1, cos2
          vmulpd       cos1, sin1, sin2
          vfmsub231pd  cos1, cos1, cos2
@@ -471,10 +473,9 @@ L100:    or           %rbx, %rdi
 skipneg: vmovapd      two, ytwo
 		 mov          k2, %rax
          imul         NLO, %rax
-         imul         $2, %rax, %rbx
-         imul         $3, %rax, %rcx
-         vbroadcastsd (C, %rax, 8), cos1
-         vbroadcastsd (S, %rax, 8), sin1
+         lea          (C, %rax, 8), %rax
+         vbroadcastsd (%rax), cos1
+         vbroadcastsd (%rax, N, 2), sin1
          vmulpd       sin1, sin1, cos2
          vmulpd       cos1, sin1, sin2
          vfmsub231pd  cos1, cos1, cos2
