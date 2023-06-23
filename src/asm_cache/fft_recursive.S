@@ -292,12 +292,9 @@ fft_recursive:
          cmp          $8, N2
          jle          done0
          mov          $4, k2
-final:
-         mov          N, %rax
-         shr          $2, %rax
-         add          k2, %rax
-         vmovapd      (C, k2, 8), cos1
-         vmovapd      (C, %rax, 8), sin1
+final:   lea          (C, k2, 8), %rax
+         vmovapd      (%rax), cos1
+         vmovapd      (%rax, N, 2), sin1
          vmulpd       sin1, sin1, cos2
          vmulpd       cos1, sin1, sin2
          vfmsub231pd  cos1, cos1, cos2
@@ -438,16 +435,16 @@ N2o2lp:  lea          (X, ilo, 8), %rax
 k2rest:  mov          N2, %rdx
          dec          %rdx
          mov          X, %rdi
+         bsf          NLO, %rcx
          sub          X0, %rdi
          shr          $5, %rdi
-         bsf          NLO, %rcx
          shr          %rcx, %rdi
-         mov          %rdi, %rax
-         not          %rdi
-         and          %rdx, %rdi
-         bsf          N2, %rcx
-         dec          %rcx
          mov          $1, %rbx
+         mov          %rdi, %rax
+         bsf          N2, %rcx
+         not          %rdi
+         dec          %rcx
+         and          %rdx, %rdi
          shl          %rcx, %rbx
 L50:     test         %rbx, %rdi
          jz           L100
