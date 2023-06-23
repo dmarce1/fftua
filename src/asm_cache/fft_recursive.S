@@ -24,6 +24,16 @@
 #define  ti1          %ymm13
 #define  ti2          %ymm14
 #define  ti3          %ymm15
+#define  ar           %xmm0
+#define  br           %xmm1
+#define  cr           %xmm2
+#define  dr           %xmm3
+#define  ai           %xmm4
+#define  bi           %xmm5
+#define  ci           %xmm6
+#define  di           %xmm7
+#define  ti           %xmm8
+#define  tr           %xmm12
 #define  ur0          %xmm0
 #define  ui0          %xmm1
 #define  ur1          %xmm2
@@ -63,10 +73,10 @@ none:    .double      -1.0
          .double      -1.0
          .double      -1.0
          .double      -1.0
-trash:   .double      -99.0
-         .double      -99.0
-         .double      -99.0
-         .double      -99.0
+two:     .double      2.0
+         .double      2.0
+         .double      2.0
+         .double      2.0
 pbytes:  .byte        8
          .byte        9
          .byte        10
@@ -168,56 +178,54 @@ fft_recursive:
          lea          (%rax, N2, 8), %rbx
          lea          (%rbx, N2, 8), %rcx
          lea          (%rcx, N2, 8), %rdx
-         movsd        (%rax), ur0
-         movsd        (%rbx), ur2
-         movsd        (%rcx), ur1
-         movsd        (%rdx), ur3
-         movsd        (%rax, %rdi, 8), ui0
-         movsd        (%rbx, %rdi, 8), ui2
-         movsd        (%rcx, %rdi, 8), ui1
-         movsd        (%rdx, %rdi, 8), ui3
-         vmulsd       si1, ui1, sr0
-         vmulsd       sr1, ui1, si0
-         vfmsub231sd  sr1, ur1, sr0
-         vfmadd231sd  si1, ur1, si0
-         movsd        si0, ui1
-         movsd        sr0, ur1
-         vmulsd       si2, ui2, sr0
-         vmulsd       sr2, ui2, si0
-         vfmsub231sd  sr2, ur2, sr0
-         vfmadd231sd  si2, ur2, si0
-         movsd        si0, ui2
-         movsd        sr0, ur2
-         vmulsd       si3, ui3, sr0
-         vmulsd       sr3, ui3, si0
-         vfmsub231sd  sr3, ur3, sr0
-         vfmadd231sd  si3, ur3, si0
-         movsd        si0, ui3
-         movsd        sr0, ur3
-         vaddsd       ur2, ur0, sr0
-         vaddsd       ui2, ui0, si0
-         vsubsd       ur2, ur0, sr2
-         vsubsd       ui2, ui0, si2
-         vaddsd       ur3, ur1, sr1
-         vaddsd       ui3, ui1, si1
-         vsubsd       ur1, ur3, sr3
-         vsubsd       ui3, ui1, si3
-         vaddsd       sr1, sr0, ur0
-         vaddsd       si1, si0, ui0
-         vaddsd       si3, sr2, ur1
-         vaddsd       sr3, si2, ui1
-         vsubsd       sr1, sr0, ur2
-         vsubsd       si0, si1, ui2
-         vsubsd       si3, sr2, ur3
-         vsubsd       si2, sr3, ui3
-         movsd        ur0, (%rax)
-         movsd        ur1, (%rbx)
-         movsd        ui2, (%rcx)
-         movsd        ui3, (%rdx)
-         movsd        ur3, (%rax, %rdi, 8)
-         movsd        ur2, (%rbx, %rdi, 8)
-         movsd        ui1, (%rcx, %rdi, 8)
-         movsd        ui0, (%rdx, %rdi, 8)
+         movsd        (%rax), ar
+         movsd        (%rbx), br
+         movsd        (%rcx), cr
+         movsd        (%rdx), dr
+         movsd        (%rax, %rdi, 8), ai
+         movsd        (%rbx, %rdi, 8), bi
+         movsd        (%rcx, %rdi, 8), ci
+         movsd        (%rdx, %rdi, 8), di
+         movsd        ar, tr
+         movsd        ai, ti
+         vfmadd231sd  si2, bi, tr
+         vfnmadd231sd si2, br, ti
+         vfnmadd132sd sr2, tr, br
+         vfnmadd132sd sr2, ti, bi
+         vfmsub132sd  two, br, ar
+         vfmsub132sd  two, bi, ai
+         movsd        cr, tr
+         movsd        ci, ti
+         vfmadd231sd  si2, di, tr
+         vfnmadd231sd si2, dr, ti
+         vfnmadd132sd sr2, tr, dr
+         vfnmadd132sd sr2, ti, di
+         vfmsub132sd  two, dr, cr
+         vfmsub132sd  two, di, ci
+         movsd        ar, tr
+         movsd        ai, ti
+         vfmadd231sd  si1, ci, tr
+         vfnmadd231sd si1, cr, ti
+         vfnmadd132sd sr1, tr, cr
+         vfmsub132sd  sr1, ti, ci
+         vfmsub132sd  two, cr, ar
+         vfmadd132sd  two, ci, ai
+         movsd        br, tr
+         movsd        bi, ti
+         vfmadd231sd  sr1, di, tr
+         vfnmadd231sd sr1, dr, ti
+         vfmadd132sd  si1, tr, dr
+         vfmadd132sd  si1, ti, di
+         vfmsub132sd  two, dr, br
+         vfnmadd132sd two, di, bi
+         movsd        ar, (%rax)
+         movsd        dr, (%rbx)
+         movsd        ci, (%rcx)
+         movsd        bi, (%rdx)
+         movsd        br, (%rax, %rdi, 8)
+         movsd        cr, (%rbx, %rdi, 8)
+         movsd        di, (%rcx, %rdi, 8)
+         movsd        ai, (%rdx, %rdi, 8)
          cmp          $4, N2
          jle          done0
          movlpd       16(C), sr1
