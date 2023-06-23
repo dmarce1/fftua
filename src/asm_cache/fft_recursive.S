@@ -460,8 +460,6 @@ L100:    or           %rbx, %rdi
 skipneg: vmovapd      two, ytwo
 		 mov          k2, %rax
          imul         NLO, %rax
-         imul         $2, %rax, %rbx
-         imul         $3, %rax, %rcx
          vbroadcastsd (C, %rax, 8), cos1
          vbroadcastsd (S, %rax, 8), sin1
          vmulpd       sin1, sin1, cos2
