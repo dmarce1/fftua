@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
 	tm.start();
 //	fft_scramble(x.data(), N);
 	tm.stop();
-	printf( "%e\n", tm.read());
+	//printf( "%e\n", tm.read());
 	for( int n = 0; n < N; n++) {
 		int i = n;
 		int k = 0;
@@ -137,7 +137,7 @@ int main(int argc, char **argv) {
 			k |= 1 & i;
 			i >>= 1;
 		}
-		printf( "          .byte          %i %i\n", k, fft_bit_reverse(n,8));
+	//	printf( "          .byte          %i %i\n", k, fft_bit_reverse(n,8));
 	}
 //	return 0;
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -147,13 +147,13 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 32; N <= 4*1024*1024; N *= 2) {
+	for (int N = 16; N <= 4*1024*1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 101; i++) {
+			for (int i = 0; i < 2; i++) {
 				std::vector<double> x(N);
 				std::vector<double> y(N);
 				std::vector<complex<double>> X(N / 2 + 1);
@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
 				for (int n = 0; n < N; n++) {
 					x[n] = (y[n] =rand1());
 				}
-				x[4] = y[4] = 1.0;
+				x[1] = y[1] = 1.0;
 //				x[0] = y[0] = 1.0;
 				const auto& c = cos_twiddles(N);
 				const auto& s = sin_twiddles(N);
@@ -195,11 +195,11 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-			//			printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+				//		printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
-		//	abort();
+//			abort();
 			std::string f;
 			for (auto i = pfac.begin(); i != pfac.end(); i++) {
 				f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
