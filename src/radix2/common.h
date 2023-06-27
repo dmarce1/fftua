@@ -60,7 +60,7 @@
 #define       sr3            %xmm14
 #define       xtwo           %xmm15
 #define       prmt_cntrl     $27
-#define       STACK_SIZE     $382
+#define       STACK_SIZE     $724
 #define       X0             -8(%rbp)
 #define       N              -16(%rbp)
 #define       UR0            -48(%rbp)
@@ -71,20 +71,20 @@
 #define       UI1            -208(%rbp)
 #define       UI2            -240(%rbp)
 #define       UI3            -272(%rbp)
-#define       COS1           -280(%rbp)
-#define       SIN1           -288(%rbp)
-#define       COS2           -296(%rbp)
-#define       SIN2           -302(%rbp)
-#define       COS3           -312(%rbp)
-#define       SIN3           -320(%rbp)
-#define       COS4           -328(%rbp)
-#define       SIN4           -336(%rbp)
-#define       COS5           -344(%rbp)
-#define       SIN5           -352(%rbp)
-#define       COS6           -360(%rbp)
-#define       SIN6           -368(%rbp)
-#define       COS7           -374(%rbp)
-#define       SIN7           -382(%rbp)
+#define       COS1           -304(%rbp)
+#define       SIN1           -336(%rbp)
+#define       COS2           -368(%rbp)
+#define       SIN2           -400(%rbp)
+#define       COS3           -432(%rbp)
+#define       SIN3           -464(%rbp)
+#define       COS4           -496(%rbp)
+#define       SIN4           -528(%rbp)
+#define       COS5           -564(%rbp)
+#define       SIN5           -596(%rbp)
+#define       COS6           -628(%rbp)
+#define       SIN6           -660(%rbp)
+#define       COS7           -692(%rbp)
+#define       SIN7           -724(%rbp)
 
 
 
