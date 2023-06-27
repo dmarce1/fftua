@@ -159,7 +159,7 @@ keqN2o2loop:  lea            (X, ilo, 8), %rax
 		      jmp            rcalls
 k2rest:       mov            X, %rdi
               sub            X0, %rdi
-              shr            $5, %rdi
+              shr            $6, %rdi
               bsf            NLO, %rcx
               shr            %rcx, %rdi
               mov            %rdi, %rsi
@@ -227,13 +227,13 @@ k2loop:       lea            (X, ilo, 8), %rax
               lea            (%rbx, %rsi, 2), %rcx
               lea            (%rcx, %rsi, 2), %rdx
               vmovapd        (%rax), %ymm0
-              vmovapd        (%rax, %rdi, 1), %ymm1
+              vmovapd        (%rax, %rsi, 1), %ymm1
               vmovapd        (%rbx), %ymm2
-              vmovapd        (%rbx, %rdi, 1), %ymm3
+              vmovapd        (%rbx, %rsi, 1), %ymm3
               vmovapd        (%rcx), %ymm4
-              vmovapd        (%rcx, %rdi, 1), %ymm5
+              vmovapd        (%rcx, %rsi, 1), %ymm5
               vmovapd        (%rdx), %ymm6
-              vmovapd        (%rdx, %rdi, 1), %ymm7
+              vmovapd        (%rdx, %rsi, 1), %ymm7
               push           %rdx
               push           %rcx
               push           %rbx
@@ -243,13 +243,13 @@ k2loop:       lea            (X, ilo, 8), %rax
               lea            (%rcx, %rdi, 8), %rcx
               lea            (%rdx, %rdi, 8), %rdx
               vmovapd        (%rax), %ymm8
-              vmovapd        (%rax, %rdi, 1), %ymm9
+              vmovapd        (%rax, %rsi, 1), %ymm9
               vmovapd        (%rbx), %ymm10
-              vmovapd        (%rbx, %rdi, 1), %ymm11
+              vmovapd        (%rbx, %rsi, 1), %ymm11
               vmovapd        (%rcx), %ymm12
-              vmovapd        (%rcx, %rdi, 1), %ymm13
+              vmovapd        (%rcx, %rsi, 1), %ymm13
               vmovapd        (%rdx), %ymm14
-              vmovapd        (%rdx, %rdi, 1), %ymm15
+              vmovapd        (%rdx, %rsi, 1), %ymm15
               vmovupd        %ymm0, UR0
               vmovupd        %ymm1, UI0
               vmulpd         SIN1, %ymm3, %ymm0
@@ -390,25 +390,25 @@ k2loop:       lea            (X, ilo, 8), %rax
 	          vaddpd         UR0, %ymm0, %ymm15
 	          vmovupd        UR3, %ymm0
               vmovapd        %ymm2, (%rax)
-              vmovapd        %ymm13, (%rax, %rdi, 1)
+              vmovapd        %ymm13, (%rax, %rsi, 1)
               vmovapd        %ymm10, (%rbx)
-              vmovapd        %ymm5, (%rbx, %rdi, 1)
+              vmovapd        %ymm5, (%rbx, %rsi, 1)
               vmovapd        %ymm6, (%rcx)
-              vmovapd        %ymm9, (%rcx, %rdi, 1)
+              vmovapd        %ymm9, (%rcx, %rsi, 1)
               vmovapd        %ymm14, (%rdx)
-              vmovapd        %ymm1, (%rdx, %rdi, 1)
+              vmovapd        %ymm1, (%rdx, %rsi, 1)
               pop            %rax
               pop            %rbx
               pop            %rcx
               pop            %rdx
               vmovapd        %ymm0, (%rax)
-              vmovapd        %ymm15, (%rax, %rdi, 1)
+              vmovapd        %ymm15, (%rax, %rsi, 1)
               vmovapd        %ymm8, (%rbx)
-              vmovapd        %ymm7, (%rbx, %rdi, 1)
+              vmovapd        %ymm7, (%rbx, %rsi, 1)
               vmovapd        %ymm4, (%rcx)
-              vmovapd        %ymm11, (%rcx, %rdi, 1)
+              vmovapd        %ymm11, (%rcx, %rsi, 1)
               vmovapd        %ymm12, (%rdx)
-              vmovapd        %ymm3, (%rdx, %rdi, 1)
+              vmovapd        %ymm3, (%rdx, %rsi, 1)
               add            $4, ilo
               cmp            ilo, NLO
               jg             k2loop

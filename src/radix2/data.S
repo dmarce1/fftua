@@ -13,6 +13,28 @@
               .global        one
               .global        half
               .global        zero
+              .global        UR0
+              .global        UR1
+              .global        UR2
+              .global        UR3
+              .global        UI0
+              .global        UI1
+              .global        UI2
+              .global        UI3
+              .global        COS1
+              .global        SIN1
+              .global        COS2
+              .global        SIN2
+              .global        COS3
+              .global        SIN3
+              .global        COS4
+              .global        SIN4
+              .global        COS5
+              .global        SIN5
+              .global        COS6
+              .global        SIN6
+              .global        COS7
+              .global        SIN7
 
               .data
 
@@ -57,6 +79,29 @@ sin135:       .double        -M_SQRT1_2
               .double        -M_SQRT1_2
               .double        -M_SQRT1_2
               .double        -M_SQRT1_2
+UR0:          .double        0.0, 0.0, 0.0, 0.0
+UR1:          .double        0.0, 0.0, 0.0, 0.0
+UR2:          .double        0.0, 0.0, 0.0, 0.0
+UR3:          .double        0.0, 0.0, 0.0, 0.0
+UI0:          .double        0.0, 0.0, 0.0, 0.0
+UI1:          .double        0.0, 0.0, 0.0, 0.0
+UI2:          .double        0.0, 0.0, 0.0, 0.0
+UI3:          .double        0.0, 0.0, 0.0, 0.0
+COS1:         .double        0.0, 0.0, 0.0, 0.0
+SIN1:         .double        0.0, 0.0, 0.0, 0.0
+COS2:         .double        0.0, 0.0, 0.0, 0.0
+SIN2:         .double        0.0, 0.0, 0.0, 0.0
+COS3:         .double        0.0, 0.0, 0.0, 0.0
+SIN3:         .double        0.0, 0.0, 0.0, 0.0
+COS4:         .double        0.0, 0.0, 0.0, 0.0
+SIN4:         .double        0.0, 0.0, 0.0, 0.0
+COS5:         .double        0.0, 0.0, 0.0, 0.0
+SIN5:         .double        0.0, 0.0, 0.0, 0.0
+COS6:         .double        0.0, 0.0, 0.0, 0.0
+SIN6:         .double        0.0, 0.0, 0.0, 0.0
+COS7:         .double        0.0, 0.0, 0.0, 0.0
+SIN7:         .double        0.0, 0.0, 0.0, 0.0
+
 
               .align         16
 laneswap16:   .byte          8
