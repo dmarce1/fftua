@@ -65,8 +65,8 @@ r2k2rest:     mov            X, %rdi
               mov            %rax, k2
 r2skipneg:    mov            k2, %rax
               imul           NLO, %rax
-              vbroadcastsd   (C, %rax, 8), cos1
-              vbroadcastsd   (S, %rax, 8), sin1
+              vbroadcastsd   (C, %rax, 8), tr1
+              vbroadcastsd   (S, %rax, 8), ti1
               xor            ilo, ilo
 r2k2loop:     lea            (X, ilo, 8), %rax
               lea            (%rax, NLO, 8), %rbx
@@ -76,10 +76,10 @@ r2k2loop:     lea            (X, ilo, 8), %rax
               vmovapd        (%rbx, %rdi, 8), ei1
               vmovapd        er0, tr0
               vmovapd        ei0, ti0
-              vfmadd231pd    sin1, ei1, tr0
-              vfnmadd231pd   sin1, er1, ti0
-              vfnmadd132pd   cos1, tr0, er1
-              vfmsub132pd    cos1, ti0, ei1
+              vfmadd231pd    ti1, ei1, tr0
+              vfnmadd231pd   ti1, er1, ti0
+              vfnmadd132pd   tr1, tr0, er1
+              vfmsub132pd    tr1, ti0, ei1
               vfmsub132pd    two, er1, er0
               vfmadd132pd    two, ei1, ei0
               vmovapd        er0, (%rax)

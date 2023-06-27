@@ -103,7 +103,7 @@ COS7:         .double        0.0, 0.0, 0.0, 0.0
 SIN7:         .double        0.0, 0.0, 0.0, 0.0
 
 
-              .align         16
+              .align         32
 laneswap16:   .byte          8
               .byte          9
               .byte          10

@@ -51,7 +51,7 @@ fft_recursive:enter          STACK_SIZE, $0
               vaddsd         sr1, sr0, ur0
               vsubsd         sr1, sr0, ur2
               movsd          ur0, (%rax)
-              movsd          tcos2, (%rbx)
+              movsd          sr2, (%rbx)
               movsd          ur2, (%rcx)
               movsd          sr3, (%rdx)
               cmp            $1, N2
@@ -65,7 +65,7 @@ fft_recursive:enter          STACK_SIZE, $0
               vmulsd         tw45, sr2, sr1
               vmulsd         tw45, sr0, sr3
               movsd          ur0, sr0
-              movsd          ur2, tcos2
+              movsd          ur2, sr2
               vaddsd         sr1, sr0, ur0
               vaddsd         sr3, sr2, ur3
               vsubsd         sr1, sr0, ur1
@@ -77,12 +77,12 @@ fft_recursive:enter          STACK_SIZE, $0
               movsd          ur3, (%rdx, N0)
               cmp            $2, N2
               jle            done0
-              movsd          8(C), tcos1
-              movsd          8(S), tsin1
-              vmulsd         tsin1, tsin1, tcos2
-              vmulsd         tcos1, tsin1, tsin2
-              vfmsub231sd    tcos1, tcos1, tcos2
-              vfmadd231sd    tsin1, tcos1, tsin2
+              movsd          8(C), sr1
+              movsd          8(S), si1
+              vmulsd         si1, si1, sr2
+              vmulsd         sr1, si1, si2
+              vfmsub231sd    sr1, sr1, sr2
+              vfmadd231sd    si1, sr1, si2
               mov            N2, %rdi
               sub            $2, %rdi
               lea            8(X), %rax
@@ -99,37 +99,36 @@ fft_recursive:enter          STACK_SIZE, $0
               movsd          (%rdx, %rdi, 8), ui3
               movsd          ur0, sr0
               movsd          ui0, si0
-              vmovapd        two, ytwo
-              vfmadd231sd    tsin2, ui2, sr0
-              vfnmadd231sd   tsin2, ur2, si0
-              vfnmadd132sd   tcos2, sr0, ur2
-              vfnmadd132sd   tcos2, si0, ui2
-              vfmsub132sd    xtwo, ur2, ur0
-              vfmsub132sd    xtwo, ui2, ui0
+              vfmadd231sd    si2, ui2, sr0
+              vfnmadd231sd   si2, ur2, si0
+              vfnmadd132sd   sr2, sr0, ur2
+              vfnmadd132sd   sr2, si0, ui2
+              vfmsub132sd    two, ur2, ur0
+              vfmsub132sd    two, ui2, ui0
               movsd          ur1, sr0
               movsd          ui1, si0
-              vfmadd231sd    tsin2, ui3, sr0
-              vfnmadd231sd   tsin2, ur3, si0
-              vfnmadd132sd   tcos2, sr0, ur3
-              vfnmadd132sd   tcos2, si0, ui3
-              vfmsub132sd    xtwo, ur3, ur1
-              vfmsub132sd    xtwo, ui3, ui1
+              vfmadd231sd    si2, ui3, sr0
+              vfnmadd231sd   si2, ur3, si0
+              vfnmadd132sd   sr2, sr0, ur3
+              vfnmadd132sd   sr2, si0, ui3
+              vfmsub132sd    two, ur3, ur1
+              vfmsub132sd    two, ui3, ui1
               movsd          ur0, sr0
               movsd          ui0, si0
-              vfmadd231sd    tsin1, ui1, sr0
-              vfnmadd231sd   tsin1, ur1, si0
-              vfnmadd132sd   tcos1, sr0, ur1
-              vfmsub132sd    tcos1, si0, ui1
-              vfmsub132sd    xtwo, ur1, ur0
-              vfmadd132sd    xtwo, ui1, ui0
+              vfmadd231sd    si1, ui1, sr0
+              vfnmadd231sd   si1, ur1, si0
+              vfnmadd132sd   sr1, sr0, ur1
+              vfmsub132sd    sr1, si0, ui1
+              vfmsub132sd    two, ur1, ur0
+              vfmadd132sd    two, ui1, ui0
               movsd          ur2, sr0
               movsd          ui2, si0
-              vfmadd231sd    tcos1, ui3, sr0
-              vfnmadd231sd   tcos1, ur3, si0
-              vfmadd132sd    tsin1, sr0, ur3
-              vfmadd132sd    tsin1, si0, ui3
-              vfmsub132sd    xtwo, ur3, ur2
-              vfnmadd132sd   xtwo, ui3, ui2
+              vfmadd231sd    sr1, ui3, sr0
+              vfnmadd231sd   sr1, ur3, si0
+              vfmadd132sd    si1, sr0, ur3
+              vfmadd132sd    si1, si0, ui3
+              vfmsub132sd    two, ur3, ur2
+              vfnmadd132sd   two, ui3, ui2
               movsd          ur0, (%rax)
               movsd          ur3, (%rbx)
               movsd          ui1, (%rcx)
@@ -140,14 +139,14 @@ fft_recursive:enter          STACK_SIZE, $0
               movsd          ui0, (%rdx, %rdi, 8)
               cmp            $4, N2
               jle            done0
-              movlpd         16(C), tcos1
-              movlpd         16(S), tsin1
-              vmovhpd        24(C), tcos1, tcos1
-              vmovhpd        24(S), tsin1, tsin1
-              vmulpd         sin1, sin1, cos2
-              vmulpd         cos1, sin1, sin2
-              vfmsub231pd    cos1, cos1, cos2
-              vfmadd231pd    sin1, cos1, sin2
+              movlpd         16(C), sr1
+              movlpd         16(S), si1
+              vmovhpd        24(C), sr1, sr1
+              vmovhpd        24(S), si1, si1
+              vmulpd         si1, si1, sr2
+              vmulpd         sr1, si1, si2
+              vfmsub231pd    sr1, sr1, sr2
+              vfmadd231pd    si1, sr1, si2
               mov            N2, %rdi
               sub            $5, %rdi
               lea            16(X), %rax
@@ -168,36 +167,36 @@ fft_recursive:enter          STACK_SIZE, $0
               pshufb         laneswap16, ui3
               vmovapd        ur0, sr0
               vmovapd        ui0, si0
-              vfmadd231pd    tsin2, ui2, sr0
-              vfnmadd231pd   tsin2, ur2, si0
-              vfnmadd132pd   tcos2, sr0, ur2
-              vfnmadd132pd   tcos2, si0, ui2
-              vfmsub132pd    xtwo, ur2, ur0
-              vfmsub132pd    xtwo, ui2, ui0
+              vfmadd231pd    si2, ui2, sr0
+              vfnmadd231pd   si2, ur2, si0
+              vfnmadd132pd   sr2, sr0, ur2
+              vfnmadd132pd   sr2, si0, ui2
+              vfmsub132pd    two, ur2, ur0
+              vfmsub132pd    two, ui2, ui0
               vmovapd        ur1, sr0
               vmovapd        ui1, si0
-              vfmadd231pd    tsin2, ui3, sr0
-              vfnmadd231pd   tsin2, ur3, si0
-              vfnmadd132pd   tcos2, sr0, ur3
-              vfnmadd132pd   tcos2, si0, ui3
-              vfmsub132pd    xtwo, ur3, ur1
-              vfmsub132pd    xtwo, ui3, ui1
+              vfmadd231pd    si2, ui3, sr0
+              vfnmadd231pd   si2, ur3, si0
+              vfnmadd132pd   sr2, sr0, ur3
+              vfnmadd132pd   sr2, si0, ui3
+              vfmsub132pd    two, ur3, ur1
+              vfmsub132pd    two, ui3, ui1
               vmovapd        ur0, sr0
               vmovapd        ui0, si0
-              vfmadd231pd    tsin1, ui1, sr0
-              vfnmadd231pd   tsin1, ur1, si0
-              vfnmadd132pd   tcos1, sr0, ur1
-              vfmsub132pd    tcos1, si0, ui1
-              vfmsub132pd    xtwo, ur1, ur0
-              vfmadd132pd    xtwo, ui1, ui0
+              vfmadd231pd    si1, ui1, sr0
+              vfnmadd231pd   si1, ur1, si0
+              vfnmadd132pd   sr1, sr0, ur1
+              vfmsub132pd    sr1, si0, ui1
+              vfmsub132pd    two, ur1, ur0
+              vfmadd132pd    two, ui1, ui0
               vmovapd        ur2, sr0
               vmovapd        ui2, si0
-              vfmadd231pd    tcos1, ui3, sr0
-              vfnmadd231pd   tcos1, ur3, si0
-              vfmadd132pd    tsin1, sr0, ur3
-              vfmadd132pd    tsin1, si0, ui3
-              vfmsub132pd    xtwo, ur3, ur2
-              vfnmadd132pd   xtwo, ui3, ui2
+              vfmadd231pd    sr1, ui3, sr0
+              vfnmadd231pd   sr1, ur3, si0
+              vfmadd132pd    si1, sr0, ur3
+              vfmadd132pd    si1, si0, ui3
+              vfmsub132pd    two, ur3, ur2
+              vfnmadd132pd   two, ui3, ui2
               vmovapd        ur0, (%rax)
               vmovapd        ur3, (%rbx)
               vmovapd        ui1, (%rcx)
@@ -213,12 +212,12 @@ fft_recursive:enter          STACK_SIZE, $0
               cmp            $8, N2
               jle            done0
               mov            $4, k2
-final:        vmovapd        (C, k2, 8), cos1
-              vmovapd        (S, k2, 8), sin1
-              vmulpd         sin1, sin1, cos2
-              vmulpd         cos1, sin1, sin2
-              vfmsub231pd    cos1, cos1, cos2
-              vfmadd231pd    sin1, cos1, sin2
+final:        vmovapd        (C, k2, 8), tr1
+              vmovapd        (S, k2, 8), ti1
+              vmulpd         ti1, ti1, tr2
+              vmulpd         tr1, ti1, ti2
+              vfmsub231pd    tr1, tr1, tr2
+              vfmadd231pd    ti1, tr1, ti2
               lea            (X, k2, 8), %rax
               lea            (%rax, N2, 8), %rbx
               lea            (%rbx, N2, 8), %rcx
@@ -238,36 +237,36 @@ final:        vmovapd        (C, k2, 8), cos1
               vpermpd        prmt_cntrl, (%rdx, %rdi), ei3
               vmovapd        er0, tr0
               vmovapd        ei0, ti0
-              vfmadd231pd    sin2, ei2, tr0
-              vfnmadd231pd   sin2, er2, ti0
-              vfnmadd132pd   cos2, tr0, er2
-              vfnmadd132pd   cos2, ti0, ei2
-              vfmsub132pd    ytwo, er2, er0
-              vfmsub132pd    ytwo, ei2, ei0
+              vfmadd231pd    ti2, ei2, tr0
+              vfnmadd231pd   ti2, er2, ti0
+              vfnmadd132pd   tr2, tr0, er2
+              vfnmadd132pd   tr2, ti0, ei2
+              vfmsub132pd    two, er2, er0
+              vfmsub132pd    two, ei2, ei0
               vmovapd        er1, tr0
               vmovapd        ei1, ti0
-              vfmadd231pd    sin2, ei3, tr0
-              vfnmadd231pd   sin2, er3, ti0
-              vfnmadd132pd   cos2, tr0, er3
-              vfnmadd132pd   cos2, ti0, ei3
-              vfmsub132pd    ytwo, er3, er1
-              vfmsub132pd    ytwo, ei3, ei1
+              vfmadd231pd    ti2, ei3, tr0
+              vfnmadd231pd   ti2, er3, ti0
+              vfnmadd132pd   tr2, tr0, er3
+              vfnmadd132pd   tr2, ti0, ei3
+              vfmsub132pd    two, er3, er1
+              vfmsub132pd    two, ei3, ei1
               vmovapd        er0, tr0
               vmovapd        ei0, ti0
-              vfmadd231pd    sin1, ei1, tr0
-              vfnmadd231pd   sin1, er1, ti0
-              vfnmadd132pd   cos1, tr0, er1
-              vfmsub132pd    cos1, ti0, ei1
-              vfmsub132pd    ytwo, er1, er0
-              vfmadd132pd    ytwo, ei1, ei0
+              vfmadd231pd    ti1, ei1, tr0
+              vfnmadd231pd   ti1, er1, ti0
+              vfnmadd132pd   tr1, tr0, er1
+              vfmsub132pd    tr1, ti0, ei1
+              vfmsub132pd    two, er1, er0
+              vfmadd132pd    two, ei1, ei0
               vmovapd        er2, tr0
               vmovapd        ei2, ti0
-              vfmadd231pd    cos1, ei3, tr0
-              vfnmadd231pd   cos1, er3, ti0
-              vfmadd132pd    sin1, tr0, er3
-              vfmadd132pd    sin1, ti0, ei3
-              vfmsub132pd    ytwo, er3, er2
-              vfnmadd132pd   ytwo, ei3, ei2
+              vfmadd231pd    tr1, ei3, tr0
+              vfnmadd231pd   tr1, er3, ti0
+              vfmadd132pd    ti1, tr0, er3
+              vfmadd132pd    ti1, ti0, ei3
+              vfmsub132pd    two, er3, er2
+              vfnmadd132pd   two, ei3, ei2
               vpermpd        prmt_cntrl, er1, er1
               vpermpd        prmt_cntrl, er2, er2
               vpermpd        prmt_cntrl, ei3, ei3

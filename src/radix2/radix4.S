@@ -93,15 +93,14 @@ k2rest:       mov            X, %rdi
               mov            N2, %rax
               sub            k2, %rax
               mov            %rax, k2
-skipneg:      vmovapd        two, ytwo
-		      mov            k2, %rax
+skipneg:      mov            k2, %rax
               imul           NLO, %rax
-              vbroadcastsd   (C, %rax, 8), cos1
-              vbroadcastsd   (S, %rax, 8), sin1
-              vmulpd         sin1, sin1, cos2
-              vmulpd         cos1, sin1, sin2
-              vfmsub231pd    cos1, cos1, cos2
-              vfmadd231pd    sin1, cos1, sin2
+              vbroadcastsd   (C, %rax, 8), tr1
+              vbroadcastsd   (S, %rax, 8), ti1
+              vmulpd         ti1, ti1, tr2
+              vmulpd         tr1, ti1, ti2
+              vfmsub231pd    tr1, tr1, tr2
+              vfmadd231pd    ti1, tr1, ti2
               xor            ilo, ilo
 k2loop:       lea            (X, ilo, 8), %rax
               lea            (%rax, NLO, 8), %rbx
@@ -117,36 +116,36 @@ k2loop:       lea            (X, ilo, 8), %rax
               vmovapd        (%rdx, %rdi, 8), ei3
               vmovapd        er0, tr0
               vmovapd        ei0, ti0
-              vfmadd231pd    sin2, ei2, tr0
-              vfnmadd231pd   sin2, er2, ti0
-              vfnmadd132pd   cos2, tr0, er2
-              vfnmadd132pd   cos2, ti0, ei2
-              vfmsub132pd    ytwo, er2, er0
-              vfmsub132pd    ytwo, ei2, ei0
+              vfmadd231pd    ti2, ei2, tr0
+              vfnmadd231pd   ti2, er2, ti0
+              vfnmadd132pd   tr2, tr0, er2
+              vfnmadd132pd   tr2, ti0, ei2
+              vfmsub132pd    two, er2, er0
+              vfmsub132pd    two, ei2, ei0
               vmovapd        er1, tr0
               vmovapd        ei1, ti0
-              vfmadd231pd    sin2, ei3, tr0
-              vfnmadd231pd   sin2, er3, ti0
-              vfnmadd132pd   cos2, tr0, er3
-              vfnmadd132pd   cos2, ti0, ei3
-              vfmsub132pd    ytwo, er3, er1
-              vfmsub132pd    ytwo, ei3, ei1
+              vfmadd231pd    ti2, ei3, tr0
+              vfnmadd231pd   ti2, er3, ti0
+              vfnmadd132pd   tr2, tr0, er3
+              vfnmadd132pd   tr2, ti0, ei3
+              vfmsub132pd    two, er3, er1
+              vfmsub132pd    two, ei3, ei1
               vmovapd        er0, tr0
               vmovapd        ei0, ti0
-              vfmadd231pd    sin1, ei1, tr0
-              vfnmadd231pd   sin1, er1, ti0
-              vfnmadd132pd   cos1, tr0, er1
-              vfmsub132pd    cos1, ti0, ei1
-              vfmsub132pd    ytwo, er1, er0
-              vfmadd132pd    ytwo, ei1, ei0
+              vfmadd231pd    ti1, ei1, tr0
+              vfnmadd231pd   ti1, er1, ti0
+              vfnmadd132pd   tr1, tr0, er1
+              vfmsub132pd    tr1, ti0, ei1
+              vfmsub132pd    two, er1, er0
+              vfmadd132pd    two, ei1, ei0
               vmovapd        er2, tr0
               vmovapd        ei2, ti0
-              vfmadd231pd    cos1, ei3, tr0
-              vfnmadd231pd   cos1, er3, ti0
-              vfmadd132pd    sin1, tr0, er3
-              vfmadd132pd    sin1, ti0, ei3
-              vfmsub132pd    ytwo, er3, er2
-              vfnmadd132pd   ytwo, ei3, ei2
+              vfmadd231pd    tr1, ei3, tr0
+              vfnmadd231pd   tr1, er3, ti0
+              vfmadd132pd    ti1, tr0, er3
+              vfmadd132pd    ti1, ti0, ei3
+              vfmsub132pd    two, er3, er2
+              vfnmadd132pd   two, ei3, ei2
               vmovapd        er0, (%rax)
               vmovapd        ei1, (%rbx)
               vmovapd        er3, (%rcx)
