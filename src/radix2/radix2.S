@@ -39,15 +39,16 @@ r2N2o2lp:     lea            (X, ilo, 8), %rax
               jmp            r2rcalls
 r2k2rest:     mov            X, %rdi
               sub            X0, %rdi
-              shr            $4, %rdi
+              shr            $3, %rdi
               bsf            NLO, %rcx
               shr            %rcx, %rdi
-              push           %rdi
-              mov            N2, %rsi
-              call           reverse_neg
-              mov            %rax, %rdi
-              pop            %rax
-              sub            %rax, %rdi
+              mov            %rdi, %rsi
+              bsr            %rdi, %rcx
+              mov            $3, %rdi
+              shl            %rcx, %rdi
+              dec            %rdi
+              sub            %rsi, %rdi
+              sub            %rsi, %rdi
               jl             r2rcalls
               imul           NLO, %rdi
               shl            %rdi
