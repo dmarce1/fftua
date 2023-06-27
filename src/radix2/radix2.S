@@ -39,7 +39,7 @@ r2N2o2lp:     lea            (X, ilo, 8), %rax
               jmp            r2rcalls
 r2k2rest:     mov            X, %rdi
               sub            X0, %rdi
-              shr            $3, %rdi
+              shr            $4, %rdi
               bsf            NLO, %rcx
               shr            %rcx, %rdi
               mov            %rdi, %rsi

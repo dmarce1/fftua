@@ -7,5 +7,5 @@
 
 
 fft_dispatch:
-r4:           call           radix4
+r4:           call           radix2
               ret
