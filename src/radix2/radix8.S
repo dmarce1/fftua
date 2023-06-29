@@ -236,32 +236,29 @@ skipneg:      mov            k2, %rax
               vmovupd        %ymm14, COS7
               vmovupd        %ymm15, SIN7
               xor            ilo, ilo
-              mov            NLO, %rsi
-              shl            $3, %rsi
-k2loop:       lea            (X, ilo, 8), %rax
-              lea            (%rax, %rsi, 2), %rbx
-              lea            (%rbx, %rsi, 2), %rcx
-              lea            (%rcx, %rsi, 2), %rdx
-              vmovapd        (%rax), %ymm0
-              vmovapd        (%rax, %rsi, 1), %ymm2
-              vmovapd        (%rbx), %ymm4
-              vmovapd        (%rbx, %rsi, 1), %ymm6
-              vmovapd        (%rcx), %ymm8
-              vmovapd        (%rcx, %rsi, 1), %ymm10
-              vmovapd        (%rdx), %ymm12
-              vmovapd        (%rdx, %rsi, 1), %ymm14
-              lea            (%rax, %rdi, 8), %rax
-              lea            (%rbx, %rdi, 8), %rbx
-              lea            (%rcx, %rdi, 8), %rcx
-              lea            (%rdx, %rdi, 8), %rdx
-              vmovapd        (%rax), %ymm1
-              vmovapd        (%rax, %rsi, 1), %ymm3
-              vmovapd        (%rbx), %ymm5
-              vmovapd        (%rbx, %rsi, 1), %ymm7
-              vmovapd        (%rcx), %ymm9
-              vmovapd        (%rcx, %rsi, 1), %ymm11
-              vmovapd        (%rdx), %ymm13
-              vmovapd        (%rdx, %rsi, 1), %ymm15
+k2loop:       imul           $8, NLO, %rax
+              imul           $24, NLO, %rbx
+              imul           $40, NLO, %rcx
+              imul           $56, NLO, %rdx
+              lea            (X, ilo, 8), %rsi
+              push           %rdi
+              lea            (%rsi, %rdi, 8), %rdi
+              vmovapd        (%rsi), %ymm0
+              vmovapd        (%rsi, %rax, 1), %ymm2
+              vmovapd        (%rsi, %rax, 2), %ymm4
+              vmovapd        (%rsi, %rbx, 1), %ymm6
+              vmovapd        (%rsi, %rax, 4), %ymm8
+              vmovapd        (%rsi, %rcx, 1), %ymm10
+              vmovapd        (%rsi, %rbx, 2), %ymm12
+              vmovapd        (%rsi, %rdx, 1), %ymm14
+              vmovapd        (%rdi), %ymm1
+              vmovapd        (%rdi, %rax, 1), %ymm3
+              vmovapd        (%rdi, %rax, 2), %ymm5
+              vmovapd        (%rdi, %rbx, 1), %ymm7
+              vmovapd        (%rdi, %rax, 4), %ymm9
+              vmovapd        (%rdi, %rcx, 1), %ymm11
+              vmovapd        (%rdi, %rbx, 2), %ymm13
+              vmovapd        (%rdi, %rdx, 1), %ymm15
               vmovupd        %ymm0, UR0
               vmovupd        %ymm1, UI0
               vmulpd         SIN1, %ymm3, %ymm0
@@ -403,28 +400,23 @@ k2loop:       lea            (X, ilo, 8), %rax
               vmulpd         none, %ymm11, %ymm11
               vmulpd         none, %ymm13, %ymm13
               vmulpd         none, %ymm15, %ymm15
-              vmovapd        %ymm14, (%rax)
-              vmovapd        %ymm7, (%rax, %rsi, 1)
-              vmovapd        %ymm10, (%rbx)
-              vmovapd        %ymm3, (%rbx, %rsi, 1)
-              vmovapd        %ymm12, (%rcx)
-              vmovapd        %ymm5, (%rcx, %rsi, 1)
-              vmovapd        %ymm8, (%rdx)
-              vmovapd        %ymm1, (%rdx, %rsi, 1)
-              neg            %rdi
-              lea            (%rax, %rdi, 8), %rax
-              lea            (%rbx, %rdi, 8), %rbx
-              lea            (%rcx, %rdi, 8), %rcx
-              lea            (%rdx, %rdi, 8), %rdx
-              neg            %rdi
-              vmovapd        %ymm0, (%rax)
-              vmovapd        %ymm9, (%rax, %rsi, 1)
-              vmovapd        %ymm4, (%rbx)
-              vmovapd        %ymm13, (%rbx, %rsi, 1)
-              vmovapd        %ymm2, (%rcx)
-              vmovapd        %ymm11, (%rcx, %rsi, 1)
-              vmovapd        %ymm6, (%rdx)
-              vmovapd        %ymm15, (%rdx, %rsi, 1)
+              vmovapd        %ymm0, (%rsi)
+              vmovapd        %ymm9, (%rsi, %rax, 1)
+              vmovapd        %ymm4, (%rsi, %rax, 2)
+              vmovapd        %ymm13, (%rsi, %rbx, 1)
+              vmovapd        %ymm2, (%rsi, %rax, 4)
+              vmovapd        %ymm11, (%rsi, %rcx, 1)
+              vmovapd        %ymm6, (%rsi, %rbx, 2)
+              vmovapd        %ymm15, (%rsi, %rdx, 1)
+              vmovapd        %ymm14, (%rdi)
+              vmovapd        %ymm7, (%rdi, %rax, 1)
+              vmovapd        %ymm10, (%rdi, %rax, 2)
+              vmovapd        %ymm3, (%rdi, %rbx, 1)
+              vmovapd        %ymm12, (%rdi, %rax, 4)
+              vmovapd        %ymm5, (%rdi, %rcx, 1)
+              vmovapd        %ymm8, (%rdi, %rbx, 2)
+              vmovapd        %ymm1, (%rdi, %rdx, 1)
+              pop            %rdi
               add            $4, ilo
               cmp            ilo, NLO
               jg             k2loop
@@ -435,9 +427,6 @@ rcalls:       cmp            $4, NLO
               push           X
               push           k2
               bsf            N2, %rcx
-              mov            NLO, %rdx
-              shl            %rdx
-              neg            %rdx
               mov            $7, %rax
               imul           $7, NLO, %rbx
               shl            %rcx, %rax
@@ -446,9 +435,6 @@ rcalls:       cmp            $4, NLO
               push           %rcx
               push           %rax
               bsf            N2, %rcx
-              mov            NLO, %rdx
-              shl            %rdx
-              neg            %rdx
               mov            $6, %rax
               imul           $3, NLO, %rbx
               shl            %rcx, %rax
@@ -457,9 +443,6 @@ rcalls:       cmp            $4, NLO
               push           %rcx
               push           %rax
               bsf            N2, %rcx
-              mov            NLO, %rdx
-              shl            %rdx
-              neg            %rdx
               mov            $5, %rax
               imul           $5, NLO, %rbx
               shl            %rcx, %rax
@@ -468,9 +451,6 @@ rcalls:       cmp            $4, NLO
               push           %rcx
               push           %rax
               bsf            N2, %rcx
-              mov            NLO, %rdx
-              shl            %rdx
-              neg            %rdx
               mov            $4, %rax
               imul           $1, NLO, %rbx
               shl            %rcx, %rax
@@ -479,9 +459,6 @@ rcalls:       cmp            $4, NLO
               push           %rcx
               push           %rax
               bsf            N2, %rcx
-              mov            NLO, %rdx
-              shl            %rdx
-              neg            %rdx
               mov            $3, %rax
               imul           $6, NLO, %rbx
               shl            %rcx, %rax
@@ -490,9 +467,6 @@ rcalls:       cmp            $4, NLO
               push           %rcx
               push           %rax
               bsf            N2, %rcx
-              mov            NLO, %rdx
-              shl            %rdx
-              neg            %rdx
               mov            $2, %rax
               imul           $2, NLO, %rbx
               shl            %rcx, %rax
@@ -501,9 +475,6 @@ rcalls:       cmp            $4, NLO
               push           %rcx
               push           %rax
               bsf            N2, %rcx
-              mov            NLO, %rdx
-              shl            %rdx
-              neg            %rdx
               mov            $1, %rax
               imul           $4, NLO, %rbx
               shl            %rcx, %rax
@@ -512,9 +483,6 @@ rcalls:       cmp            $4, NLO
               push           %rcx
               push           %rax
               bsf            N2, %rcx
-              mov            NLO, %rdx
-              shl            %rdx
-              neg            %rdx
               mov            $0, %rax
               mov            $0, %rbx
               shl            %rcx, %rax
