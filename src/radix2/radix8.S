@@ -250,10 +250,6 @@ k2loop:       lea            (X, ilo, 8), %rax
               vmovapd        (%rcx, %rsi, 1), %ymm10
               vmovapd        (%rdx), %ymm12
               vmovapd        (%rdx, %rsi, 1), %ymm14
-              push           %rdx
-              push           %rcx
-              push           %rbx
-              push           %rax
               lea            (%rax, %rdi, 8), %rax
               lea            (%rbx, %rdi, 8), %rbx
               lea            (%rcx, %rdi, 8), %rcx
@@ -398,10 +394,8 @@ k2loop:       lea            (X, ilo, 8), %rax
 	          vmovupd        %ymm0, UR3
               vmovupd        UR2, %ymm0
 	          vsubpd         UR0, %ymm0, %ymm7
-	          vmovupd        UR3, %ymm0
 	          vsubpd         UR1, %ymm15, %ymm14
 	          vmulpd         none, %ymm14, %ymm14
-	          vmovupd        %ymm0, UR3
               vmovupd        UR2, %ymm0
 	          vaddpd         UR0, %ymm0, %ymm15
 	          vmovupd        UR3, %ymm0
@@ -417,10 +411,12 @@ k2loop:       lea            (X, ilo, 8), %rax
               vmovapd        %ymm5, (%rcx, %rsi, 1)
               vmovapd        %ymm8, (%rdx)
               vmovapd        %ymm1, (%rdx, %rsi, 1)
-              pop            %rax
-              pop            %rbx
-              pop            %rcx
-              pop            %rdx
+              neg            %rdi
+              lea            (%rax, %rdi, 8), %rax
+              lea            (%rbx, %rdi, 8), %rbx
+              lea            (%rcx, %rdi, 8), %rcx
+              lea            (%rdx, %rdi, 8), %rdx
+              neg            %rdi
               vmovapd        %ymm0, (%rax)
               vmovapd        %ymm9, (%rax, %rsi, 1)
               vmovapd        %ymm4, (%rbx)

@@ -6,8 +6,7 @@
 
               .text
 
-fft_recursive:enter          STACK_SIZE, $0
-              push           %rbx
+fft_recursive:push           %rbx
               push           %r12
               push           %r13
               push           %r14
@@ -22,7 +21,9 @@ fft_recursive:enter          STACK_SIZE, $0
               mov            $1, N2
               xor            k2, k2
               mov            X, X0
+
               call           fft_dispatch
+
               mov            X, %rdi
               mov            N0, %rsi
               push           %r8
@@ -289,7 +290,6 @@ done0:        pop            %r15
               pop            %r13
               pop            %r12
               pop            %rbx
-              leave
               ret
 
 

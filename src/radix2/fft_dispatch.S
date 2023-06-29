@@ -14,6 +14,8 @@ fft_dispatch: cmp            $8, N
               je             r8
               cmp            $64, N
               je             r4
+              cmpl           $128, N
+              je             r4
               jmp            r8
 r2:           call           radix2
               ret
