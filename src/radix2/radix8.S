@@ -237,18 +237,25 @@ skipneg:      push           %rbp
               vbroadcastsd   %xmm3, %ymm3
               vbroadcastsd   %xmm0, %ymm0
               vbroadcastsd   %xmm1, %ymm1
+              /*  1  1 */
+              /*  2  2 */
               sub            $16, %rsp
               vmovq          %xmm2, (%rsp)
               vmovq          %xmm3, 8(%rsp)
               vmovhpd        (%rsp), %xmm0, %xmm0
               vmovhpd        8(%rsp), %xmm1, %xmm1
               add            $16, %rsp
+              /*  1  2 */
+              /*  2  2 */
               vmulpd         %xmm1, %xmm3, %xmm4
               vmulpd         %xmm0, %xmm3, %xmm5
               vfmsub231pd    %xmm0, %xmm2, %xmm4
               vfmadd231pd    %xmm1, %xmm2, %xmm5
-              vinsertf128    $1, %xmm4, %ymm2, %ymm2
-              vinsertf128    $1, %xmm5, %ymm3, %ymm3
+              /*  1  2 */
+              /*  2  2 */
+              /*  3  4 */
+              vinsertf128    $1, %xmm4, %ymm0, %ymm2
+              vinsertf128    $1, %xmm5, %ymm1, %ymm3
               vpermpd        $255, %ymm2, %ymm0
               vpermpd        $255, %ymm3, %ymm1
               vmulpd         %ymm1, %ymm3, %ymm4
