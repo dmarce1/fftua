@@ -21,7 +21,23 @@
 #define       TMP3           96(%rsp)
 #define       TMP4           128(%rsp)
 #define       IDIST          160(%rsp)
-#define       STACK_SIZE     $160
+#define       COS1           192(%rsp)
+#define       COS2           200(%rsp)
+#define       COS3           208(%rsp)
+#define       COS4           216(%rsp)
+#define       COS5           224(%rsp)
+#define       COS6           232(%rsp)
+#define       COS7           240(%rsp)
+#define       COS8           248(%rsp)
+#define       SIN1           256(%rsp)
+#define       SIN2           264(%rsp)
+#define       SIN3           272(%rsp)
+#define       SIN4           280(%rsp)
+#define       SIN5           288(%rsp)
+#define       SIN6           296(%rsp)
+#define       SIN7           304(%rsp)
+#define       SIN8           312(%rsp)
+#define       STACK_SIZE     $320
 
               .global        radix8
 
@@ -205,46 +221,44 @@ k2rest:       mov            X, %rdi
               mov            N2, %rax
               sub            k2, %rax
               mov            %rax, k2
-skipneg:      mov            k2, %rax
-              imul           NLO, %rax
-              imul           $2, %rax, %rbx
-              imul           $3, %rax, %rcx
-              imul           $4, %rax, %rdx
-              vbroadcastsd   (C, %rax, 8), %ymm2
-              vbroadcastsd   (S, %rax, 8), %ymm3
-              vbroadcastsd   (C, %rbx, 8), %ymm4
-              vbroadcastsd   (S, %rbx, 8), %ymm5
-              vbroadcastsd   (C, %rcx, 8), %ymm6
-              vbroadcastsd   (S, %rcx, 8), %ymm7
-              vbroadcastsd   (C, %rdx, 8), %ymm8
-              vbroadcastsd   (S, %rdx, 8), %ymm9
-              imul           $5, %rax, %rbx
-              imul           $6, %rax, %rcx
-              imul           $7, %rax, %rdx
-              vbroadcastsd   (C, %rbx, 8), %ymm10
-              vbroadcastsd   (S, %rbx, 8), %ymm11
-              vbroadcastsd   (C, %rcx, 8), %ymm12
-              vbroadcastsd   (S, %rcx, 8), %ymm13
-              vbroadcastsd   (C, %rdx, 8), %ymm14
-              vbroadcastsd   (S, %rdx, 8), %ymm15
-              vmovapd        %ymm2, COS1
-              vmovapd        %ymm3, SIN1
-              vmovapd        %ymm4, COS2
-              vmovapd        %ymm5, SIN2
-              vmovapd        %ymm6, COS3
-              vmovapd        %ymm7, SIN3
-              vmovapd        %ymm8, COS4
-              vmovapd        %ymm9, SIN4
-              vmovapd        %ymm10, COS5
-              vmovapd        %ymm11, SIN5
-              vmovapd        %ymm12, COS6
-              vmovapd        %ymm13, SIN6
-              vmovapd        %ymm14, COS7
-              vmovapd        %ymm15, SIN7
-              push           %rbp
+skipneg:      push           %rbp
               mov            %rsp, %rbp
               sub            STACK_SIZE, %rsp
               and            $0xffffffffffffffc0, %rsp
+              mov            k2, %rax
+              imul           NLO, %rax
+              vmovq          (C, %rax, 8), %xmm0
+              vmovq          (S, %rax, 8), %xmm1
+              vmulsd         %xmm1, %xmm1, %xmm2
+              vmulsd         %xmm0, %xmm1, %xmm3
+              vfmsub231sd    %xmm0, %xmm0, %xmm2
+              vfmadd231sd    %xmm1, %xmm0, %xmm3
+              vbroadcastsd   %xmm2, %ymm2
+              vbroadcastsd   %xmm3, %ymm3
+              vbroadcastsd   %xmm0, %ymm0
+              vbroadcastsd   %xmm1, %ymm1
+              sub            $16, %rsp
+              vmovq          %xmm2, (%rsp)
+              vmovq          %xmm3, 8(%rsp)
+              vmovhpd        (%rsp), %xmm0, %xmm0
+              vmovhpd        8(%rsp), %xmm1, %xmm1
+              add            $16, %rsp
+              vmulpd         %xmm1, %xmm3, %xmm4
+              vmulpd         %xmm0, %xmm3, %xmm5
+              vfmsub231pd    %xmm0, %xmm2, %xmm4
+              vfmadd231pd    %xmm1, %xmm2, %xmm5
+              vinsertf128    $1, %xmm4, %ymm2, %ymm2
+              vinsertf128    $1, %xmm5, %ymm3, %ymm3
+              vpermpd        $255, %ymm2, %ymm0
+              vpermpd        $255, %ymm3, %ymm1
+              vmulpd         %ymm1, %ymm3, %ymm4
+              vmulpd         %ymm0, %ymm3, %ymm5
+              vfmsub231pd    %ymm0, %ymm2, %ymm4
+              vfmadd231pd    %ymm1, %ymm2, %ymm5
+              vmovapd        %ymm2, COS1
+              vmovapd        %ymm3, SIN1
+              vmovapd        %ymm4, COS5
+              vmovapd        %ymm5, SIN5
               mov            %rdi, IDIST
               xor            ilo, ilo
 k2loop:       imul           $8, NLO, %rax
@@ -254,67 +268,69 @@ k2loop:       imul           $8, NLO, %rax
               lea            (X, ilo, 8), %rsi
               mov            IDIST, %rdi
               lea            (%rsi, %rdi, 8), %rdi
-
-              vmovapd        (%rsi, %rax, 1), %ymm2
-              vmovapd        (%rdi, %rax, 1), %ymm3
-              vmovapd        (%rsi, %rax, 2), %ymm4
-              vmovapd        (%rdi, %rax, 2), %ymm5
-              vmovapd        (%rsi, %rbx, 1), %ymm6
-              vmovapd        (%rdi, %rbx, 1), %ymm7
-              vmovapd        (%rsi, %rax, 4), %ymm8
-              vmovapd        (%rdi, %rax, 4), %ymm9
-              vmovapd        (%rsi, %rcx, 1), %ymm10
-              vmovapd        (%rdi, %rcx, 1), %ymm11
-              vmovapd        (%rsi, %rbx, 2), %ymm12
-              vmovapd        (%rdi, %rbx, 2), %ymm13
-              vmovapd        (%rsi, %rdx, 1), %ymm14
-              vmovapd        (%rdi, %rdx, 1), %ymm15
-
-              vmulpd         SIN1, %ymm3, %ymm0
-              vmulpd         COS1, %ymm3, %ymm1
-              vfmsub231pd    COS1, %ymm2, %ymm0
-              vfmadd231pd    SIN1, %ymm2, %ymm1
-              vmovapd        %ymm0, %ymm2
-              vmovapd        %ymm1, %ymm3
-              vmulpd         SIN2, %ymm5, %ymm0
-              vmulpd         COS2, %ymm5, %ymm1
-              vfmsub231pd    COS2, %ymm4, %ymm0
-              vfmadd231pd    SIN2, %ymm4, %ymm1
-              vmovapd        %ymm0, %ymm4
-              vmovapd        %ymm1, %ymm5
-              vmulpd         SIN3, %ymm7, %ymm0
-              vmulpd         COS3, %ymm7, %ymm1
-              vfmsub231pd    COS3, %ymm6, %ymm0
-              vfmadd231pd    SIN3, %ymm6, %ymm1
-              vmovapd        %ymm0, %ymm6
-              vmovapd        %ymm1, %ymm7
-              vmulpd         SIN4, %ymm9, %ymm0
-              vmulpd         COS4, %ymm9, %ymm1
-              vfmsub231pd    COS4, %ymm8, %ymm0
-              vfmadd231pd    SIN4, %ymm8, %ymm1
-              vmovapd        %ymm0, %ymm8
-              vmovapd        %ymm1, %ymm9
-              vmulpd         SIN5, %ymm11, %ymm0
-              vmulpd         COS5, %ymm11, %ymm1
-              vfmsub231pd    COS5, %ymm10, %ymm0
-              vfmadd231pd    SIN5, %ymm10, %ymm1
-              vmovapd        %ymm0, %ymm10
-              vmovapd        %ymm1, %ymm11
-              vmulpd         SIN6, %ymm13, %ymm0
-              vmulpd         COS6, %ymm13, %ymm1
-              vfmsub231pd    COS6, %ymm12, %ymm0
-              vfmadd231pd    SIN6, %ymm12, %ymm1
-              vmovapd        %ymm0, %ymm12
-              vmovapd        %ymm1, %ymm13
-              vmulpd         SIN7, %ymm15, %ymm0
-              vmulpd         COS7, %ymm15, %ymm1
-              vfmsub231pd    COS7, %ymm14, %ymm0
-              vfmadd231pd    SIN7, %ymm14, %ymm1
-              vmovapd        %ymm0, %ymm14
-              vmovapd        %ymm1, %ymm15
+              vmovapd        (%rsi, %rax, 1), %ymm0
+              vmovapd        (%rdi, %rax, 1), %ymm1
+              vbroadcastsd   COS1, %ymm14
+              vbroadcastsd   SIN1, %ymm15
+              vmulpd         %ymm15, %ymm1, %ymm2
+              vmulpd         %ymm14, %ymm1, %ymm3
+              vfmsub231pd    %ymm14, %ymm0, %ymm2
+              vfmadd231pd    %ymm15, %ymm0, %ymm3
+              vmovapd        (%rsi, %rax, 2), %ymm0
+              vmovapd        (%rdi, %rax, 2), %ymm1
+              vbroadcastsd   COS2, %ymm14
+              vbroadcastsd   SIN2, %ymm15
+              vmulpd         %ymm15, %ymm1, %ymm4
+              vmulpd         %ymm14, %ymm1, %ymm5
+              vfmsub231pd    %ymm14, %ymm0, %ymm4
+              vfmadd231pd    %ymm15, %ymm0, %ymm5
+              vmovapd        (%rsi, %rbx, 1), %ymm0
+              vmovapd        (%rdi, %rbx, 1), %ymm1
+              vbroadcastsd   COS3, %ymm14
+              vbroadcastsd   SIN3, %ymm15
+              vmulpd         %ymm15, %ymm1, %ymm6
+              vmulpd         %ymm14, %ymm1, %ymm7
+              vfmsub231pd    %ymm14, %ymm0, %ymm6
+              vfmadd231pd    %ymm15, %ymm0, %ymm7
+              vmovapd        (%rsi, %rax, 4), %ymm0
+              vmovapd        (%rdi, %rax, 4), %ymm1
+              vbroadcastsd   COS4, %ymm14
+              vbroadcastsd   SIN4, %ymm15
+              vmulpd         %ymm15, %ymm1, %ymm8
+              vmulpd         %ymm14, %ymm1, %ymm9
+              vfmsub231pd    %ymm14, %ymm0, %ymm8
+              vfmadd231pd    %ymm15, %ymm0, %ymm9
+              vmovapd        (%rsi, %rcx, 1), %ymm0
+              vmovapd        (%rdi, %rcx, 1), %ymm1
+              vbroadcastsd   COS5, %ymm14
+              vbroadcastsd   SIN5, %ymm15
+              vmulpd         %ymm15, %ymm1, %ymm10
+              vmulpd         %ymm14, %ymm1, %ymm11
+              vfmsub231pd    %ymm14, %ymm0, %ymm10
+              vfmadd231pd    %ymm15, %ymm0, %ymm11
+              vmovapd        (%rsi, %rbx, 2), %ymm0
+              vmovapd        (%rdi, %rbx, 2), %ymm1
+              vbroadcastsd   COS6, %ymm14
+              vbroadcastsd   SIN6, %ymm15
+              vmulpd         %ymm15, %ymm1, %ymm12
+              vmulpd         %ymm14, %ymm1, %ymm13
+              vfmsub231pd    %ymm14, %ymm0, %ymm12
+              vfmadd231pd    %ymm15, %ymm0, %ymm13
+              vmovapd        %ymm12, TMP0
+              vmovapd        %ymm13, TMP1
+              vmovapd        (%rsi, %rdx, 1), %ymm0
+              vmovapd        (%rdi, %rdx, 1), %ymm1
+              vbroadcastsd   COS7, %ymm12
+              vbroadcastsd   SIN7, %ymm13
+              vmulpd         %ymm13, %ymm1, %ymm14
+              vmulpd         %ymm12, %ymm1, %ymm15
+              vfmsub231pd    %ymm12, %ymm0, %ymm14
+              vfmadd231pd    %ymm13, %ymm0, %ymm15
+              vmovapd        TMP0, %ymm12
+              vmovapd        TMP1, %ymm13
               vmovapd        (%rsi), %ymm0
               vmovapd        (%rdi), %ymm1
-	          vmovapd        %ymm8, TMP3
+  	          vmovapd        %ymm8, TMP3
               vmovapd        %ymm9, TMP4
 	          vaddpd         %ymm0, %ymm8, %ymm8
 	          vaddpd         %ymm1, %ymm9, %ymm9

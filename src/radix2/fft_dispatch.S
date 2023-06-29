@@ -25,7 +25,7 @@ r8:           call           radix8
 
                             .data
 
-              .align         8
+              .align         32
 
 radix:        .byte          2
               .byte          4
