@@ -239,99 +239,196 @@ skipneg:      mov            k2, %rax
               mov            NLO, %rsi
               shl            $3, %rsi
 k2loop:       lea            (X, ilo, 8), %rax
-              lea            (%rax, %rsi), %rax
-              lea            (%rax, %rsi, 4), %rbx
-              lea            (%rax, %rdi, 8), %rcx
-              lea            (%rbx, %rdi, 8), %rdx
-              vmovapd        (%rax), OR0
-              vmovapd        (%rcx), OI0
-              vmulpd         SIN1, OI0, ER0
-              vmulpd         COS1, OI0, EI0
-              vfmsub231pd    COS1, OR0, ER0
-              vfmadd231pd    SIN1, OR0, EI0
-              vmovapd        ER0, OR0
-              vmovapd        EI0, OI0
-              vmovapd        (%rax, %rsi, 2), OR1
-              vmovapd        (%rcx, %rsi, 2), OI1
-              vmulpd         SIN3, OI1, ER0
-              vmulpd         COS3, OI1, EI0
-              vfmsub231pd    COS3, OR1, ER0
-              vfmadd231pd    SIN3, OR1, EI0
-              vmovapd        ER0, OR1
-              vmovapd        EI0, OI1
-              vmovapd        (%rbx), OR2
-              vmovapd        (%rdx), OI2
-              vmulpd         SIN5, OI2, ER0
-              vmulpd         COS5, OI2, EI0
-              vfmsub231pd    COS5, OR2, ER0
-              vfmadd231pd    SIN5, OR2, EI0
-              vmovapd        ER0, OR2
-              vmovapd        EI0, OI2
-              vmovapd        (%rbx, %rsi, 2), OR3
-              vmovapd        (%rdx, %rsi, 2), OI3
-              vmulpd         SIN7, OI3, ER0
-              vmulpd         COS7, OI3, EI0
-              vfmsub231pd    COS7, OR3, ER0
-              vfmadd231pd    SIN7, OR3, EI0
-              vmovapd        ER0, OR3
-              vmovapd        EI0, OI3
-              neg            %rsi
-              lea            (%rax, %rsi), %rax
-              lea            (%rbx, %rsi), %rbx
-              lea            (%rcx, %rsi), %rcx
-              lea            (%rdx, %rsi), %rdx
-              neg            %rsi
-              vmovapd        (%rax, %rsi, 2), ER1
-              vmovapd        (%rcx, %rsi, 2), EI1
-              vmulpd         SIN2, EI1, ER0
-              vmulpd         COS2, EI1, EI0
-              vfmsub231pd    COS2, ER1, ER0
-              vfmadd231pd    SIN2, ER1, EI0
-              vmovapd        ER0, ER1
-              vmovapd        EI0, EI1
-              vmovapd        (%rbx), ER2
-              vmovapd        (%rdx), EI2
-              vmulpd         SIN4, EI2, ER0
-              vmulpd         COS4, EI2, EI0
-              vfmsub231pd    COS4, ER2, ER0
-              vfmadd231pd    SIN4, ER2, EI0
-              vmovapd        ER0, ER2
-              vmovapd        EI0, EI2
-              vmovapd        (%rbx, %rsi, 2), ER3
-              vmovapd        (%rdx, %rsi, 2), EI3
-              vmulpd         SIN6, EI3, ER0
-              vmulpd         COS6, EI3, EI0
-              vfmsub231pd    COS6, ER3, ER0
-              vfmadd231pd    SIN6, ER3, EI0
-              vmovapd        ER0, ER3
-              vmovapd        EI0, EI3
-              vmovapd        (%rax), ER0
-              vmovapd        (%rcx), EI0
-              call           butterfly8
-              vmulpd         none, OI0, OI0
-              vmulpd         none, OI1, OI1
-              vmulpd         none, OI2, OI2
-              vmulpd         none, OI3, OI3
-              vmovapd        ER0, (%rax)
-              vmovapd        ER2, (%rax, %rsi, 2)
-              vmovapd        ER1, (%rbx)
-              vmovapd        ER3, (%rbx, %rsi, 2)
-              vmovapd        OR3, (%rcx)
-              vmovapd        OR1, (%rcx, %rsi, 2)
-              vmovapd        OR2, (%rdx)
-              vmovapd        OR0, (%rdx, %rsi, 2)
-              lea            (%rax, %rsi), %rax
-              lea            (%rbx, %rsi), %rbx
-              lea            (%rcx, %rsi), %rcx
-              lea            (%rdx, %rsi), %rdx
-              vmovapd        OI0, (%rax)
-              vmovapd        OI2, (%rax, %rsi, 2)
-              vmovapd        OI1, (%rbx)
-              vmovapd        OI3, (%rbx, %rsi, 2)
-              vmovapd        EI3, (%rcx)
-              vmovapd        EI1, (%rcx, %rsi, 2)
-              vmovapd        EI2, (%rdx)
-              vmovapd        EI0, (%rdx, %rsi, 2)
+              lea            (%rax, %rsi, 2), %rbx
+              lea            (%rbx, %rsi, 2), %rcx
+              lea            (%rcx, %rsi, 2), %rdx
+              vmovapd        (%rax), %ymm0
+              vmovapd        (%rax, %rsi, 1), %ymm2
+              vmovapd        (%rbx), %ymm4
+              vmovapd        (%rbx, %rsi, 1), %ymm6
+              vmovapd        (%rcx), %ymm8
+              vmovapd        (%rcx, %rsi, 1), %ymm10
+              vmovapd        (%rdx), %ymm12
+              vmovapd        (%rdx, %rsi, 1), %ymm14
+              push           %rdx
+              push           %rcx
+              push           %rbx
+              push           %rax
+              lea            (%rax, %rdi, 8), %rax
+              lea            (%rbx, %rdi, 8), %rbx
+              lea            (%rcx, %rdi, 8), %rcx
+              lea            (%rdx, %rdi, 8), %rdx
+              vmovapd        (%rax), %ymm1
+              vmovapd        (%rax, %rsi, 1), %ymm3
+              vmovapd        (%rbx), %ymm5
+              vmovapd        (%rbx, %rsi, 1), %ymm7
+              vmovapd        (%rcx), %ymm9
+              vmovapd        (%rcx, %rsi, 1), %ymm11
+              vmovapd        (%rdx), %ymm13
+              vmovapd        (%rdx, %rsi, 1), %ymm15
+              vmovupd        %ymm0, UR0
+              vmovupd        %ymm1, UI0
+              vmulpd         SIN1, %ymm3, %ymm0
+              vmulpd         COS1, %ymm3, %ymm1
+              vfmsub231pd    COS1, %ymm2, %ymm0
+              vfmadd231pd    SIN1, %ymm2, %ymm1
+              vmovapd        %ymm0, %ymm2
+              vmovapd        %ymm1, %ymm3
+              vmulpd         SIN2, %ymm5, %ymm0
+              vmulpd         COS2, %ymm5, %ymm1
+              vfmsub231pd    COS2, %ymm4, %ymm0
+              vfmadd231pd    SIN2, %ymm4, %ymm1
+              vmovapd        %ymm0, %ymm4
+              vmovapd        %ymm1, %ymm5
+              vmulpd         SIN3, %ymm7, %ymm0
+              vmulpd         COS3, %ymm7, %ymm1
+              vfmsub231pd    COS3, %ymm6, %ymm0
+              vfmadd231pd    SIN3, %ymm6, %ymm1
+              vmovapd        %ymm0, %ymm6
+              vmovapd        %ymm1, %ymm7
+              vmulpd         SIN4, %ymm9, %ymm0
+              vmulpd         COS4, %ymm9, %ymm1
+              vfmsub231pd    COS4, %ymm8, %ymm0
+              vfmadd231pd    SIN4, %ymm8, %ymm1
+              vmovapd        %ymm0, %ymm8
+              vmovapd        %ymm1, %ymm9
+              vmulpd         SIN5, %ymm11, %ymm0
+              vmulpd         COS5, %ymm11, %ymm1
+              vfmsub231pd    COS5, %ymm10, %ymm0
+              vfmadd231pd    SIN5, %ymm10, %ymm1
+              vmovapd        %ymm0, %ymm10
+              vmovapd        %ymm1, %ymm11
+              vmulpd         SIN6, %ymm13, %ymm0
+              vmulpd         COS6, %ymm13, %ymm1
+              vfmsub231pd    COS6, %ymm12, %ymm0
+              vfmadd231pd    SIN6, %ymm12, %ymm1
+              vmovapd        %ymm0, %ymm12
+              vmovapd        %ymm1, %ymm13
+              vmulpd         SIN7, %ymm15, %ymm0
+              vmulpd         COS7, %ymm15, %ymm1
+              vfmsub231pd    COS7, %ymm14, %ymm0
+              vfmadd231pd    SIN7, %ymm14, %ymm1
+              vmovapd        %ymm0, %ymm14
+              vmovapd        %ymm1, %ymm15
+              vmovupd        UR0, %ymm0
+              vmovupd        UI0, %ymm1
+	          vmovupd        %ymm8, UR3
+              vmovupd        %ymm9, UI3
+	          vaddpd         %ymm0, %ymm8, %ymm8
+	          vaddpd         %ymm1, %ymm9, %ymm9
+	          vmovupd        %ymm8, UR0
+	          vmovupd        %ymm9, UR1
+	          vmovupd        UR3, %ymm8
+	          vmovupd        UI3, %ymm9
+ 	          vsubpd         %ymm8, %ymm0, %ymm0
+              vsubpd         %ymm9, %ymm1, %ymm1
+	          vaddpd         %ymm4, %ymm12, %ymm8
+	          vaddpd         %ymm5, %ymm13, %ymm9
+	          vsubpd         %ymm12, %ymm4, %ymm4
+	          vsubpd         %ymm13, %ymm5, %ymm5
+	          vaddpd         UR0, %ymm8, %ymm12
+	          vaddpd         UR1, %ymm9, %ymm13
+	          vmovupd        %ymm0, UR3
+              vmovupd        %ymm1, UI3
+              vmovupd        UR0, %ymm0
+              vmovupd        UR1, %ymm1
+              vsubpd         %ymm8, %ymm0, %ymm0
+              vsubpd         %ymm9, %ymm1, %ymm1
+              vmovupd        %ymm0, UR0
+              vmovupd        %ymm1, UR1
+	          vmovupd        UR3, %ymm0
+	          vmovupd        UI3, %ymm1
+	          vaddpd         %ymm0, %ymm5, %ymm8
+	          vsubpd         %ymm4, %ymm1, %ymm9
+	          vsubpd         %ymm5, %ymm0, %ymm0
+	          vaddpd         %ymm1, %ymm4, %ymm4
+	          vaddpd         %ymm2, %ymm10, %ymm1
+	          vaddpd         %ymm3, %ymm11, %ymm5
+	          vsubpd         %ymm10, %ymm2, %ymm2
+	          vsubpd         %ymm11, %ymm3, %ymm3
+	          vaddpd         %ymm6, %ymm14, %ymm10
+	          vaddpd         %ymm7, %ymm15, %ymm11
+	          vsubpd         %ymm14, %ymm6, %ymm6
+	          vsubpd         %ymm15, %ymm7, %ymm7
+	          vaddpd         %ymm1, %ymm10, %ymm14
+	          vaddpd         %ymm5, %ymm11, %ymm15
+	          vsubpd         %ymm10, %ymm1, %ymm1
+	          vsubpd         %ymm11, %ymm5, %ymm5
+	          vaddpd         %ymm7, %ymm2, %ymm10
+	          vsubpd         %ymm6, %ymm3, %ymm11
+	          vsubpd         %ymm7, %ymm2, %ymm2
+	          vaddpd         %ymm3, %ymm6, %ymm6
+	          vmulpd         C2, %ymm10, %ymm10
+	          vmulpd         C2, %ymm11, %ymm11
+	          vaddpd         %ymm10, %ymm11, %ymm3
+	          vsubpd         %ymm10, %ymm11, %ymm11
+	          vmulpd         C2, %ymm2, %ymm2
+	          vmulpd         C2, %ymm6, %ymm6
+	          vsubpd         %ymm2, %ymm6, %ymm10
+	          vaddpd         %ymm6, %ymm2, %ymm2
+	          vmovapd        %ymm0, %ymm6
+	          vaddpd         %ymm14, %ymm12, %ymm0
+	          vmovapd        %ymm1, %ymm7
+	          vaddpd         %ymm15, %ymm13, %ymm1
+	          vmovapd        %ymm8, UR2
+	          vsubpd         %ymm14, %ymm12, %ymm8
+	          vmovapd        %ymm9, %ymm12
+	          vsubpd         %ymm15, %ymm13, %ymm9
+	          vmovapd        %ymm2, %ymm13
+	          vaddpd         UR2, %ymm3, %ymm2
+	          vmovapd        %ymm3, %ymm14
+	          vaddpd         %ymm11, %ymm12, %ymm3
+	          vmovapd        %ymm10, %ymm15
+	          vsubpd         UR2, %ymm14, %ymm10
+	          vmulpd         none, %ymm10, %ymm10
+	          vmovupd        %ymm11, UR2
+	          vsubpd         UR2, %ymm12, %ymm11
+	          vmovupd        %ymm4, UR2
+	          vaddpd         UR0, %ymm5, %ymm4
+	          vmovapd        %ymm5, %ymm12
+	          vsubpd         UR1, %ymm7, %ymm5
+	          vmulpd         none, %ymm5, %ymm5
+	          vmovapd        %ymm12, %ymm14
+	          vsubpd         UR0, %ymm14, %ymm12
+	          vmulpd         none, %ymm12, %ymm12
+	          vmovupd        %ymm13, UR0
+	          vaddpd         UR1, %ymm7, %ymm13
+	          vmovupd        %ymm6, UR1
+	          vaddpd         UR1, %ymm15, %ymm6
+	          vmovupd        %ymm0, UR3
+              vmovupd        UR2, %ymm0
+	          vsubpd         UR0, %ymm0, %ymm7
+	          vmovupd        UR3, %ymm0
+	          vsubpd         UR1, %ymm15, %ymm14
+	          vmulpd         none, %ymm14, %ymm14
+	          vmovupd        %ymm0, UR3
+              vmovupd        UR2, %ymm0
+	          vaddpd         UR0, %ymm0, %ymm15
+	          vmovupd        UR3, %ymm0
+              vmulpd         none, %ymm9, %ymm9
+              vmulpd         none, %ymm11, %ymm11
+              vmulpd         none, %ymm13, %ymm13
+              vmulpd         none, %ymm15, %ymm15
+              vmovapd        %ymm14, (%rax)
+              vmovapd        %ymm7, (%rax, %rsi, 1)
+              vmovapd        %ymm10, (%rbx)
+              vmovapd        %ymm3, (%rbx, %rsi, 1)
+              vmovapd        %ymm12, (%rcx)
+              vmovapd        %ymm5, (%rcx, %rsi, 1)
+              vmovapd        %ymm8, (%rdx)
+              vmovapd        %ymm1, (%rdx, %rsi, 1)
+              pop            %rax
+              pop            %rbx
+              pop            %rcx
+              pop            %rdx
+              vmovapd        %ymm0, (%rax)
+              vmovapd        %ymm9, (%rax, %rsi, 1)
+              vmovapd        %ymm4, (%rbx)
+              vmovapd        %ymm13, (%rbx, %rsi, 1)
+              vmovapd        %ymm2, (%rcx)
+              vmovapd        %ymm11, (%rcx, %rsi, 1)
+              vmovapd        %ymm6, (%rdx)
+              vmovapd        %ymm15, (%rdx, %rsi, 1)
               add            $4, ilo
               cmp            ilo, NLO
               jg             k2loop
