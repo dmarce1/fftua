@@ -51,7 +51,6 @@
 #define       sr3            %xmm14
 #define       si3            %xmm15
 #define       prmt_cntrl     $27
-#define       STACK_SIZE     $16
 #define       X0             -8(%rbp)
 #define       N              -16(%rbp)
 
