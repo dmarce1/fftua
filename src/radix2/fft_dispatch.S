@@ -29,7 +29,7 @@ r8:           call           radix8
 
 radix:        .byte          2
               .byte          4
-              .byte          8
+              .byte          4
               .byte          2
               .byte          4
               .byte          8
@@ -90,4 +90,15 @@ radix:        .byte          2
               .byte          2
               .byte          4
               .byte          8
-
+              .byte          2
+              .byte          4
+              .byte          8
+              .byte          2
+              .byte          4
+              .byte          8
+              .byte          2
+              .byte          4
+              .byte          8
+              .byte          2
+              .byte          4
+              .byte          8

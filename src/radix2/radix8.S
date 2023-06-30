@@ -55,6 +55,10 @@ C2:           .double        7.07106781186547573e-01
               .double        7.07106781186547573e-01
               .double        7.07106781186547573e-01
               .double        7.07106781186547573e-01
+signbit:      .quad          0x8000000000000000
+              .quad          0x8000000000000000
+              .quad          0x8000000000000000
+              .quad          0x8000000000000000
 
 
               .text
@@ -100,7 +104,7 @@ keq0loop:     lea            (X, ilo, 8), %rax
 	          vmovapd        %ymm0, %ymm4
 	          vaddpd         %ymm6, %ymm8, %ymm0
 	          vmovapd        %ymm6, %ymm5
-	          vmulpd         none, %ymm3, %ymm6
+	          vxorpd         signbit,%ymm3, %ymm6
 	          vmovapd        %ymm4, %ymm3
 	          vsubpd         %ymm8, %ymm5, %ymm4
 	          vmulpd         tw45, %ymm7, %ymm7
@@ -170,7 +174,7 @@ keqN2o2loop:  lea            (X, ilo, 8), %rax
 	          vaddpd         %ymm5, %ymm8, %ymm0
 	          vaddpd         %ymm7, %ymm4, %ymm6
 	          vmovapd        %ymm7,%ymm10
-	          vmulpd         none, %ymm6, %ymm7
+	          vxorpd         signbit,%ymm6, %ymm7
 	          vmovapd        %ymm3, %ymm6
 	          vsubpd         %ymm8, %ymm5, %ymm3
 	          vsubpd         %ymm10, %ymm4, %ymm4
@@ -180,9 +184,9 @@ keqN2o2loop:  lea            (X, ilo, 8), %rax
 	          vmovapd        %ymm1, %ymm10
 	          vsubpd         %ymm6, %ymm10, %ymm1
 	          vaddpd         %ymm8, %ymm9, %ymm9
-	          vmulpd         none, %ymm9, %ymm6
+	          vxorpd         signbit,%ymm9, %ymm6
 	          vmovapd        %ymm4, %ymm8
-	          vmulpd         none, %ymm8, %ymm4
+	          vxorpd         signbit,%ymm8, %ymm4
               vmovapd        %ymm0, (%rax)
               vmovapd        %ymm4, (%rax, %rdi, 1)
               vmovapd        %ymm2, (%rbx)
@@ -227,8 +231,9 @@ skipneg:      push           %rbp
               and            $0xffffffffffffffc0, %rsp
               mov            k2, %rax
               imul           NLO, %rax
-              vmovq          (C, %rax, 8), %xmm0
-              vmovq          (S, %rax, 8), %xmm1
+              lea            (C, %rax, 8), %rax
+              vmovq          (%rax), %xmm0
+              vmovq          (%rax, N0, 2), %xmm1
               vmulsd         %xmm1, %xmm1, %xmm2
               vmulsd         %xmm0, %xmm1, %xmm3
               vfmsub231sd    %xmm0, %xmm0, %xmm2
@@ -237,23 +242,14 @@ skipneg:      push           %rbp
               vbroadcastsd   %xmm3, %ymm3
               vbroadcastsd   %xmm0, %ymm0
               vbroadcastsd   %xmm1, %ymm1
-              /*  1  1 */
-              /*  2  2 */
-              sub            $16, %rsp
-              vmovq          %xmm2, (%rsp)
-              vmovq          %xmm3, 8(%rsp)
-              vmovhpd        (%rsp), %xmm0, %xmm0
-              vmovhpd        8(%rsp), %xmm1, %xmm1
-              add            $16, %rsp
-              /*  1  2 */
-              /*  2  2 */
+              vmovq          %xmm2, COS1
+              vmovq          %xmm3, SIN1
+              vmovhpd        COS1, %xmm0, %xmm0
+              vmovhpd        SIN1, %xmm1, %xmm1
               vmulpd         %xmm1, %xmm3, %xmm4
               vmulpd         %xmm0, %xmm3, %xmm5
               vfmsub231pd    %xmm0, %xmm2, %xmm4
               vfmadd231pd    %xmm1, %xmm2, %xmm5
-              /*  1  2 */
-              /*  2  2 */
-              /*  3  4 */
               vinsertf128    $1, %xmm4, %ymm0, %ymm2
               vinsertf128    $1, %xmm5, %ymm1, %ymm3
               vpermpd        $255, %ymm2, %ymm0
@@ -395,59 +391,62 @@ k2loop:       imul           $8, NLO, %rax
 	          vaddpd         %ymm14, %ymm12, %ymm0
 	          vmovapd        %ymm1, %ymm7
 	          vaddpd         %ymm15, %ymm13, %ymm1
-	          vmovapd        %ymm8, TMP2
+              vmovapd        %ymm1, (%rdi, %rdx, 1)
+	          vmovapd        %ymm8, %ymm1
 	          vsubpd         %ymm14, %ymm12, %ymm8
+              vmovapd        %ymm8, (%rdi, %rbx, 2)
 	          vmovapd        %ymm9, %ymm12
 	          vsubpd         %ymm15, %ymm13, %ymm9
 	          vmovapd        %ymm2, %ymm13
-	          vaddpd         TMP2, %ymm3, %ymm2
+	          vaddpd         %ymm1, %ymm3, %ymm2
+              vmovapd        %ymm2, (%rsi, %rax, 4)
 	          vmovapd        %ymm3, %ymm14
 	          vaddpd         %ymm11, %ymm12, %ymm3
-	          vmovapd        %ymm10, %ymm15
-	          vsubpd         TMP2, %ymm14, %ymm10
-	          vmulpd         none, %ymm10, %ymm10
-	          vmovapd        %ymm11, TMP2
-	          vsubpd         TMP2, %ymm12, %ymm11
-	          vmovapd        %ymm4, TMP2
-	          vaddpd         TMP0, %ymm5, %ymm4
-	          vmovapd        %ymm5, %ymm12
-	          vsubpd         TMP1, %ymm7, %ymm5
-	          vmulpd         none, %ymm5, %ymm5
-	          vmovapd        %ymm12, %ymm14
-	          vsubpd         TMP0, %ymm14, %ymm12
-	          vmulpd         none, %ymm12, %ymm12
-	          vmovapd        %ymm13, TMP0
-	          vaddpd         TMP1, %ymm7, %ymm13
-	          vmovapd        %ymm6, TMP1
-	          vaddpd         TMP1, %ymm15, %ymm6
-	          vmovapd        %ymm0, TMP3
-              vmovapd        TMP2, %ymm0
-	          vsubpd         TMP0, %ymm0, %ymm7
-	          vsubpd         TMP1, %ymm15, %ymm14
-	          vmulpd         none, %ymm14, %ymm14
-              vmovapd        TMP2, %ymm0
-	          vaddpd         TMP0, %ymm0, %ymm15
-	          vmovapd        TMP3, %ymm0
-              vmulpd         none, %ymm9, %ymm9
-              vmulpd         none, %ymm11, %ymm11
-              vmulpd         none, %ymm13, %ymm13
-              vmulpd         none, %ymm15, %ymm15
-              vmovapd        %ymm0, (%rsi)
-              vmovapd        %ymm9, (%rsi, %rax, 1)
-              vmovapd        %ymm4, (%rsi, %rax, 2)
-              vmovapd        %ymm13, (%rsi, %rbx, 1)
-              vmovapd        %ymm2, (%rsi, %rax, 4)
-              vmovapd        %ymm11, (%rsi, %rcx, 1)
-              vmovapd        %ymm6, (%rsi, %rbx, 2)
-              vmovapd        %ymm15, (%rsi, %rdx, 1)
-              vmovapd        %ymm14, (%rdi)
-              vmovapd        %ymm7, (%rdi, %rax, 1)
-              vmovapd        %ymm10, (%rdi, %rax, 2)
               vmovapd        %ymm3, (%rdi, %rbx, 1)
-              vmovapd        %ymm12, (%rdi, %rax, 4)
+	          vmovapd        %ymm10, %ymm15
+	          vsubpd         %ymm1, %ymm14, %ymm10
+	          vmovapd        signbit, %ymm8
+	          vxorpd         %ymm8, %ymm10, %ymm10
+              vmovapd        %ymm10, (%rdi, %rax, 2)
+	          vmovapd        %ymm11, %ymm1
+	          vsubpd         %ymm1, %ymm12, %ymm11
+	          vmovapd        %ymm4, %ymm1
+	          vmovapd        TMP0, %ymm2
+	          vaddpd         %ymm2, %ymm5, %ymm4
+              vmovapd        %ymm4, (%rsi, %rax, 2)
+	          vmovapd        %ymm5, %ymm12
+	          vmovapd        TMP1, %ymm3
+	          vsubpd         %ymm3, %ymm7, %ymm5
+	          vxorpd         %ymm8, %ymm5, %ymm5
               vmovapd        %ymm5, (%rdi, %rcx, 1)
-              vmovapd        %ymm8, (%rdi, %rbx, 2)
-              vmovapd        %ymm1, (%rdi, %rdx, 1)
+	          vmovapd        %ymm12, %ymm14
+	          vsubpd         %ymm2, %ymm14, %ymm12
+	          vxorpd         %ymm8, %ymm12, %ymm12
+              vmovapd        %ymm12, (%rdi, %rax, 4)
+	          vmovapd        %ymm13, %ymm2
+	          vaddpd         %ymm3, %ymm7, %ymm13
+	          vmovapd        %ymm6, %ymm3
+	          vaddpd         %ymm3, %ymm15, %ymm6
+              vmovapd        %ymm6, (%rsi, %rbx, 2)
+	          vmovapd        %ymm0, %ymm10
+              vmovapd        %ymm1, %ymm0
+	          vsubpd         %ymm2, %ymm0, %ymm7
+              vmovapd        %ymm7, (%rdi, %rax, 1)
+	          vsubpd         %ymm3, %ymm15, %ymm14
+	          vxorpd         %ymm8, %ymm14, %ymm14
+              vmovapd        %ymm14, (%rdi)
+              vmovapd        %ymm1, %ymm0
+	          vaddpd         %ymm2, %ymm0, %ymm15
+	          vmovapd        %ymm10, %ymm0
+              vmovapd        %ymm0, (%rsi)
+              vxorpd         %ymm8, %ymm9, %ymm9
+              vmovapd        %ymm9, (%rsi, %rax, 1)
+              vxorpd         %ymm8, %ymm11, %ymm11
+              vmovapd        %ymm11, (%rsi, %rcx, 1)
+              vxorpd         %ymm8, %ymm13, %ymm13
+              vmovapd        %ymm13, (%rsi, %rbx, 1)
+              vxorpd         %ymm8, %ymm15, %ymm15
+              vmovapd        %ymm15, (%rsi, %rdx, 1)
               add            $4, ilo
               cmp            ilo, NLO
               jg             k2loop
@@ -515,14 +514,6 @@ rcalls:       cmp            $4, NLO
               lea            (X, %rbx, 8), %rcx
               push           %rcx
               push           %rax
-              bsf            N2, %rcx
-              mov            $0, %rax
-              mov            $0, %rbx
-              shl            %rcx, %rax
-              or             k2, %rax
-              lea            (X, %rbx, 8), %rcx
-              mov            %rcx, X
-              mov            %rax, k2
               mov            N, %rax
               shr            $3, %rax
               mov            %rax, N
