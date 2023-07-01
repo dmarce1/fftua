@@ -39,9 +39,15 @@ transpose_re: enter          STACK_SIZE, $0
               pop            %r12
               leave
               ret
-recurse:      cmp            M0, M
+recurse:      cmp            Ix, Iy
+              jl             done
+              cmp            M0, M
               jg             further
+              imul           $2, N1N2, %rax
+              imul           $3, N1N2, %rbx
               xor            IMID, IMID
+              cmp            Ix, Iy
+              je             ieq
 loop0:        mov            Ix, %rsi
               mov            Iy, %rdi
               imul           N2, %rsi
@@ -54,21 +60,14 @@ loop0:        mov            Ix, %rsi
               add            Ix, %rdi
               lea            (X, %rsi, 8), %rsi
               lea            (X, %rdi, 8), %rdi
-              cmp            %rsi, %rdi
-              jl             skip
-              je             ieq
-              mov            N1N2, %rax
-              mov            N1N2, %rbx
-              add            %rax, %rax
-              add            %rax, %rbx
-              vmovupd        (%rsi), %ymm0
-              vmovupd        (%rsi, N1N2, 8), %ymm1
-              vmovupd        (%rsi, %rax, 8), %ymm2
-              vmovupd        (%rsi, %rbx, 8), %ymm3
-              vmovupd        (%rdi), %ymm8
-              vmovupd        (%rdi, N1N2, 8), %ymm9
-              vmovupd        (%rdi, %rax, 8), %ymm10
-              vmovupd        (%rdi, %rbx, 8), %ymm11
+              vmovapd        (%rsi), %ymm0
+              vmovapd        (%rsi, N1N2, 8), %ymm1
+              vmovapd        (%rsi, %rax, 8), %ymm2
+              vmovapd        (%rsi, %rbx, 8), %ymm3
+              vmovapd        (%rdi), %ymm8
+              vmovapd        (%rdi, N1N2, 8), %ymm9
+              vmovapd        (%rdi, %rax, 8), %ymm10
+              vmovapd        (%rdi, %rbx, 8), %ymm11
               vshufpd        $0, %ymm1, %ymm0, %ymm4
               vshufpd        $15, %ymm1, %ymm0, %ymm5
               vshufpd        $0, %ymm3, %ymm2, %ymm6
@@ -89,23 +88,25 @@ loop0:        mov            Ix, %rsi
               vpermpd        $78, %ymm13, %ymm13
               vinsertf128    $0, %xmm12, %ymm14, %ymm10
               vinsertf128    $0, %xmm13, %ymm15, %ymm11
-              vmovupd        %ymm0, (%rdi)
-              vmovupd        %ymm1, (%rdi, N1N2, 8)
-              vmovupd        %ymm2, (%rdi, %rax, 8)
-              vmovupd        %ymm3, (%rdi, %rbx, 8)
-              vmovupd        %ymm8, (%rsi)
-              vmovupd        %ymm9, (%rsi, N1N2, 8)
-              vmovupd        %ymm10, (%rsi, %rax, 8)
-              vmovupd        %ymm11, (%rsi, %rbx, 8)
+              vmovapd        %ymm0, (%rdi)
+              vmovapd        %ymm1, (%rdi, N1N2, 8)
+              vmovapd        %ymm2, (%rdi, %rax, 8)
+              vmovapd        %ymm3, (%rdi, %rbx, 8)
+              vmovapd        %ymm8, (%rsi)
+              vmovapd        %ymm9, (%rsi, N1N2, 8)
+              vmovapd        %ymm10, (%rsi, %rax, 8)
+              vmovapd        %ymm11, (%rsi, %rbx, 8)
               jmp            skip
-ieq:          mov            N1N2, %rax
-              mov            N1N2, %rbx
-              add            %rax, %rax
-              add            %rax, %rbx
-              vmovupd        (%rsi), %ymm0
-              vmovupd        (%rsi, N1N2, 8), %ymm1
-              vmovupd        (%rsi, %rax, 8), %ymm2
-              vmovupd        (%rsi, %rbx, 8), %ymm3
+ieq:          mov            Ix, %rsi
+              imul           N2, %rsi
+              add            IMID, %rsi
+              imul           N1, %rsi
+              add            Ix, %rsi
+              lea            (X, %rsi, 8), %rsi
+              vmovapd        (%rsi), %ymm0
+              vmovapd        (%rsi, N1N2, 8), %ymm1
+              vmovapd        (%rsi, %rax, 8), %ymm2
+              vmovapd        (%rsi, %rbx, 8), %ymm3
               vshufpd        $0, %ymm1, %ymm0, %ymm4
               vshufpd        $15, %ymm1, %ymm0, %ymm5
               vshufpd        $0, %ymm3, %ymm2, %ymm6
@@ -116,17 +117,15 @@ ieq:          mov            N1N2, %rax
               vpermpd        $78, %ymm5, %ymm5
               vinsertf128    $0, %xmm4, %ymm6, %ymm2
               vinsertf128    $0, %xmm5, %ymm7, %ymm3
-              vmovupd        %ymm0, (%rsi)
-              vmovupd        %ymm1, (%rsi, N1N2, 8)
-              vmovupd        %ymm2, (%rsi, %rax, 8)
-              vmovupd        %ymm3, (%rsi, %rbx, 8)
+              vmovapd        %ymm0, (%rsi)
+              vmovapd        %ymm1, (%rsi, N1N2, 8)
+              vmovapd        %ymm2, (%rsi, %rax, 8)
+              vmovapd        %ymm3, (%rsi, %rbx, 8)
 skip:         inc            IMID
               cmp            IMID, N2
               jg             loop0
-              ret
-further:      cmp            Ix, Iy
-              je             xyeq
-              shr            M
+              jmp            done
+further:      shr            M
               call           recurse
               add            M, Iy
               call           recurse
@@ -138,17 +137,7 @@ further:      cmp            Ix, Iy
               sub            M, Iy
               sub            M, Ix
               shl            M
-              ret
-xyeq:         shr            M
-              call           recurse
-              add            M, Iy
-              call           recurse
-              add            M, Ix
-              call           recurse
-              sub            M, Iy
-              sub            M, Ix
-              shl            M
-              ret
+done:         ret
 
 
 

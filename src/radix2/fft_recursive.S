@@ -33,6 +33,13 @@ fft_recursive:push           %r12
               mov            %rdi, X
               mov            %rsi, C
               mov            %rdx, N
+
+              call           dit_iter
+              pop            %r14
+              pop            %r13
+              pop            %r12
+              ret
+
               mov            X, %rdi
               mov            N, %rcx
               mov            C, %rsi
