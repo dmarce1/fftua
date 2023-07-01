@@ -3,13 +3,15 @@
 #define       N              %r10
 #define       k2rbits        %r11
 #define       k2fbits        %r12
-#define       log2NoN1       %r13
+#define       log2NoN1oSS    %r13
 #define       NLO            %r14
 #define       ilo            %r15
 #define       N1             $4
 #define       log2N1         $2
+#define       SIMD_SIZE      $4
+#define       log2SIMD_SIZE  $2
 #define       STACK_SIZE     $32
-#define       NoN1m1         -8(%rbp)
+#define       NoN1oSSm1      -8(%rbp)
 
               .global        dit_iter
 
@@ -26,15 +28,17 @@ dit_iter:     push           %rbp
               mov            %rdi, X
               mov            %rsi, C
               mov            %rdx, N
-              bsf            N, log2NoN1
-              sub            log2N1, log2NoN1
+              bsf            N, log2NoN1oSS
+              sub            log2N1, log2NoN1oSS
+              sub            log2SIMD_SIZE, log2NoN1oSS
               mov            N, NLO
               shr            log2N1, NLO
               mov            N, %rax
               shr            log2N1, %rax
+              shr            log2SIMD_SIZE, %rax
               shl            %rax
               dec            %rax
-              mov            %rax, NoN1m1
+              mov            %rax, NoN1oSSm1
               mov            $1, k2rbits
               mov            $1, k2fbits
 L10000:       mov            k2fbits, %rdi
@@ -52,7 +56,7 @@ L10000:       mov            k2fbits, %rdi
               sub            %rdi, %rax
               mov            %rax, %rsi
               pop            %rdi
-              mov            log2NoN1, %rcx
+              mov            log2NoN1oSS, %rcx
               bsr            k2fbits, %rax
               sub            %rax, %rcx
               mov            $1, %rax
@@ -70,7 +74,7 @@ L15000:
               mov            %rdi, %rbx
               shl            log2N1, %rbx
               bsr            %rdi, %rcx
-              cmp            %rcx, log2NoN1
+              cmp            %rcx, log2NoN1oSS
               cmovne         %rbx, %rax
               mov            %rax, k2fbits
               mov            k2rbits, %rdi
@@ -99,10 +103,10 @@ L15000:
               mov            %rdi, %rbx
               shl            log2N1, %rbx
               bsr            %rdi, %rcx
-              cmp            %rcx, log2NoN1
+              cmp            %rcx, log2NoN1oSS
               cmovne         %rbx, %rax
               mov            %rax, k2rbits
-              cmp            k2fbits, NoN1m1
+              cmp            k2fbits, NoN1oSSm1
               jne            L10000
               pop            %r15
               pop            %r14
