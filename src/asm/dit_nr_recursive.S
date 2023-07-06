@@ -42,19 +42,33 @@
 #define       logN1          $2
 
 
-              .global        dit_rn_recur
+              .global        dit_nr_recur
 
               .text
 
-dit_rn_recur: mov            %rdi, X
-              mov            %rsi, C
+dit_nr_recur: push           %r12
+              push           %r13
+              push           %r14
+              push           %r15
+              push           %rbx
+              mov            %rdi, X
+              mov            %rsi, N
+              mov            N, %rdi
+              push           %r11
+              call           get_twiddles
+              mov            %rax, C
               mov            %rdx, S
-              mov            %rcx, N
+              pop            %r11
               mov            $1, N2
               xor            k2rev, k2rev
               vmovapd        TW45, tw45
               vmovapd        TWO, two
               call           recurse
+              pop            %rbx
+              pop            %r15
+              pop            %r14
+              pop            %r13
+              pop            %r12
               ret
 recurse:      test           $1, k2rev
               jnz            done
@@ -115,9 +129,9 @@ krest:        vbroadcastsd   (C, k2rev, 8), cos1
               vfmadd231pd    sin1, cos1, sin2
               xor            ilo, ilo
 krest_loop:   lea            (X, ilo, 8), %rax
-              lea            (%rax, ilo, 8), %rbx
-              lea            (%rbx, ilo, 8), %rcx
-              lea            (%rcx, ilo, 8), %rdx
+              lea            (%rax, NLO, 8), %rbx
+              lea            (%rbx, NLO, 8), %rcx
+              lea            (%rcx, NLO, 8), %rdx
               vmovapd        (%rax), er0
               vmovapd        (%rbx), er1
               vmovapd        (%rcx), er2
@@ -206,8 +220,8 @@ finish:       cmp            $4, NLO
               vmovq          ui2, 40(X)
               vmovq          ui1, 48(X)
               vmovq          ui3, 56(X)
-              vmovapd        8(C), tcos1
-              vmovapd        8(S), tsin1
+              vmovq          8(C), tcos1
+              vmovq          8(S), tsin1
               vmulpd         tsin1, tsin1, tcos2
               vmulpd         tcos1, tsin1, tsin2
               vfmsub231pd    tcos1, tcos1, tcos2
@@ -222,38 +236,38 @@ scalarlp:     imul           $8, %rcx, %rax
               vmovq          104(X, %rax, 8), ui1
               vmovq          112(X, %rax, 8), ui2
               vmovq          120(X, %rax, 8), ui3
-              vmovapd        ur0, ttr
-              vmovapd        ui0, tti
-              vfmadd231pd    tsin2, ui2, ttr
-              vfnmadd231pd   tsin2, ur2, tti
-              vfnmadd132pd   tcos2, ttr, ur2
-              vfnmadd132pd   tcos2, tti, ui2
-              vfmsub132pd    ttwo, ur2, ur0
-              vfmsub132pd    ttwo, ui2, ui0
-              vmovapd        ur1, ttr
-              vmovapd        ui1, tti
-              vfmadd231pd    tsin2, ui3, ttr
-              vfnmadd231pd   tsin2, ur3, tti
-              vfnmadd132pd   tcos2, ttr, ur3
-              vfnmadd132pd   tcos2, tti, ui3
-              vfmsub132pd    ttwo, ur3, ur1
-              vfmsub132pd    ttwo, ui3, ui1
-              vmovapd        ur0, ttr
-              vmovapd        ui0, tti
-              vfmadd231pd    tsin1, ui1, ttr
-              vfnmadd231pd   tsin1, ur1, tti
-              vfnmadd132pd   tcos1, ttr, ur1
-              vfmsub132pd    tcos1, tti, ui1
-              vfmsub132pd    ttwo, ur1, ur0
-              vfmadd132pd    ttwo, ui1, ui0
-              vmovapd        ur2, ttr
-              vmovapd        ui2, tti
-              vfmadd231pd    tcos1, ui3, ttr
-              vfnmadd231pd   tcos1, ur3, tti
-              vfmadd132pd    tsin1, ttr, ur3
-              vfmadd132pd    tsin1, tti, ui3
-              vfmsub132pd    ttwo, ur3, ur2
-              vfnmadd132pd   ttwo, ui3, ui2
+              vmovq          ur0, ttr
+              vmovq          ui0, tti
+              vfmadd231sd    tsin2, ui2, ttr
+              vfnmadd231sd   tsin2, ur2, tti
+              vfnmadd132sd   tcos2, ttr, ur2
+              vfnmadd132sd   tcos2, tti, ui2
+              vfmsub132sd    ttwo, ur2, ur0
+              vfmsub132sd    ttwo, ui2, ui0
+              vmovq          ur1, ttr
+              vmovq          ui1, tti
+              vfmadd231sd    tsin2, ui3, ttr
+              vfnmadd231sd   tsin2, ur3, tti
+              vfnmadd132sd   tcos2, ttr, ur3
+              vfnmadd132sd   tcos2, tti, ui3
+              vfmsub132sd    ttwo, ur3, ur1
+              vfmsub132sd    ttwo, ui3, ui1
+              vmovq          ur0, ttr
+              vmovq          ui0, tti
+              vfmadd231sd    tsin1, ui1, ttr
+              vfnmadd231sd   tsin1, ur1, tti
+              vfnmadd132sd   tcos1, ttr, ur1
+              vfmsub132sd    tcos1, tti, ui1
+              vfmsub132sd    ttwo, ur1, ur0
+              vfmadd132sd    ttwo, ui1, ui0
+              vmovq          ur2, ttr
+              vmovq          ui2, tti
+              vfmadd231sd    tcos1, ui3, ttr
+              vfnmadd231sd   tcos1, ur3, tti
+              vfmadd132sd    tsin1, ttr, ur3
+              vfmadd132sd    tsin1, tti, ui3
+              vfmsub132sd    ttwo, ur3, ur2
+              vfnmadd132sd   ttwo, ui3, ui2
               vmovq          64(X, %rax, 8), ur0
               vmovq          72(X, %rax, 8), ui0
               vmovq          80(X, %rax, 8), ur3
@@ -265,7 +279,8 @@ scalarlp:     imul           $8, %rcx, %rax
               dec            %rcx
               jnz            scalarlp
               jmp            done
-finalk2:      vmovapd        (C, k2rev, 8), cos1
+finalk2:      shl            logN1, k2rev
+              vmovapd        (C, k2rev, 8), cos1
               vmovapd        (S, k2rev, 8), sin1
               vmulpd         sin1, sin1, cos2
               vmulpd         cos1, sin1, sin2
@@ -353,30 +368,41 @@ finalk2:      vmovapd        (C, k2rev, 8), cos1
               jmp            done
 rcalls:       push           k2rev
               push           X
+              shl            logN1, k2rev
+              push           k2rev
+              push           X
               shr            logN1, N
+              inc            k2rev
+              lea            (X, N, 8), X
+              push           k2rev
+              push           X
+              inc            k2rev
+              lea            (X, N, 8), X
+              push           k2rev
+              push           X
+              inc            k2rev
+              lea            (X, N, 8), X
               shl            logN1, N2
-              lea            (k2rev, N), k2rev
-              lea            (X, N, 8), X
-              push           k2rev
-              push           X
-              lea            (k2rev, N), k2rev
-              lea            (X, N, 8), X
-              push           k2rev
-              push           X
-              lea            (k2rev, N), k2rev
-              lea            (X, N, 8), X
               call           recurse
-              pop            X
-              pop            k2rev
-              call           recurse
-              pop            X
-              pop            k2rev
-              call           recurse
-              pop            X
-              pop            k2rev
-              call           recurse
-              shl            logN1, N
               shr            logN1, N2
+              pop            X
+              pop            k2rev
+              shl            logN1, N2
+              call           recurse
+              shr            logN1, N2
+              pop            X
+              pop            k2rev
+              shl            logN1, N2
+              call           recurse
+              shr            logN1, N2
+              pop            X
+              pop            k2rev
+              shl            logN1, N2
+              call           recurse
+              pop            X
+              pop            k2rev
+              shr            logN1, N2
+              shl            logN1, N
 done:         ret
 
               .align         32
@@ -393,7 +419,7 @@ TWO:          .double        2.0
               .double        2.0
               .double        2.0
 
-              .align         32
+              .align         16
 TINDICES:     .long          0
               .long          4
               .long          8
