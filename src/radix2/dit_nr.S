@@ -94,6 +94,7 @@ k0loop:       lea            (X, ilo, 8), %rax
               vsubpd         tr1, tr0, ei1
               vsubpd         tr3, tr2, ei2
               vmulpd         ti2, ei3, ei3
+
               vaddpd         er2, er0, tr0
               vsubpd         er2, er0, tr2
               vaddpd         er3, er1, tr1
@@ -131,6 +132,7 @@ n21loop:      lea            (X, ilo, 8), %rax
               vsubpd         er1, er3, tr3
               vaddpd         tr1, tr0, er0
               vsubpd         tr1, tr0, er2
+
               vaddpd         ei2, ei0, ti0
               vsubpd         ei2, ei0, ti2
               vaddpd         ei3, ei1, ti1
@@ -225,19 +227,19 @@ k2loop:       lea            (X, ilo, 8), %rax
               vmovapd        er2, tr0
               vmovapd        ei2, ti0
               vfmadd231pd    tr1, ei3, tr0
-              vmovapd        er0, (%rax)
               vfnmadd231pd   tr1, er3, ti0
-              vmovapd        ei0, (%rdx, %rdi, 8)
               vfmadd132pd    ti1, tr0, er3
-              vmovapd        er1, (%rcx, %rdi, 8)
               vfmadd132pd    ti1, ti0, ei3
-              vmovapd        ei1, (%rbx)
               vfmsub132pd    tr3, er3, er2
-              vmovapd        er3, (%rcx)
               vfnmadd132pd   tr3, ei3, ei2
-              vmovapd        er2, (%rax, %rdi, 8)
+              vmovapd        er0, (%rax)
+              vmovapd        ei1, (%rbx)
+              vmovapd        er3, (%rcx)
               vmovapd        ei2, (%rdx)
+              vmovapd        er2, (%rax, %rdi, 8)
               vmovapd        ei3, (%rbx, %rdi, 8)
+              vmovapd        er1, (%rcx, %rdi, 8)
+              vmovapd        ei0, (%rdx, %rdi, 8)
               add            $4, ilo
               cmp            ilo, NLO
               jg             k2loop

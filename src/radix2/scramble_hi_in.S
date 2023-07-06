@@ -1,0 +1,146 @@
+#define       NHIm1          %rbx
+#define       I0             %rsi
+#define       J0             %rdi
+#define       I              %r8
+#define       J              %r9
+#define       mask           %r10
+#define       IMAX           %r11
+#define       X              %r12
+#define       NHI            %r13
+#define       NHIo4m1        %r14
+#define       NLO            %r15
+
+              .global        scramble_hiin
+
+              .text
+
+scramble_hiin:push           %rbx
+              push           %r12
+              push           %r13
+              push           %r14
+              push           %r15
+              mov            %rdi, X
+              mov            %rsi, NHI
+              mov            %rdx, NLO
+              mov            NHI, NHIm1
+              dec            NHIm1
+              mov            NHI, NHIo4m1
+              shr            $2, NHIo4m1
+              dec            NHIo4m1
+              bsr            NHI, %rcx
+              sub            $2, %rcx
+              mov            $3, %rax
+              shl            %rcx, %rax
+              mov            %rax, mask
+              cmp            $16, IMAX
+              jl             L100
+              xor            I, I
+              xor            J, J
+L0:           cmp            I, J
+              jg             L5
+              mov            I, I0
+              mov            J, J0
+              imul           NLO, I0
+              imul           NLO, J0
+              mov            I0, %rax
+              mov            J0, %rdx
+              mov            I0, IMAX
+              add            NLO, IMAX
+L1:           vmovapd        (X, %rax, 8), %ymm0
+              vmovapd        (X, %rdx, 8), %ymm1
+              add            $4, %rax
+              add            $4, %rdx
+              vmovapd        (X, %rax, 8), %ymm2
+              vmovapd        (X, %rdx, 8), %ymm3
+              add            $4, %rax
+              add            $4, %rdx
+              vmovapd        (X, %rax, 8), %ymm4
+              vmovapd        (X, %rdx, 8), %ymm5
+              add            $4, %rax
+              add            $4, %rdx
+              vmovapd        (X, %rax, 8), %ymm6
+              vmovapd        (X, %rdx, 8), %ymm7
+              sub            $12, %rax
+              sub            $12, %rdx
+              vmovapd        %ymm1, (X, %rax, 8)
+              vmovapd        %ymm0, (X, %rdx, 8)
+              add            $4, %rax
+              add            $4, %rdx
+              vmovapd        %ymm3, (X, %rax, 8)
+              vmovapd        %ymm2, (X, %rdx, 8)
+              add            $4, %rax
+              add            $4, %rdx
+              vmovapd        %ymm5, (X, %rax, 8)
+              vmovapd        %ymm4, (X, %rdx, 8)
+              add            $4, %rax
+              add            $4, %rdx
+              vmovapd        %ymm7, (X, %rax, 8)
+              vmovapd        %ymm6, (X, %rdx, 8)
+              add            $4, %rax
+              add            $4, %rdx
+              cmp            %rax, IMAX
+              jg             L1
+L5:           mov            J, %rax
+              not            %rax
+              and            NHIo4m1, %rax
+              bsr            %rax, %rcx
+              mov            $1, %rax
+              shl            %rcx, %rax
+              dec            %rax
+              mov            J, %rcx
+              and            %rax, %rcx
+              inc            %rax
+              or             %rax, %rcx
+              mov            J, %rdx
+              and            mask, %rdx
+              or             %rdx, %rcx
+              mov            %rcx, J
+              inc            I
+              cmp            I, NHIm1
+              jg             L0
+              jmp            L400
+L100:         xor            I, I
+              xor            J, J
+L200:         cmp            I, J
+              jg             L250
+              mov            I, I0
+              mov            J, J0
+              imul           NLO, I0
+              imul           NLO, J0
+              mov            I0, %rax
+              mov            J0, %rdx
+              mov            I0, IMAX
+              add            NLO, IMAX
+L210:         vmovapd        (X, %rax, 8), %ymm0
+              vmovapd        (X, %rdx, 8), %ymm1
+              vmovapd        %ymm1, (X, %rax, 8)
+              vmovapd        %ymm0, (X, %rdx, 8)
+              add            $4, %rax
+              add            $4, %rdx
+              cmp            %rax, IMAX
+              jg             L210
+L250:         mov            J, %rax
+              not            %rax
+              and            NHIo4m1, %rax
+              bsr            %rax, %rcx
+              mov            $1, %rax
+              shl            %rcx, %rax
+              dec            %rax
+              mov            J, %rcx
+              and            %rax, %rcx
+              inc            %rax
+              or             %rax, %rcx
+              mov            J, %rdx
+              and            mask, %rdx
+              or             %rdx, %rcx
+              mov            %rcx, J
+              inc            I
+              cmp            I, NHIm1
+              jg             L200
+L400:         pop            %r15
+              pop            %r14
+              pop            %r13
+              pop            %r12
+              pop            %rbx
+              ret
+
