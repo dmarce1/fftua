@@ -70,10 +70,10 @@ dit_nr_recur: push           %r12
               pop            %r13
               pop            %r12
               ret
-recurse:      test           $1, k2rev
-              jnz            done
-              mov            N, NLO
+recurse:      mov            N, NLO
               shr            logN1, NLO
+              test           $1, k2rev
+              jnz            rcalls
               cmp            $0, k2rev
               je             keq0
               jmp            krest
@@ -121,6 +121,7 @@ kny_loop:     vmovapd        (%rax, N, 8), ei0
               vmovapd        ei2, (%rbx, N, 8)
               vmovapd        ei1, (%rcx, N, 8)
               vmovapd        ei3, (%rdx, N, 8)
+              jmp            finish
 krest:        vbroadcastsd   (C, k2rev, 8), cos1
               vbroadcastsd   (S, k2rev, 8), sin1
               vmulpd         sin1, sin1, cos2
@@ -205,37 +206,40 @@ finish:       cmp            $4, NLO
               vmovq          40(X), ui1
               vmovq          48(X), ui2
               vmovq          56(X), ui3
-              vaddpd         ui3, ui1, ur0
-              vsubpd         ui3, ui1, ur2
-              vmulpd         ttw45, ur2, ur1
-              vmulpd         ttw45, ur0, ur3
+              vaddsd         ui3, ui1, ur0
+              vsubsd         ui3, ui1, ur2
+              vmulsd         ttw45, ur2, ur1
+              vmulsd         ttw45, ur0, ur3
               vmovq          ui0, ur0
               vmovq          ui2, ur2
-              vaddpd         ur1, ur0, ui0
-              vaddpd         ur3, ur2, ui3
-              vsubpd         ur1, ur0, ui2
-              vsubpd         ur3, ur2, ui1
-              vmulpd         NONE, ui3, ui3
+              vaddsd         ur1, ur0, ui0
+              vaddsd         ur3, ur2, ui3
+              vsubsd         ur1, ur0, ui1
+              vsubsd         ur3, ur2, ui2
+              vmulsd         NONE, ui3, ui3
               vmovq          ui0, 32(X)
               vmovq          ui2, 40(X)
               vmovq          ui1, 48(X)
               vmovq          ui3, 56(X)
-              vmovq          8(C), tcos1
-              vmovq          8(S), tsin1
-              vmulpd         tsin1, tsin1, tcos2
-              vmulpd         tcos1, tsin1, tsin2
-              vfmsub231pd    tcos1, tcos1, tcos2
-              vfmadd231pd    tsin1, tcos1, tsin2
               mov            $3, %rcx
+              mov            $1, %rax
+              cmp            $1, N2
+              cmove          %rax, %rcx
 scalarlp:     imul           $8, %rcx, %rax
-              vmovq          64(X, %rax, 8), ur0
-              vmovq          72(X, %rax, 8), ur1
-              vmovq          80(X, %rax, 8), ur2
-              vmovq          88(X, %rax, 8), ur3
-              vmovq          96(X, %rax, 8), ui0
-              vmovq          104(X, %rax, 8), ui1
-              vmovq          112(X, %rax, 8), ui2
-              vmovq          120(X, %rax, 8), ui3
+              vmovq          (C, %rcx, 8), tcos1
+              vmovq          (S, %rcx, 8), tsin1
+              vmulsd         tsin1, tsin1, tcos2
+              vmulsd         tcos1, tsin1, tsin2
+              vfmsub231sd    tcos1, tcos1, tcos2
+              vfmadd231sd    tsin1, tcos1, tsin2
+              vmovq          0(X, %rax, 8), ur0
+              vmovq          8(X, %rax, 8), ur1
+              vmovq          16(X, %rax, 8), ur2
+              vmovq          24(X, %rax, 8), ur3
+              vmovq          32(X, %rax, 8), ui0
+              vmovq          40(X, %rax, 8), ui1
+              vmovq          48(X, %rax, 8), ui2
+              vmovq          56(X, %rax, 8), ui3
               vmovq          ur0, ttr
               vmovq          ui0, tti
               vfmadd231sd    tsin2, ui2, ttr
@@ -268,20 +272,20 @@ scalarlp:     imul           $8, %rcx, %rax
               vfmadd132sd    tsin1, tti, ui3
               vfmsub132sd    ttwo, ur3, ur2
               vfnmadd132sd   ttwo, ui3, ui2
-              vmovq          64(X, %rax, 8), ur0
-              vmovq          72(X, %rax, 8), ui0
-              vmovq          80(X, %rax, 8), ur3
-              vmovq          88(X, %rax, 8), ui3
-              vmovq          96(X, %rax, 8), ur2
-              vmovq          104(X, %rax, 8), ui2
-              vmovq          112(X, %rax, 8), ur1
-              vmovq          120(X, %rax, 8), ui1
+              vmovq          0(X, %rax, 8), ur0
+              vmovq          8(X, %rax, 8), ui0
+              vmovq          16(X, %rax, 8), ur3
+              vmovq          24(X, %rax, 8), ui3
+              vmovq          32(X, %rax, 8), ur2
+              vmovq          40(X, %rax, 8), ui2
+              vmovq          48(X, %rax, 8), ur1
+              vmovq          56(X, %rax, 8), ui1
               dec            %rcx
               jnz            scalarlp
               jmp            done
 finalk2:      shl            logN1, k2rev
-              vmovapd        (C, k2rev, 8), cos1
-              vmovapd        (S, k2rev, 8), sin1
+              vmovupd        (S, k2rev, 8), sin1
+              vmovupd        (C, k2rev, 8), cos1
               vmulpd         sin1, sin1, cos2
               vmulpd         cos1, sin1, sin2
               vfmsub231pd    cos1, cos1, cos2
@@ -366,7 +370,9 @@ finalk2:      shl            logN1, k2rev
               vmovapd        ei1, 64(%rax)
               vmovapd        ei3, 96(%rax)
               jmp            done
-rcalls:       push           k2rev
+rcalls:       cmp            $4, NLO
+              jle            done
+              push           k2rev
               push           X
               shl            logN1, k2rev
               push           k2rev
