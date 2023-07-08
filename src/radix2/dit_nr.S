@@ -307,13 +307,8 @@ finalk2:      mov            pos, %rdi
               vinsertf128    $0, %xmm9, %ymm11, %ymm3
               vinsertf128    $0, %xmm13, %ymm15, %ymm7
               shl            logN1, k2rev
-              vmovapd        TWINDICES, %xmm15
-              vmovapd        NONE, %ymm14
-              vmovapd        %ymm14, %ymm13
-              lea            (S, k2rev, 8), %rax
-              lea            (C, k2rev, 8), %rbx
-              vgatherdpd     %ymm14, (%rax, %xmm15, 8), sin1
-              vgatherdpd     %ymm13, (%rbx, %xmm15, 8), cos1
+              vpermpd        $120, (S, k2rev, 8), sin1
+              vpermpd        $120, (C, k2rev, 8), cos1
               vmovapd        TW45, tw45
               vmovapd        TWO, two
               vmulpd         sin1, sin1, cos2
@@ -513,8 +508,3 @@ TWO:          .double        2.0
               .double        2.0
               .double        2.0
               .double        2.0
-TWINDICES:    .long          0
-              .long          2
-              .long          3
-              .long          1
-
