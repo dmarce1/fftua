@@ -75,7 +75,7 @@ dit_nr_recur: push           %rbp
               mov            N, %rsi
               push           %r10
               push           %r11
-              call           scramble
+              call           fft_scramble
               pop            %r11
               pop            %r10
               pop            %rbx
@@ -342,6 +342,10 @@ finalk2:      mov            pos, %rdi
               vfmadd132pd    sin1, ti, ei3
               vfmsub132pd    two, er3, er2
               vfnmadd132pd   two, ei3, ei2
+//0 5 3 6 2 7 1 4
+//0 2 3 7 5 2 6 4
+//er0 ei1 er3 ei2 er2 ei3 er1 ei0
+//0 5 3 6 2 7 1 4
               vshufpd        $0, %ymm5, %ymm0, %ymm8
               vshufpd        $0, %ymm7, %ymm2, %ymm12
               vshufpd        $15, %ymm5, %ymm0, %ymm9
@@ -352,14 +356,14 @@ finalk2:      mov            pos, %rdi
               vshufpd        $15, %ymm4, %ymm1, %ymm15
               vinsertf128    $1, %xmm10, %ymm8, %ymm0
               vinsertf128    $1, %xmm14, %ymm12, %ymm4
-              vinsertf128    $1, %xmm11, %ymm9, %ymm2
-              vinsertf128    $1, %xmm15, %ymm13, %ymm6
+              vinsertf128    $1, %xmm11, %ymm9, %ymm1
+              vinsertf128    $1, %xmm15, %ymm13, %ymm5
               vpermpd        $78, %ymm8, %ymm8
               vpermpd        $78, %ymm12, %ymm12
               vpermpd        $78, %ymm9, %ymm9
               vpermpd        $78, %ymm13, %ymm13
-              vinsertf128    $0, %xmm8, %ymm10, %ymm1
-              vinsertf128    $0, %xmm12, %ymm14, %ymm5
+              vinsertf128    $0, %xmm8, %ymm10, %ymm2
+              vinsertf128    $0, %xmm12, %ymm14, %ymm6
               vinsertf128    $0, %xmm9, %ymm11, %ymm3
               vinsertf128    $0, %xmm13, %ymm15, %ymm7
               vmovapd        %ymm0, (X)
@@ -497,38 +501,6 @@ TWO:          .double        2.0
               .double        2.0
               .double        2.0
               .double        2.0
-TRASH1:       .double       10e99
-              .double        20e99
-              .double        30e99
-              .double        40e99
-TRASH2:       .double       50e99
-              .double        60e99
-              .double        70e99
-              .double        80e99
-TRASH3:       .double       90e99
-              .double        100e99
-              .double        110e99
-              .double        120e99
-TRASH4:       .double        130e99
-              .double        140e99
-              .double        150e99
-              .double        160e99
-TRASH5:       .double        170e99
-              .double        1800e99
-              .double        1900e99
-              .double        200e99
-TRASH6:       .double       210e99
-              .double        220e99
-              .double        230e99
-              .double        240e99
-TRASH7:       .double        250e99
-              .double        260e99
-              .double        270e99
-              .double        280e99
-TRASH8:       .double        290e99
-              .double        300e99
-              .double        310e99
-              .double        320e99
 
               .align         16
 TINDICESF:    .long          0
