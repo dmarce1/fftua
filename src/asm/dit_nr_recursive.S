@@ -308,13 +308,12 @@ finalk2:      mov            pos, %rdi
               vinsertf128    $0, %xmm13, %ymm15, %ymm7
               shl            logN1, k2rev
               vmovapd        EVENS, %xmm15
-              vmovapd        NONE, %ymm0
-              vmovapd        %ymm0, %ymm1
-              and            $0xfffffffffffffffe, k2rev
+              vmovapd        NONE, %ymm14
+              vmovapd        %ymm14, %ymm13
               lea            (S, k2rev, 8), %rax
               lea            (C, k2rev, 8), %rbx
-              vgatherdpd     %ymm0, (%rax, %xmm15, 8), sin1
-              vgatherdpd     %ymm1, (%rbx, %xmm15, 8), cos1
+              vgatherdpd     %ymm14, (%rax, %xmm15, 8), sin1
+              vgatherdpd     %ymm13, (%rbx, %xmm15, 8), cos1
               vmovapd        TW45, tw45
               vmovapd        TWO, two
               vmulpd         sin1, sin1, cos2
@@ -526,6 +525,6 @@ TWO:          .double        2.0
               .align         16
 EVENS:        .long          0
               .long          2
-              .long          4
-              .long          6
+              .long          3
+              .long          1
 
