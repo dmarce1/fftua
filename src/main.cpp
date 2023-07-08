@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
 				for (int n = 0; n < N; n++) {
 					x[n] = (y[n] = 0);
 				}
-				x[0] = y[0] = 1.0;
+				x[2] = y[2] = 1.0;
 //				x[0] = y[0] = 1.0;
 				const auto& c = cos_twiddles(N);
 				const auto& s = sin_twiddles(N);

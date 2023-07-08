@@ -75,7 +75,7 @@ dit_nr_recur: push           %rbp
               mov            N, %rsi
               push           %r10
               push           %r11
-           //   call           scramble
+              call           scramble
               pop            %r11
               pop            %r10
               pop            %rbx
@@ -88,8 +88,8 @@ dit_nr_recur: push           %rbp
               ret
 recurse:      mov            N, NLO
               shr            logN1, NLO
-              test           $1, k2rev
-              jnz            rcalls
+              cmp            $1, k2rev
+              je             rcalls
               cmp            $0, k2rev
               je             keq0
               jmp            krest
@@ -112,13 +112,9 @@ keq0_loop:    lea            (X, ilo, 8), %rax
               vmovapd        er2, (%rbx)
               vmovapd        ei2, (%rcx)
               vmovapd        ei3, (%rdx)
-              add            $4, ilo
-              cmp            ilo, NLO
-              jne            keq0_loop
               cmp            $1, N2
-              jle            finish
-              xor            ilo, ilo
-kny_loop:     vmovapd        (%rax, N, 8), ei0
+              jle            skip_kny_loop
+              vmovapd        (%rax, N, 8), ei0
               vmovapd        (%rbx, N, 8), ei1
               vmovapd        (%rcx, N, 8), ei2
               vmovapd        (%rdx, N, 8), ei3
@@ -137,6 +133,9 @@ kny_loop:     vmovapd        (%rax, N, 8), ei0
               vmovapd        ei2, (%rbx, N, 8)
               vmovapd        ei1, (%rcx, N, 8)
               vmovapd        ei3, (%rdx, N, 8)
+skip_kny_loop:add            $4, ilo
+              cmp            ilo, NLO
+              jne            keq0_loop
               jmp            finish
 krest:        mov            pos, %rdi
               mov            %rdi, %rsi
@@ -149,10 +148,17 @@ krest:        mov            pos, %rdi
               mov            N, %rax
               dec            %rax
               sub            %rax, %rdi
-              mov            k2rev, %rdx
-              shr            %rdx
-              vbroadcastsd   (C, %rdx, 8), cos1
-              vbroadcastsd   (S, %rdx, 8), sin1
+              cmp            $0, %rdi
+              jl             rcalls
+              push           X
+              lea            (X, %rdi, 8), %rax
+              mov            %rdi, %rdx
+              neg            %rdx
+              test           $1, k2rev
+              cmovnz         %rax, X
+              cmovnz         %rdx, %rdi
+              vbroadcastsd   (C, k2rev, 8), cos1
+              vbroadcastsd   (S, k2rev, 8), sin1
               vmulpd         sin1, sin1, cos2
               vmulpd         cos1, sin1, sin2
               vfmsub231pd    cos1, cos1, cos2
@@ -213,6 +219,7 @@ krest_loop:   lea            (X, ilo, 8), %rax
               add            $4, ilo
               cmp            ilo, NLO
               jne            krest_loop
+              pop            X
 finish:       cmp            $4, NLO
               jg             rcalls
               cmp            $0, k2rev
@@ -299,13 +306,17 @@ finalk2:      mov            pos, %rdi
               vinsertf128    $0, %xmm12, %ymm14, %ymm6
               vinsertf128    $0, %xmm9, %ymm11, %ymm3
               vinsertf128    $0, %xmm13, %ymm15, %ymm7
+              shl            logN1, k2rev
+              vmovapd        EVENS, %xmm15
+              vmovapd        NONE, %ymm0
+              vmovapd        %ymm0, %ymm1
+              and            $0xfffffffffffffffe, k2rev
+              lea            (S, k2rev, 8), %rax
+              lea            (C, k2rev, 8), %rbx
+              vgatherdpd     %ymm0, (%rax, %xmm15, 8), sin1
+              vgatherdpd     %ymm1, (%rbx, %xmm15, 8), cos1
               vmovapd        TW45, tw45
               vmovapd        TWO, two
-              shl            logN1, k2rev
-              mov            k2rev, %rdx
-              shr            %rdx
-              vmovupd        (S, %rdx, 8), sin1
-              vmovupd        (C, %rdx, 8), cos1
               vmulpd         sin1, sin1, cos2
               vmulpd         cos1, sin1, sin2
               vfmsub231pd    cos1, cos1, cos2
@@ -366,6 +377,8 @@ finalk2:      mov            pos, %rdi
               vinsertf128    $0, %xmm12, %ymm14, %ymm5
               vinsertf128    $0, %xmm9, %ymm11, %ymm6
               vinsertf128    $0, %xmm13, %ymm15, %ymm7
+              vmovapd        TW45, tw45
+              vmovapd        TWO, two
               vmovapd        %ymm0, (X)
               vmovapd        %ymm1, 32(X)
               vmovapd        %ymm2, 64(X)
@@ -374,34 +387,36 @@ finalk2:      mov            pos, %rdi
               vmovapd        %ymm5, 32(X, %rdi, 8)
               vmovapd        %ymm6, 64(X, %rdi, 8)
               vmovapd        %ymm7, 96(X, %rdi, 8)
-              vmovapd        TW45, tw45
-              vmovapd        TWO, two
               jmp            done
 rcalls:       cmp            $4, NLO
               jle            done
               push           k2rev
               push           X
               push           pos
-              shl            logN1, k2rev
-              push           k2rev
-              push           X
-              push           pos
               shr            logN1, N
-              inc            k2rev
-              add            N, pos
-              lea            (X, N, 8), X
+              shl            logN1, k2rev
+              add            $3, k2rev
+              imul           $3, N, %rax
+              add            %rax, pos
+              lea            (X, %rax, 8), %rax
               push           k2rev
-              push           X
+              push           %rax
               push           pos
-              inc            k2rev
-              add            N, pos
-              lea            (X, N, 8), X
+              dec            k2rev
+              sub            N, pos
+              imul           $2, N, %rax
+              lea            (X, %rax, 8), %rax
               push           k2rev
-              push           X
+              push           %rax
               push           pos
-              inc            k2rev
-              add            N, pos
-              lea            (X, N, 8), X
+              dec            k2rev
+              sub            N, pos
+              lea            (X, N, 8), %rax
+              push           k2rev
+              push           %rax
+              push           pos
+              dec            k2rev
+              sub            N, pos
               mov            N2, %rax
               shl            logN1, %rax
               mov            %rax, N2
@@ -426,10 +441,8 @@ rcalls:       cmp            $4, NLO
               mov            %rax, N2
               shl            logN1, N
 done:         ret
-scalar_int:   mov            %rsi, %rdx
-              shr            %rdx
-              vmovq          (C, %rdx, 8), tcos1
-              vmovq          (S, %rdx, 8), tsin1
+scalar_int:   vmovq          (C, %rsi, 8), tcos1
+              vmovq          (S, %rsi, 8), tsin1
               shl            logN1, %rsi
               shl            logN1, %rdi
               vmulsd         tsin1, tsin1, tcos2
@@ -497,18 +510,22 @@ NONE:         .double        -1.0
               .double        -1.0
               .double        -1.0
               .double        -1.0
+ONE:          .double        1.0
+              .double        1.0
+              .double        1.0
+              .double        1.0
+ZERO:         .double        0.0
+              .double        0.0
+              .double        0.0
+              .double        0.0
 TWO:          .double        2.0
               .double        2.0
               .double        2.0
               .double        2.0
 
               .align         16
-TINDICESF:    .long          0
+EVENS:        .long          0
+              .long          2
               .long          4
-              .long          8
-              .long          12
-TINDICESR:    .long          12
-              .long          8
-              .long          4
-              .long          0
+              .long          6
 
