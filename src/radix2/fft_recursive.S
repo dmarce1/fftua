@@ -39,7 +39,7 @@ fft_recursive:push           %r12
               call           dit_nr_entry
               mov            X, %rdi
               mov            N, %rsi
-              call           fft_scramble
+              call           scramble
               mov            X, %rdi
               mov            C, %rsi
               mov            N, %rdx

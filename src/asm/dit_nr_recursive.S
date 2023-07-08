@@ -75,7 +75,7 @@ dit_nr_recur: push           %rbp
               mov            N, %rsi
               push           %r10
               push           %r11
-              call           fft_scramble
+           //   call           scramble
               pop            %r11
               pop            %r10
               pop            %rbx
@@ -272,13 +272,13 @@ finalk2:      mov            pos, %rdi
               sub            %rsi, %rdi
               sub            $15, %rdi
               vmovapd        (X), %ymm0
-              vmovapd        32(X), %ymm1
+              vmovapd        32(X), %ymm7
               vmovapd        64(X), %ymm2
-              vmovapd        96(X), %ymm3
+              vmovapd        96(X), %ymm5
               vmovapd        (X, %rdi, 8), %ymm4
-              vmovapd        32(X, %rdi, 8), %ymm5
+              vmovapd        32(X, %rdi, 8), %ymm3
               vmovapd        64(X, %rdi, 8), %ymm6
-              vmovapd        96(X, %rdi, 8), %ymm7
+              vmovapd        96(X, %rdi, 8), %ymm1
               vshufpd        $0, %ymm2, %ymm0, %ymm8
               vshufpd        $0, %ymm3, %ymm1, %ymm12
               vshufpd        $15, %ymm2, %ymm0, %ymm9
@@ -342,10 +342,10 @@ finalk2:      mov            pos, %rdi
               vfmadd132pd    sin1, ti, ei3
               vfmsub132pd    two, er3, er2
               vfnmadd132pd   two, ei3, ei2
-//0 5 3 6 2 7 1 4
-//0 2 3 7 5 2 6 4
-//er0 ei1 er3 ei2 er2 ei3 er1 ei0
-//0 5 3 6 2 7 1 4
+              vpermpd        $27, %ymm4, %ymm4
+              vpermpd        $27, %ymm7, %ymm7
+              vpermpd        $27, %ymm1, %ymm1
+              vpermpd        $27, %ymm2, %ymm2
               vshufpd        $0, %ymm5, %ymm0, %ymm8
               vshufpd        $0, %ymm7, %ymm2, %ymm12
               vshufpd        $15, %ymm5, %ymm0, %ymm9
@@ -355,16 +355,16 @@ finalk2:      mov            pos, %rdi
               vshufpd        $15, %ymm6, %ymm3, %ymm11
               vshufpd        $15, %ymm4, %ymm1, %ymm15
               vinsertf128    $1, %xmm10, %ymm8, %ymm0
-              vinsertf128    $1, %xmm14, %ymm12, %ymm4
-              vinsertf128    $1, %xmm11, %ymm9, %ymm1
-              vinsertf128    $1, %xmm15, %ymm13, %ymm5
+              vinsertf128    $1, %xmm14, %ymm12, %ymm1
+              vinsertf128    $1, %xmm11, %ymm9, %ymm2
+              vinsertf128    $1, %xmm15, %ymm13, %ymm3
               vpermpd        $78, %ymm8, %ymm8
               vpermpd        $78, %ymm12, %ymm12
               vpermpd        $78, %ymm9, %ymm9
               vpermpd        $78, %ymm13, %ymm13
-              vinsertf128    $0, %xmm8, %ymm10, %ymm2
-              vinsertf128    $0, %xmm12, %ymm14, %ymm6
-              vinsertf128    $0, %xmm9, %ymm11, %ymm3
+              vinsertf128    $0, %xmm8, %ymm10, %ymm4
+              vinsertf128    $0, %xmm12, %ymm14, %ymm5
+              vinsertf128    $0, %xmm9, %ymm11, %ymm6
               vinsertf128    $0, %xmm13, %ymm15, %ymm7
               vmovapd        %ymm0, (X)
               vmovapd        %ymm1, 32(X)
