@@ -3,7 +3,7 @@
 #define       S              %r13
 #define       NLO            %r12
 #define       N              %r11
-#define       N2             %r10
+#define       pos            %r10
 #define       k2rev          %r9
 #define       ilo            %r8
 #define       er0            %ymm0
@@ -40,35 +40,51 @@
 #define       ttwo           %xmm15
 #define       N1             $4
 #define       logN1          $2
+#define       STACK_SIZE     $16
+#define       N2             -8(%rbp)
 
 
               .global        dit_nr_recur
 
               .text
 
-dit_nr_recur: push           %r12
+dit_nr_recur: push           %rbp
+              mov            %rsp, %rbp
+              sub            STACK_SIZE, %rsp
+              push           %r12
               push           %r13
               push           %r14
               push           %r15
               push           %rbx
               mov            %rdi, X
               mov            %rsi, N
+              mov            $1, %rax
+              mov            %rax, N2
               mov            N, %rdi
               push           %r11
               call           get_twiddles
               mov            %rax, C
               mov            %rdx, S
               pop            %r11
-              mov            $1, N2
+              xor            pos, pos
               xor            k2rev, k2rev
               vmovapd        TW45, tw45
               vmovapd        TWO, two
               call           recurse
+              mov            X, %rdi
+              mov            N, %rsi
+              push           %r10
+              push           %r11
+              call           scramble
+              pop            %r11
+              pop            %r10
               pop            %rbx
               pop            %r15
               pop            %r14
               pop            %r13
               pop            %r12
+              mov            %rbp, %rsp
+              pop            %rbp
               ret
 recurse:      mov            N, NLO
               shr            logN1, NLO
@@ -114,16 +130,29 @@ kny_loop:     vmovapd        (%rax, N, 8), ei0
               vmovapd        ei2, er2
               vaddpd         er1, er0, ei0
               vaddpd         er3, er2, ei3
-              vsubpd         er1, er0, ei2
-              vsubpd         er3, er2, ei1
+              vsubpd         er1, er0, ei1
+              vsubpd         er3, er2, ei2
               vmulpd         NONE, ei3, ei3
               vmovapd        ei0, (%rax, N, 8)
               vmovapd        ei2, (%rbx, N, 8)
               vmovapd        ei1, (%rcx, N, 8)
               vmovapd        ei3, (%rdx, N, 8)
               jmp            finish
-krest:        vbroadcastsd   (C, k2rev, 8), cos1
-              vbroadcastsd   (S, k2rev, 8), sin1
+krest:        mov            pos, %rdi
+              mov            %rdi, %rsi
+              bsr            %rdi, %rcx
+              mov            $3, %rdi
+              shl            %rcx, %rdi
+              dec            %rdi
+              sub            %rsi, %rdi
+              sub            %rsi, %rdi
+              mov            N, %rax
+              dec            %rax
+              sub            %rax, %rdi
+              mov            k2rev, %rdx
+              shr            %rdx
+              vbroadcastsd   (C, %rdx, 8), cos1
+              vbroadcastsd   (S, %rdx, 8), sin1
               vmulpd         sin1, sin1, cos2
               vmulpd         cos1, sin1, sin2
               vfmsub231pd    cos1, cos1, cos2
@@ -137,10 +166,10 @@ krest_loop:   lea            (X, ilo, 8), %rax
               vmovapd        (%rbx), er1
               vmovapd        (%rcx), er2
               vmovapd        (%rdx), er3
-              vmovapd        (%rax, N, 8), ei0
-              vmovapd        (%rax, N, 8), ei1
-              vmovapd        (%rax, N, 8), ei2
-              vmovapd        (%rax, N, 8), ei3
+              vmovapd        (%rax, %rdi, 8), ei0
+              vmovapd        (%rbx, %rdi, 8), ei1
+              vmovapd        (%rcx, %rdi, 8), ei2
+              vmovapd        (%rdx, %rdi, 8), ei3
               vmovapd        er0, tr
               vmovapd        ei0, ti
               vfmadd231pd    sin2, ei2, tr
@@ -174,13 +203,13 @@ krest_loop:   lea            (X, ilo, 8), %rax
               vfmsub132pd    two, er3, er2
               vfnmadd132pd   two, ei3, ei2
               vmovapd        er0, (%rax)
-              vmovapd        ei0, (%rbx)
+              vmovapd        ei1, (%rbx)
               vmovapd        er3, (%rcx)
-              vmovapd        ei3, (%rdx)
-              vmovapd        er2, (%rax, N, 8)
-              vmovapd        ei2, (%rbx, N, 8)
-              vmovapd        er1, (%rcx, N, 8)
-              vmovapd        ei1, (%rdx, N, 8)
+              vmovapd        ei2, (%rdx)
+              vmovapd        er2, (%rax, %rdi, 8)
+              vmovapd        ei3, (%rbx, %rdi, 8)
+              vmovapd        er1, (%rcx, %rdi, 8)
+              vmovapd        ei0, (%rdx, %rdi, 8)
               add            $4, ilo
               cmp            ilo, NLO
               jne            krest_loop
@@ -221,94 +250,66 @@ finish:       cmp            $4, NLO
               vmovq          ui2, 40(X)
               vmovq          ui1, 48(X)
               vmovq          ui3, 56(X)
-              mov            $3, %rcx
-              mov            $1, %rax
+scalarlp:     mov            $2, %rsi
+              mov            $1, %rdi
+              call           scalar_int
               cmp            $1, N2
-              cmove          %rax, %rcx
-scalarlp:     imul           $8, %rcx, %rax
-              vmovq          (C, %rcx, 8), tcos1
-              vmovq          (S, %rcx, 8), tsin1
-              vmulsd         tsin1, tsin1, tcos2
-              vmulsd         tcos1, tsin1, tsin2
-              vfmsub231sd    tcos1, tcos1, tcos2
-              vfmadd231sd    tsin1, tcos1, tsin2
-              vmovq          0(X, %rax, 8), ur0
-              vmovq          8(X, %rax, 8), ur1
-              vmovq          16(X, %rax, 8), ur2
-              vmovq          24(X, %rax, 8), ur3
-              vmovq          32(X, %rax, 8), ui0
-              vmovq          40(X, %rax, 8), ui1
-              vmovq          48(X, %rax, 8), ui2
-              vmovq          56(X, %rax, 8), ui3
-              vmovq          ur0, ttr
-              vmovq          ui0, tti
-              vfmadd231sd    tsin2, ui2, ttr
-              vfnmadd231sd   tsin2, ur2, tti
-              vfnmadd132sd   tcos2, ttr, ur2
-              vfnmadd132sd   tcos2, tti, ui2
-              vfmsub132sd    ttwo, ur2, ur0
-              vfmsub132sd    ttwo, ui2, ui0
-              vmovq          ur1, ttr
-              vmovq          ui1, tti
-              vfmadd231sd    tsin2, ui3, ttr
-              vfnmadd231sd   tsin2, ur3, tti
-              vfnmadd132sd   tcos2, ttr, ur3
-              vfnmadd132sd   tcos2, tti, ui3
-              vfmsub132sd    ttwo, ur3, ur1
-              vfmsub132sd    ttwo, ui3, ui1
-              vmovq          ur0, ttr
-              vmovq          ui0, tti
-              vfmadd231sd    tsin1, ui1, ttr
-              vfnmadd231sd   tsin1, ur1, tti
-              vfnmadd132sd   tcos1, ttr, ur1
-              vfmsub132sd    tcos1, tti, ui1
-              vfmsub132sd    ttwo, ur1, ur0
-              vfmadd132sd    ttwo, ui1, ui0
-              vmovq          ur2, ttr
-              vmovq          ui2, tti
-              vfmadd231sd    tcos1, ui3, ttr
-              vfnmadd231sd   tcos1, ur3, tti
-              vfmadd132sd    tsin1, ttr, ur3
-              vfmadd132sd    tsin1, tti, ui3
-              vfmsub132sd    ttwo, ur3, ur2
-              vfnmadd132sd   ttwo, ui3, ui2
-              vmovq          0(X, %rax, 8), ur0
-              vmovq          8(X, %rax, 8), ui0
-              vmovq          16(X, %rax, 8), ur3
-              vmovq          24(X, %rax, 8), ui3
-              vmovq          32(X, %rax, 8), ur2
-              vmovq          40(X, %rax, 8), ui2
-              vmovq          48(X, %rax, 8), ur1
-              vmovq          56(X, %rax, 8), ui1
-              dec            %rcx
-              jnz            scalarlp
+              je             done
+              mov            $4, %rsi
+              mov            $3, %rdi
+              call           scalar_int
+              mov            $6, %rsi
+              mov            $-1, %rdi
+              call           scalar_int
               jmp            done
-finalk2:      shl            logN1, k2rev
-              vmovupd        (S, k2rev, 8), sin1
-              vmovupd        (C, k2rev, 8), cos1
+finalk2:      mov            pos, %rdi
+              mov            %rdi, %rsi
+              bsr            %rdi, %rcx
+              mov            $3, %rdi
+              shl            %rcx, %rdi
+              dec            %rdi
+              sub            %rsi, %rdi
+              sub            %rsi, %rdi
+              sub            $15, %rdi
+              vmovapd        (X), %ymm0
+              vmovapd        32(X), %ymm1
+              vmovapd        64(X), %ymm2
+              vmovapd        96(X), %ymm3
+              vmovapd        (X, %rdi, 8), %ymm4
+              vmovapd        32(X, %rdi, 8), %ymm5
+              vmovapd        64(X, %rdi, 8), %ymm6
+              vmovapd        96(X, %rdi, 8), %ymm7
+              vshufpd        $0, %ymm2, %ymm0, %ymm8
+              vshufpd        $0, %ymm3, %ymm1, %ymm12
+              vshufpd        $15, %ymm2, %ymm0, %ymm9
+              vshufpd        $15, %ymm3, %ymm1, %ymm13
+              vshufpd        $0, %ymm6, %ymm4, %ymm10
+              vshufpd        $0, %ymm7, %ymm5, %ymm14
+              vshufpd        $15, %ymm6, %ymm4, %ymm11
+              vshufpd        $15, %ymm7, %ymm5, %ymm15
+              vinsertf128    $1, %xmm10, %ymm8, %ymm0
+              vinsertf128    $1, %xmm14, %ymm12, %ymm4
+              vinsertf128    $1, %xmm11, %ymm9, %ymm1
+              vinsertf128    $1, %xmm15, %ymm13, %ymm5
+              vpermpd        $78, %ymm8, %ymm8
+              vpermpd        $78, %ymm12, %ymm12
+              vpermpd        $78, %ymm9, %ymm9
+              vpermpd        $78, %ymm13, %ymm13
+              vinsertf128    $0, %xmm8, %ymm10, %ymm2
+              vinsertf128    $0, %xmm12, %ymm14, %ymm6
+              vinsertf128    $0, %xmm9, %ymm11, %ymm3
+              vinsertf128    $0, %xmm13, %ymm15, %ymm7
+              vmovapd        TW45, tw45
+              vmovapd        TWO, two
+              shl            logN1, k2rev
+              mov            k2rev, %rdx
+              shr            %rdx
+              vmovupd        (S, %rdx, 8), sin1
+              vmovupd        (C, %rdx, 8), cos1
               vmulpd         sin1, sin1, cos2
               vmulpd         cos1, sin1, sin2
               vfmsub231pd    cos1, cos1, cos2
               vfmadd231pd    sin1, cos1, sin2
-              lea            (X, N, 8), %rax
-              vmovapd        none, %ymm8
-              vmovapd        TINDICES, %xmm9
-              vmovapd        %ymm8, %ymm10
-              vmovapd        %ymm8, %ymm11
-              vmovapd        %ymm8, %ymm12
-              vmovapd        %ymm8, %ymm13
-              vgatherdpd     %ymm10, (X, %xmm9, 8), er0
-              vgatherdpd     %ymm11, 8(X, %xmm9, 8), er1
-              vgatherdpd     %ymm12, 16(X, %xmm9, 8), er2
-              vgatherdpd     %ymm13, 24(X, %xmm9, 8), er3
-              vmovapd        %ymm8, %ymm10
-              vmovapd        %ymm8, %ymm11
-              vmovapd        %ymm8, %ymm12
-              vmovapd        %ymm8, %ymm13
-              vgatherdpd     %ymm10, (%rax, %xmm9, 8), ei0
-              vgatherdpd     %ymm11, 8(%rax, %xmm9, 8), ei1
-              vgatherdpd     %ymm12, 16(%rax, %xmm9, 8), ei2
-              vgatherdpd     %ymm13, 24(%rax, %xmm9, 8), ei3
               vmovapd        er0, tr
               vmovapd        ei0, ti
               vfmadd231pd    sin2, ei2, tr
@@ -341,75 +342,147 @@ finalk2:      shl            logN1, k2rev
               vfmadd132pd    sin1, ti, ei3
               vfmsub132pd    two, er3, er2
               vfnmadd132pd   two, ei3, ei2
-              vshufpd        $0, er3, er0, %ymm4
-              vshufpd        $15, er3, er0, %ymm5
-              vshufpd        $0, er1, er2, %ymm6
-              vshufpd        $15, er1, er2, %ymm7
-              vinsertf128    $1, %xmm6, %ymm4, er0
-              vinsertf128    $1, %xmm7, %ymm5, er2
-              vpermpd        $78, %ymm4, %ymm4
-              vpermpd        $78, %ymm5, %ymm5
-              vinsertf128    $0, %xmm4, %ymm6, er1
-              vinsertf128    $0, %xmm5, %ymm7, er3
-              vshufpd        $0, ei3, ei0, %ymm4
-              vshufpd        $15, ei3, ei0, %ymm5
-              vshufpd        $0, ei1, ei2, %ymm6
-              vshufpd        $15, ei1, ei2, %ymm7
-              vinsertf128    $1, %xmm6, %ymm4, ei0
-              vinsertf128    $1, %xmm7, %ymm5, ei2
-              vpermpd        $78, %ymm4, %ymm4
-              vpermpd        $78, %ymm5, %ymm5
-              vinsertf128    $0, %xmm4, %ymm6, ei1
-              vinsertf128    $0, %xmm5, %ymm7, ei3
-              vmovapd        er0, (X)
-              vmovapd        er2, 32(X)
-              vmovapd        er1, 64(X)
-              vmovapd        er3, 96(X)
-              vmovapd        ei0, (%rax)
-              vmovapd        ei2, 32(%rax)
-              vmovapd        ei1, 64(%rax)
-              vmovapd        ei3, 96(%rax)
+              vshufpd        $0, %ymm5, %ymm0, %ymm8
+              vshufpd        $0, %ymm7, %ymm2, %ymm12
+              vshufpd        $15, %ymm5, %ymm0, %ymm9
+              vshufpd        $15, %ymm7, %ymm2, %ymm13
+              vshufpd        $0, %ymm6, %ymm3, %ymm10
+              vshufpd        $0, %ymm4, %ymm1, %ymm14
+              vshufpd        $15, %ymm6, %ymm3, %ymm11
+              vshufpd        $15, %ymm4, %ymm1, %ymm15
+              vinsertf128    $1, %xmm10, %ymm8, %ymm0
+              vinsertf128    $1, %xmm14, %ymm12, %ymm4
+              vinsertf128    $1, %xmm11, %ymm9, %ymm2
+              vinsertf128    $1, %xmm15, %ymm13, %ymm6
+              vpermpd        $78, %ymm8, %ymm8
+              vpermpd        $78, %ymm12, %ymm12
+              vpermpd        $78, %ymm9, %ymm9
+              vpermpd        $78, %ymm13, %ymm13
+              vinsertf128    $0, %xmm8, %ymm10, %ymm1
+              vinsertf128    $0, %xmm12, %ymm14, %ymm5
+              vinsertf128    $0, %xmm9, %ymm11, %ymm3
+              vinsertf128    $0, %xmm13, %ymm15, %ymm7
+              vmovapd        %ymm0, (X)
+              vmovapd        %ymm1, 32(X)
+              vmovapd        %ymm2, 64(X)
+              vmovapd        %ymm3, 96(X)
+              vmovapd        %ymm4, (X, %rdi, 8)
+              vmovapd        %ymm5, 32(X, %rdi, 8)
+              vmovapd        %ymm6, 64(X, %rdi, 8)
+              vmovapd        %ymm7, 96(X, %rdi, 8)
+              vmovapd        TW45, tw45
+              vmovapd        TWO, two
               jmp            done
 rcalls:       cmp            $4, NLO
               jle            done
               push           k2rev
               push           X
+              push           pos
               shl            logN1, k2rev
               push           k2rev
               push           X
+              push           pos
               shr            logN1, N
               inc            k2rev
+              add            N, pos
               lea            (X, N, 8), X
               push           k2rev
               push           X
+              push           pos
               inc            k2rev
+              add            N, pos
               lea            (X, N, 8), X
               push           k2rev
               push           X
+              push           pos
               inc            k2rev
+              add            N, pos
               lea            (X, N, 8), X
-              shl            logN1, N2
+              mov            N2, %rax
+              shl            logN1, %rax
+              mov            %rax, N2
               call           recurse
-              shr            logN1, N2
+              pop            pos
               pop            X
               pop            k2rev
-              shl            logN1, N2
               call           recurse
-              shr            logN1, N2
+              pop            pos
               pop            X
               pop            k2rev
-              shl            logN1, N2
               call           recurse
-              shr            logN1, N2
+              pop            pos
               pop            X
               pop            k2rev
-              shl            logN1, N2
               call           recurse
+              pop            pos
               pop            X
               pop            k2rev
-              shr            logN1, N2
+              mov            N2, %rax
+              shr            logN1, %rax
+              mov            %rax, N2
               shl            logN1, N
 done:         ret
+scalar_int:   mov            %rsi, %rdx
+              shr            %rdx
+              vmovq          (C, %rdx, 8), tcos1
+              vmovq          (S, %rdx, 8), tsin1
+              shl            logN1, %rsi
+              shl            logN1, %rdi
+              vmulsd         tsin1, tsin1, tcos2
+              vmulsd         tcos1, tsin1, tsin2
+              vfmsub231sd    tcos1, tcos1, tcos2
+              vfmadd231sd    tsin1, tcos1, tsin2
+              lea            (X, %rsi, 8), %rsi
+              vmovq          0(%rsi), ur0
+              vmovq          8(%rsi), ur1
+              vmovq          16(%rsi), ur2
+              vmovq          24(%rsi), ur3
+              vmovq          0(%rsi, %rdi, 8), ui0
+              vmovq          8(%rsi, %rdi, 8), ui1
+              vmovq          16(%rsi, %rdi, 8), ui2
+              vmovq          24(%rsi, %rdi, 8), ui3
+              vmovq          ur0, ttr
+              vmovq          ui0, tti
+              vfmadd231sd    tsin2, ui2, ttr
+              vfnmadd231sd   tsin2, ur2, tti
+              vfnmadd132sd   tcos2, ttr, ur2
+              vfnmadd132sd   tcos2, tti, ui2
+              vfmsub132sd    ttwo, ur2, ur0
+              vfmsub132sd    ttwo, ui2, ui0
+              vmovq          ur1, ttr
+              vmovq          ui1, tti
+              vfmadd231sd    tsin2, ui3, ttr
+              vfnmadd231sd   tsin2, ur3, tti
+              vfnmadd132sd   tcos2, ttr, ur3
+              vfnmadd132sd   tcos2, tti, ui3
+              vfmsub132sd    ttwo, ur3, ur1
+              vfmsub132sd    ttwo, ui3, ui1
+              vmovq          ur0, ttr
+              vmovq          ui0, tti
+              vfmadd231sd    tsin1, ui1, ttr
+              vfnmadd231sd   tsin1, ur1, tti
+              vfnmadd132sd   tcos1, ttr, ur1
+              vfmsub132sd    tcos1, tti, ui1
+              vfmsub132sd    ttwo, ur1, ur0
+              vfmadd132sd    ttwo, ui1, ui0
+              vmovq          ur2, ttr
+              vmovq          ui2, tti
+              vfmadd231sd    tcos1, ui3, ttr
+              vfnmadd231sd   tcos1, ur3, tti
+              vfmadd132sd    tsin1, ttr, ur3
+              vfmadd132sd    tsin1, tti, ui3
+              vfmsub132sd    ttwo, ur3, ur2
+              vfnmadd132sd   ttwo, ui3, ui2
+              vmovq          ur0, 0(%rsi)
+              vmovq          ui1, 8(%rsi)
+              vmovq          ur3, 16(%rsi)
+              vmovq          ui2, 24(%rsi)
+              vmovq          ur2, 0(%rsi, %rdi, 8)
+              vmovq          ui3, 8(%rsi, %rdi, 8)
+              vmovq          ur1, 16(%rsi, %rdi, 8)
+              vmovq          ui0, 24(%rsi, %rdi, 8)
+              ret
+
 
               .align         32
 TW45:         .double        0.70710678118654752440
@@ -424,10 +497,46 @@ TWO:          .double        2.0
               .double        2.0
               .double        2.0
               .double        2.0
+TRASH1:       .double       10e99
+              .double        20e99
+              .double        30e99
+              .double        40e99
+TRASH2:       .double       50e99
+              .double        60e99
+              .double        70e99
+              .double        80e99
+TRASH3:       .double       90e99
+              .double        100e99
+              .double        110e99
+              .double        120e99
+TRASH4:       .double        130e99
+              .double        140e99
+              .double        150e99
+              .double        160e99
+TRASH5:       .double        170e99
+              .double        1800e99
+              .double        1900e99
+              .double        200e99
+TRASH6:       .double       210e99
+              .double        220e99
+              .double        230e99
+              .double        240e99
+TRASH7:       .double        250e99
+              .double        260e99
+              .double        270e99
+              .double        280e99
+TRASH8:       .double        290e99
+              .double        300e99
+              .double        310e99
+              .double        320e99
 
               .align         16
-TINDICES:     .long          0
+TINDICESF:    .long          0
               .long          4
               .long          8
               .long          12
+TINDICESR:    .long          12
+              .long          8
+              .long          4
+              .long          0
 

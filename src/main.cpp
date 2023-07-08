@@ -108,7 +108,7 @@ void test_twiddles() {
 void test_time(double* x, int N) {
 //	fft_simd_scramble(x, N);
 //	fft_simd_scramble(x, N);
-	fft_scramble(x, N);
+//	fft_scramble(x, N);
 }
 
 extern "C" {
@@ -147,7 +147,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 16; N <= 4*1024*1024; N *= 4) {
+	for (int N = 64; N <= 4*1024*1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;
@@ -159,10 +159,10 @@ int main(int argc, char **argv) {
 				std::vector<complex<double>> X(N / 2 + 1);
 				std::vector<complex<double>> Y(N / 2 + 1);
 				for (int n = 0; n < N; n++) {
-					x[n] = (y[n] =0);
+					//x[n] = (y[n] =rand1());
 				}
-			//	x[16] = y[16] = 1.0;
-			x[0] = y[0] = 1.0;
+				x[0] = y[0] = 1.0;
+			//x[6] = y[6] = 1.0;
 				const auto& c = cos_twiddles(N);
 				const auto& s = sin_twiddles(N);
 				if (i == 0) {
