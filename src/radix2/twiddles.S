@@ -46,10 +46,16 @@ lock_acquired:lea            (Cs), %rax
               cmp            $0, %rax
               jne            load_from_mem
               imul           $2, N, %rdi
+              add            $32, %rdi
               call           malloc
+              add            $32, %rax
+              and            $0xffffffffffffffe0, %rax
               mov            %rax, C
               imul           $2, N, %rdi
+              add            $32, %rdi
               call           malloc
+              add            $32, %rax
+              and            $0xffffffffffffffe0, %rax
               mov            %rax, S
               emms
               fldpi

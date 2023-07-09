@@ -83,7 +83,7 @@ void twiddle_gen_init(void* ptr, int N);
 void fft_simd_scramble(double*, int N);
 void fft_transpose_hilo(double*, int, int);
 void fft_recursive(double* X, const double* C, int N);
-void dit_nr_recur(double* X, int N, int=0);
+void dit_nr_recur(double* X,int N, int=0);
 }
 
 
@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 64; N <= 64*1024*1024; N *= 2) {
+	for (int N = 128; N <= 64*1024*1024; N *= 2) {
 		auto pfac = prime_factorization(N);
 		{
 			double avg_err = 0.0;

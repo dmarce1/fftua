@@ -1,9 +1,9 @@
 #define       X              %r15
-#define       C              %r14
-#define       S              %r13
-#define       NLO            %r12
-#define       N              %r11
-#define       pos            %r10
+#define       N              %r14
+#define       C              %r13
+#define       S              %r12
+#define       N2             %r11
+#define       NLO            %r10
 #define       k2rev          %r9
 #define       ilo            %r8
 #define       er0            %ymm0
@@ -40,60 +40,31 @@
 #define       ttw45          %xmm14
 #define       ttwo           %xmm15
 #define       tnone          %xmm15
-#define       STACK_SIZE     $16
-#define       N2             -8(%rbp)
-#define       level          -16(%rbp)
 
-              .global        dit_nr_recur
+              .global        dit_nr_iter
+
 
               .text
 
-dit_nr_recur: push           %rbp
-              mov            %rsp, %rbp
-              sub            STACK_SIZE, %rsp
-              push           %r12
+dit_nr_iter:  push           %r12
               push           %r13
               push           %r14
               push           %r15
               push           %rbx
               mov            %rdi, X
               mov            %rsi, N
-              mov            %rdx, level
-              mov            $1, %rax
-              mov            %rax, N2
               mov            N, %rdi
-              push           %r11
               call           get_twiddles
               mov            %rax, C
               mov            %rdx, S
-              pop            %r11
-              xor            pos, pos
-              xor            k2rev, k2rev
-              call           next_level
-              mov            X, %rdi
-              mov            N, %rsi
-              call           scramble
-              pop            %rbx
-              pop            %r15
-              pop            %r14
-              pop            %r13
-              pop            %r12
-              mov            %rbp, %rsp
-              pop            %rbp
-              ret
-next_level:   mov            level, %rax
-              test           %rax ,%rax
-              bsf            N, %rax
-              bt             $0, %rax
-              jc             radix8
+              mov            $1, N2
               mov            N, NLO
               shr            $2, NLO
-              cmp            $1, k2rev
-              je             next_levels
-              test           k2rev, k2rev
-              jz             k2eq0
-              jmp            k2_interior
-k2eq0:        xor            ilo, ilo
+main_loop:    mov            N, %rax
+              shr            $2, %rax
+              cmp            N2, %rax
+              je             final_pass
+              xor            ilo, ilo
 k2eq0_loop:   lea            (X, ilo, 8), %rax
               lea            (%rax, NLO, 8), %rbx
               lea            (%rbx, NLO, 8), %rcx
@@ -114,9 +85,9 @@ k2eq0_loop:   lea            (X, ilo, 8), %rax
               vmovapd        ei3, (%rdx)
               add            $4, ilo
               cmp            ilo, NLO
-              jne            k2eq0_loop
-              bt             $0, N2
-              jc             skip_k2eqNy
+              jnl            k2eq0_loop
+              cmp            $1, N2
+              je             cont_main
               vmovapd        TW45, tw45
               vmovapd        NONE, none
               xor            ilo, ilo
@@ -146,11 +117,11 @@ k2eqNy_loop:  lea            (X, ilo, 8), %rax
               vmovapd        ei3, (%rdx)
               add            $4, ilo
               cmp            ilo, NLO
-              jne            k2eqNy_loop
-skip_k2eqNy:  cmp            $4, NLO
-              jg             next_levels
-              jmp            final_level
-k2_interior:  mov            pos, %rdi
+              jnl            k2eqNy_loop
+              mov            $2, k2rev
+k2_outer:     mov            k2rev, %rdi
+              imul           NLO, %rdi
+              shl            $2, %rdi
               mov            %rdi, %rsi
               bsr            %rdi, %rcx
               mov            $3, %rdi
@@ -162,7 +133,7 @@ k2_interior:  mov            pos, %rdi
               dec            %rax
               sub            %rax, %rdi
               cmp            $0, %rdi
-              jl             next_levels
+              jl             cont_main
               push           X
               lea            (X, %rdi, 8), %rax
               mov            %rdi, %rdx
@@ -178,7 +149,7 @@ k2_interior:  mov            pos, %rdi
               vfmadd231pd    sin1, cos1, sin2
               vmovapd        TWO, two
               xor            ilo, ilo
-k2_int_loop:  lea            (X, ilo, 8), %rax
+k2_inner:     lea            (X, ilo, 8), %rax
               lea            (%rax, NLO, 8), %rbx
               lea            (%rbx, NLO, 8), %rcx
               lea            (%rcx, NLO, 8), %rdx
@@ -232,73 +203,14 @@ k2_int_loop:  lea            (X, ilo, 8), %rax
               vmovapd        ei0, (%rdx, %rdi, 8)
               add            $4, ilo
               cmp            ilo, NLO
-              jne            k2_int_loop
-              pop            X
-              cmp            $4, NLO
-              jg             next_levels
-              jmp            final_level
-next_levels:  cmp            $4, NLO
-              jle            done2
-              push           k2rev
-              push           X
-              push           pos
-              shr            $2, N
-              shl            $2, k2rev
-              add            $3, k2rev
-              imul           $3, N, %rax
-              add            %rax, pos
-              lea            (X, %rax, 8), %rax
-              push           k2rev
-              push           %rax
-              push           pos
-              dec            k2rev
-              sub            N, pos
-              imul           $2, N, %rax
-              lea            (X, %rax, 8), %rax
-              push           k2rev
-              push           %rax
-              push           pos
-              dec            k2rev
-              sub            N, pos
-              lea            (X, N, 8), %rax
-              push           k2rev
-              push           %rax
-              push           pos
-              dec            k2rev
-              sub            N, pos
-              mov            N2, %rax
-              shl            $2, %rax
-              mov            %rax, N2
-              mov            level, %rdx
-              sub            $2, %rdx
-              mov            %rdx, level
-              call           next_level
-              pop            pos
-              pop            X
-              pop            k2rev
-              call           next_level
-              pop            pos
-              pop            X
-              pop            k2rev
-              call           next_level
-              pop            pos
-              pop            X
-              pop            k2rev
-              call           next_level
-              pop            pos
-              pop            X
-              pop            k2rev
-              mov            N2, %rax
-              shr            $2, %rax
-              mov            %rax, N2
-              mov            level, %rdx
-              add            $2, %rdx
-              mov            %rdx, level
-              shl            $2, N
-done2:        ret
-final_level:  test           k2rev, k2rev
-              jnz            final_k2_simd
-              vmovq          (X), ur0
+              jne            k2_inner
+              inc            k2rev
+              cmp            k2rev, N2
+              jnl            k2_outer
+cont_main:    shl            $2, N2
+              shr            $2, NLO
+              jmp            main_loop
+final_pass:   vmovq          (X), ur0
               vmovq          8(X), ur1
               vmovq          16(X), ur2
               vmovq          24(X), ur3
@@ -336,14 +248,13 @@ final_level:  test           k2rev, k2rev
               vmovapd        TWO, ttwo
               call           final_k2_sclr
               bt             $0, N2
-              jc             done1
+              jc             done
               mov            $4, %rsi
               mov            $3, %rdi
               call           final_k2_sclr
               mov            $6, %rsi
               mov            $-1, %rdi
               call           final_k2_sclr
-done1:        ret
 final_k2_sclr:vmovq          (C, %rsi, 8), tcos1
               vmovq          (S, %rsi, 8), tsin1
               shl            $2, %rsi
@@ -402,7 +313,10 @@ final_k2_sclr:vmovq          (C, %rsi, 8), tcos1
               vmovq          ur1, 16(%rsi, %rdi, 8)
               vmovq          ui0, 24(%rsi, %rdi, 8)
               ret
-final_k2_simd:mov            pos, %rdi
+final_k2_simd:mov            $8, k2rev
+final_k2_loop:mov            k2rev, %rdi
+              imul           NLO, %rdi
+              shl            $2, %rdi
               mov            %rdi, %rsi
               bsr            %rdi, %rcx
               mov            $3, %rdi
@@ -411,6 +325,8 @@ final_k2_simd:mov            pos, %rdi
               sub            %rsi, %rdi
               sub            %rsi, %rdi
               sub            $15, %rdi
+              cmp            $0, %rdi
+              jl             cont_final
               vmovapd        (X), %ymm0
               vmovapd        32(X), %ymm7
               vmovapd        64(X), %ymm2
@@ -503,172 +419,15 @@ final_k2_simd:mov            pos, %rdi
               vmovapd        %ymm5, 32(X, %rdi, 8)
               vmovapd        %ymm6, 64(X, %rdi, 8)
               vmovapd        %ymm7, 96(X, %rdi, 8)
+cont_final:   inc            k2rev
+              cmp            k2rev, N2
+              jne            final_k2_loop
+done:         pop            %rbx
+              pop            %r15
+              pop            %r14
+              pop            %r13
+              pop            %r12
               ret
-radix8:       mov            N, NLO
-              shr            $3, NLO
-              xor            ilo, ilo
-              vmovapd        NONE, %ymm15
-              vmovapd        TW45, %ymm14
-              mov            NLO, %rdi
-              shl            $3, %rdi
-radix8_loop:  lea            (X, ilo, 8), %rax
-              lea            (%rax, %rdi, 2), %rbx
-              lea            (%rbx, %rdi, 2), %rcx
-              lea            (%rcx, %rdi, 2), %rdx
-              vmovapd        (%rax), %ymm0
-              vmovapd        (%rax, %rdi), %ymm1
-              vmovapd        (%rbx), %ymm2
-              vmovapd        (%rbx, %rdi), %ymm3
-              vmovapd        (%rcx), %ymm4
-              vmovapd        (%rcx, %rdi), %ymm5
-              vmovapd        (%rdx), %ymm6
-              vmovapd        (%rdx, %rdi, 1), %ymm7
-	          vaddpd         %ymm0, %ymm4, %ymm8
-	          vsubpd         %ymm4, %ymm0, %ymm0
-	          vaddpd         %ymm2, %ymm6, %ymm4
-	          vsubpd         %ymm6, %ymm2, %ymm2
-	          vaddpd         %ymm8, %ymm4, %ymm6
-	          vmovapd        %ymm2, %ymm9
-	          vsubpd         %ymm4, %ymm8, %ymm2
-	          vaddpd         %ymm1, %ymm5, %ymm8
-	          vsubpd         %ymm5, %ymm1, %ymm1
-	          vaddpd         %ymm7, %ymm3, %ymm4
-	          vsubpd         %ymm3, %ymm7, %ymm7
-	          vsubpd         %ymm4, %ymm8, %ymm3
-	          vaddpd         %ymm8, %ymm4, %ymm8
-	          vmovapd        %ymm0, %ymm4
-	          vaddpd         %ymm6, %ymm8, %ymm0
-	          vmovapd        %ymm6, %ymm5
-	          vmulpd         %ymm15, %ymm3, %ymm6
-	          vmovapd        %ymm4, %ymm3
-	          vsubpd         %ymm8, %ymm5, %ymm4
-	          vmulpd         %ymm14, %ymm7, %ymm7
-	          vmulpd         %ymm14, %ymm1, %ymm1
-	          vaddpd         %ymm1, %ymm7, %ymm8
-	          vmovapd        %ymm1, %ymm5
-	          vaddpd         %ymm3, %ymm8,%ymm1
-	          vsubpd         %ymm5, %ymm7, %ymm7
-	          vmovapd        %ymm7, %ymm5
-	          vsubpd         %ymm9, %ymm5, %ymm7
-	          vmovapd        %ymm3, %ymm10
-	          vsubpd         %ymm8, %ymm10, %ymm3
-	          vmovapd        %ymm5, %ymm8
-	          vaddpd         %ymm8, %ymm9, %ymm5
-              vmovapd        %ymm0, (%rax)
-              vmovapd        %ymm4, (%rax, %rdi)
-              vmovapd        %ymm2, (%rbx)
-              vmovapd        %ymm6, (%rbx, %rdi)
-              vmovapd        %ymm1, (%rcx)
-              vmovapd        %ymm5, (%rcx, %rdi)
-              vmovapd        %ymm3, (%rdx)
-              vmovapd        %ymm7, (%rdx, %rdi)
-              add            $4, ilo
-              cmp            ilo, NLO
-              jg             radix8_loop
-              cmp            $4, NLO
-              jle            done3
-              push           k2rev
-              push           X
-              push           pos
-              shr            $3, N
-              shl            $3, k2rev
-              add            $7, k2rev
-              imul           $7, N, %rax
-              add            %rax, pos
-              lea            (X, %rax, 8), %rax
-              push           k2rev
-              push           %rax
-              push           pos
-              dec            k2rev
-              sub            N, pos
-              imul           $6, N, %rax
-              lea            (X, %rax, 8), %rax
-              push           k2rev
-              push           %rax
-              push           pos
-              dec            k2rev
-              sub            N, pos
-              imul           $5, N, %rax
-              lea            (X, %rax, 8), %rax
-              push           k2rev
-              push           %rax
-              push           pos
-              dec            k2rev
-              sub            N, pos
-              imul           $4, N, %rax
-              lea            (X, %rax, 8), %rax
-              push           k2rev
-              push           %rax
-              push           pos
-              dec            k2rev
-              sub            N, pos
-              imul           $3, N, %rax
-              lea            (X, %rax, 8), %rax
-              push           k2rev
-              push           %rax
-              push           pos
-              dec            k2rev
-              sub            N, pos
-              imul           $2, N, %rax
-              lea            (X, %rax, 8), %rax
-              push           k2rev
-              push           %rax
-              push           pos
-              dec            k2rev
-              sub            N, pos
-              lea            (X, N, 8), %rax
-              push           k2rev
-              push           %rax
-              push           pos
-              dec            k2rev
-              sub            N, pos
-              mov            N2, %rax
-              shl            $3, %rax
-              mov            %rax, N2
-              mov            level, %rdx
-              add            $3, %rdx
-              mov            %rdx, level
-              call           next_level
-              pop            pos
-              pop            X
-              pop            k2rev
-              call           next_level
-              pop            pos
-              pop            X
-              pop            k2rev
-              call           next_level
-              pop            pos
-              pop            X
-              pop            k2rev
-              call           next_level
-              pop            pos
-              pop            X
-              pop            k2rev
-              call           next_level
-              pop            pos
-              pop            X
-              pop            k2rev
-              call           next_level
-              pop            pos
-              pop            X
-              pop            k2rev
-              call           next_level
-              pop            pos
-              pop            X
-              pop            k2rev
-              call           next_level
-              pop            pos
-              pop            X
-              pop            k2rev
-              mov            N2, %rax
-              shr            $3, %rax
-              mov            %rax, N2
-              mov            level, %rdx
-              sub            $3, %rdx
-              mov            %rdx, level
-              shl            $3, N
-done3:        ret
-
 
               .align         32
 TW45:         .double        0.70710678118654752440
