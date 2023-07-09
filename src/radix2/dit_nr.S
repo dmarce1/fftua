@@ -40,9 +40,9 @@
 #define       ttw45          %xmm14
 #define       ttwo           %xmm15
 #define       tnone          %xmm15
-#define       STACK_SIZE     $32
+#define       STACK_SIZE     $16
 #define       N2             -8(%rbp)
-
+#define       level          -16(%rbp)
 
               .global        dit_nr_recur
 
@@ -58,6 +58,7 @@ dit_nr_recur: push           %rbp
               push           %rbx
               mov            %rdi, X
               mov            %rsi, N
+              mov            %rdx, level
               mov            $1, %rax
               mov            %rax, N2
               mov            N, %rdi
@@ -80,7 +81,9 @@ dit_nr_recur: push           %rbp
               mov            %rbp, %rsp
               pop            %rbp
               ret
-next_level:   bsf            N, %rax
+next_level:   mov            level, %rax
+              test           %rax ,%rax
+              bsf            N, %rax
               bt             $0, %rax
               jc             radix8
               mov            N, NLO
@@ -266,6 +269,9 @@ next_levels:  cmp            $4, NLO
               mov            N2, %rax
               shl            $2, %rax
               mov            %rax, N2
+              mov            level, %rdx
+              sub            $2, %rdx
+              mov            %rdx, level
               call           next_level
               pop            pos
               pop            X
@@ -285,6 +291,9 @@ next_levels:  cmp            $4, NLO
               mov            N2, %rax
               shr            $2, %rax
               mov            %rax, N2
+              mov            level, %rdx
+              add            $2, %rdx
+              mov            %rdx, level
               shl            $2, N
 done2:        ret
 final_level:  test           k2rev, k2rev
@@ -616,6 +625,9 @@ radix8_loop:  lea            (X, ilo, 8), %rax
               mov            N2, %rax
               shl            $3, %rax
               mov            %rax, N2
+              mov            level, %rdx
+              add            $3, %rdx
+              mov            %rdx, level
               call           next_level
               pop            pos
               pop            X
@@ -651,6 +663,9 @@ radix8_loop:  lea            (X, ilo, 8), %rax
               mov            N2, %rax
               shr            $3, %rax
               mov            %rax, N2
+              mov            level, %rdx
+              sub            $3, %rdx
+              mov            %rdx, level
               shl            $3, N
 done3:        ret
 

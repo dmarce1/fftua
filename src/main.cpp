@@ -83,7 +83,7 @@ void twiddle_gen_init(void* ptr, int N);
 void fft_simd_scramble(double*, int N);
 void fft_transpose_hilo(double*, int, int);
 void fft_recursive(double* X, const double* C, int N);
-void dit_nr_recur(double* X,int N);
+void dit_nr_recur(double* X, int N, int=0);
 }
 
 
