@@ -16,7 +16,6 @@
 
               .text
 
-
 transpose_re: enter          STACK_SIZE, $0
               push           %r12
               push           %r13
@@ -31,7 +30,7 @@ transpose_re: enter          STACK_SIZE, $0
               xor            Ix, Ix
               xor            Iy, Iy
               mov            N1, M
-              call           recurse
+              call           next_level
               pop            %rbx
               pop            %r15
               pop            %r14
@@ -39,16 +38,16 @@ transpose_re: enter          STACK_SIZE, $0
               pop            %r12
               leave
               ret
-recurse:      cmp            Ix, Iy
+next_level:   cmp            Ix, Iy
               jl             done
               cmp            M0, M
-              jg             further
+              jg             next_levels
               imul           $2, N1N2, %rax
               imul           $3, N1N2, %rbx
               xor            IMID, IMID
               cmp            Ix, Iy
-              je             ieq
-loop0:        mov            Ix, %rsi
+              je             on_diagonal
+main_loop:    mov            Ix, %rsi
               mov            Iy, %rdi
               imul           N2, %rsi
               imul           N2, %rdi
@@ -96,8 +95,8 @@ loop0:        mov            Ix, %rsi
               vmovapd        %ymm9, (%rsi, N1N2, 8)
               vmovapd        %ymm10, (%rsi, %rax, 8)
               vmovapd        %ymm11, (%rsi, %rbx, 8)
-              jmp            skip
-ieq:          mov            Ix, %rsi
+              jmp            skip_diagonal
+on_diagonal:  mov            Ix, %rsi
               imul           N2, %rsi
               add            IMID, %rsi
               imul           N1, %rsi
@@ -121,19 +120,19 @@ ieq:          mov            Ix, %rsi
               vmovapd        %ymm1, (%rsi, N1N2, 8)
               vmovapd        %ymm2, (%rsi, %rax, 8)
               vmovapd        %ymm3, (%rsi, %rbx, 8)
-skip:         inc            IMID
+skip_diagonal:inc            IMID
               cmp            IMID, N2
-              jg             loop0
+              jg             main_loop
               jmp            done
-further:      shr            M
-              call           recurse
+next_levels:  shr            M
+              call           next_level
               add            M, Iy
-              call           recurse
+              call           next_level
               sub            M, Iy
               add            M, Ix
-              call           recurse
+              call           next_level
               add            M, Iy
-              call           recurse
+              call           next_level
               sub            M, Iy
               sub            M, Ix
               shl            M

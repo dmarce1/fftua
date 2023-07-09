@@ -32,19 +32,19 @@ get_twiddles: push           %rbp
               mov            %rax, N2
               dec            %rax
               mov            %rax, N2m1
-              lea            (rsrccnt), %rax
+              lea            (locks), %rax
               lea            (%rax, logN, 8), LOCK
-spinloop:     xor            %rax, %rax
+spin_loop:    xor            %rax, %rax
               xchg           (LOCK), %rax
               cmp            $1, %rax
-              je             locked
+              je             lock_acquired
               pause
-              jmp            spinloop
-locked:       lea            (Cs), %rax
+              jmp            spin_loop
+lock_acquired:lea            (Cs), %rax
               lea            (%rax, logN, 8), %rax
               mov            (%rax), %rax
               cmp            $0, %rax
-              jne            done1
+              jne            load_from_mem
               imul           $2, N, %rdi
               call           malloc
               mov            %rax, C
@@ -77,7 +77,7 @@ main_loop:    mov            %rdx, %rax
               fsin
               fstpl          (S, %rcx, 8)
               cmp            %rcx, N2m1
-              je             done0
+              je             load_complete
               push           %rcx
               mov            %rdx, %rax
               not            %rax
@@ -94,20 +94,20 @@ main_loop:    mov            %rdx, %rax
               pop            %rcx
               inc            %rcx
               jmp            main_loop
-done0:        lea            (Cs), %rax
+load_complete:lea            (Cs), %rax
               lea            (%rax, logN, 8), %rax
               mov            C, (%rax)
               lea            (Ss), %rax
               lea            (%rax, logN, 8), %rax
               mov            S, (%rax)
-              jmp            done2
-done1:        lea            (Cs), %rax
+              jmp            done
+load_from_mem:lea            (Cs), %rax
               lea            (%rax, logN, 8), %rax
               mov            (%rax), C
               lea            (Ss), %rax
               lea            (%rax, logN, 8), %rax
               mov            (%rax), S
-done2:        mov            C, %rax
+done:         mov            C, %rax
               mov            S, %rdx
               mov            $1, %rcx
               xchg           (LOCK), %rcx
@@ -187,7 +187,7 @@ Ss:           .quad          0
               .quad          0
               .quad          0
               .quad          0
-rsrccnt:      .quad          1
+locks:        .quad          1
               .quad          1
               .quad          1
               .quad          1
