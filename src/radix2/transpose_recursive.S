@@ -67,26 +67,22 @@ main_loop:    mov            Ix, %rsi
               vmovapd        (%rdi, N1N2, 8), %ymm9
               vmovapd        (%rdi, %rax, 8), %ymm10
               vmovapd        (%rdi, %rbx, 8), %ymm11
-              vshufpd        $0, %ymm1, %ymm0, %ymm4
-              vshufpd        $15, %ymm1, %ymm0, %ymm5
-              vshufpd        $0, %ymm3, %ymm2, %ymm6
-              vshufpd        $15, %ymm3, %ymm2, %ymm7
-              vinsertf128    $1, %xmm6, %ymm4, %ymm0
-              vinsertf128    $1, %xmm7, %ymm5, %ymm1
-              vpermpd        $78, %ymm4, %ymm4
-              vpermpd        $78, %ymm5, %ymm5
-              vinsertf128    $0, %xmm4, %ymm6, %ymm2
-              vinsertf128    $0, %xmm5, %ymm7, %ymm3
-              vshufpd        $0, %ymm9, %ymm8, %ymm12
-              vshufpd        $15, %ymm9, %ymm8, %ymm13
-              vshufpd        $0, %ymm11, %ymm10, %ymm14
-              vshufpd        $15, %ymm11, %ymm10, %ymm15
-              vinsertf128    $1, %xmm14, %ymm12, %ymm8
-              vinsertf128    $1, %xmm15, %ymm13, %ymm9
-              vpermpd        $78, %ymm12, %ymm12
-              vpermpd        $78, %ymm13, %ymm13
-              vinsertf128    $0, %xmm12, %ymm14, %ymm10
-              vinsertf128    $0, %xmm13, %ymm15, %ymm11
+              vunpcklpd      %ymm1, %ymm0, %ymm4
+              vunpckhpd      %ymm1, %ymm0, %ymm5
+              vunpcklpd      %ymm3, %ymm2, %ymm6
+              vunpckhpd      %ymm3, %ymm2, %ymm7
+              vperm2f128     $0x20, %ymm6, %ymm4, %ymm0
+              vperm2f128     $0x20, %ymm7, %ymm5, %ymm1
+              vperm2f128     $0x31, %ymm6, %ymm4, %ymm2
+              vperm2f128     $0x31, %ymm7, %ymm5, %ymm3
+              vunpcklpd      %ymm9, %ymm8, %ymm4
+              vunpckhpd      %ymm9, %ymm8, %ymm5
+              vunpcklpd      %ymm11, %ymm10, %ymm6
+              vunpckhpd      %ymm11, %ymm10, %ymm7
+              vperm2f128     $0x20, %ymm6, %ymm4, %ymm8
+              vperm2f128     $0x20, %ymm7, %ymm5, %ymm9
+              vperm2f128     $0x31, %ymm6, %ymm4, %ymm10
+              vperm2f128     $0x31, %ymm7, %ymm5, %ymm11
               vmovapd        %ymm0, (%rdi)
               vmovapd        %ymm1, (%rdi, N1N2, 8)
               vmovapd        %ymm2, (%rdi, %rax, 8)
@@ -106,16 +102,14 @@ on_diagonal:  mov            Ix, %rsi
               vmovapd        (%rsi, N1N2, 8), %ymm1
               vmovapd        (%rsi, %rax, 8), %ymm2
               vmovapd        (%rsi, %rbx, 8), %ymm3
-              vshufpd        $0, %ymm1, %ymm0, %ymm4
-              vshufpd        $15, %ymm1, %ymm0, %ymm5
-              vshufpd        $0, %ymm3, %ymm2, %ymm6
-              vshufpd        $15, %ymm3, %ymm2, %ymm7
-              vinsertf128    $1, %xmm6, %ymm4, %ymm0
-              vinsertf128    $1, %xmm7, %ymm5, %ymm1
-              vpermpd        $78, %ymm4, %ymm4
-              vpermpd        $78, %ymm5, %ymm5
-              vinsertf128    $0, %xmm4, %ymm6, %ymm2
-              vinsertf128    $0, %xmm5, %ymm7, %ymm3
+              vunpcklpd      %ymm1, %ymm0, %ymm4
+              vunpckhpd      %ymm1, %ymm0, %ymm5
+              vunpcklpd      %ymm3, %ymm2, %ymm6
+              vunpckhpd      %ymm3, %ymm2, %ymm7
+              vperm2f128     $0x20, %ymm6, %ymm4, %ymm0
+              vperm2f128     $0x20, %ymm7, %ymm5, %ymm1
+              vperm2f128     $0x31, %ymm6, %ymm4, %ymm2
+              vperm2f128     $0x31, %ymm7, %ymm5, %ymm3
               vmovapd        %ymm0, (%rsi)
               vmovapd        %ymm1, (%rsi, N1N2, 8)
               vmovapd        %ymm2, (%rsi, %rax, 8)

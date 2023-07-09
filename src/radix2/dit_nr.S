@@ -22,6 +22,7 @@
 #define       ti             %ymm13
 #define       tw45           %ymm14
 #define       two            %ymm15
+#define       none           %ymm15
 #define       ur0            %xmm0
 #define       ur1            %xmm1
 #define       ur2            %xmm2
@@ -38,6 +39,7 @@
 #define       tti            %xmm13
 #define       ttw45          %xmm14
 #define       ttwo           %xmm15
+#define       tnone          %xmm15
 #define       STACK_SIZE     $32
 #define       N2             -8(%rbp)
 
@@ -66,8 +68,6 @@ dit_nr_recur: push           %rbp
               pop            %r11
               xor            pos, pos
               xor            k2rev, k2rev
-              vmovapd        TW45, tw45
-              vmovapd        TWO, two
               call           next_level
               mov            X, %rdi
               mov            N, %rsi
@@ -114,6 +114,8 @@ k2eq0_loop:   lea            (X, ilo, 8), %rax
               jne            k2eq0_loop
               bt             $0, N2
               jc             skip_k2eqNy
+              vmovapd        TW45, tw45
+              vmovapd        NONE, none
               xor            ilo, ilo
 k2eqNy_loop:  lea            (X, ilo, 8), %rax
               lea            (%rax, N, 8), %rax
@@ -134,7 +136,7 @@ k2eqNy_loop:  lea            (X, ilo, 8), %rax
               vaddpd         er3, er2, ei3
               vsubpd         er1, er0, ei1
               vsubpd         er3, er2, ei2
-              vmulpd         NONE, ei3, ei3
+              vmulpd         none, ei3, ei3
               vmovapd        ei0, (%rax)
               vmovapd        ei2, (%rbx)
               vmovapd        ei1, (%rcx)
@@ -171,6 +173,7 @@ k2_interior:  mov            pos, %rdi
               vmulpd         cos1, sin1, sin2
               vfmsub231pd    cos1, cos1, cos2
               vfmadd231pd    sin1, cos1, sin2
+              vmovapd        TWO, two
               xor            ilo, ilo
 k2_int_loop:  lea            (X, ilo, 8), %rax
               lea            (%rax, NLO, 8), %rbx
@@ -306,8 +309,8 @@ final_level:  test           k2rev, k2rev
               vmovq          56(X), ui3
               vaddsd         ui3, ui1, ur0
               vsubsd         ui3, ui1, ur2
-              vmulsd         ttw45, ur2, ur1
-              vmulsd         ttw45, ur0, ur3
+              vmulsd         TW45, ur2, ur1
+              vmulsd         TW45, ur0, ur3
               vmovq          ui0, ur0
               vmovq          ui2, ur2
               vaddsd         ur1, ur0, ui0
@@ -321,6 +324,7 @@ final_level:  test           k2rev, k2rev
               vmovq          ui3, 56(X)
               mov            $2, %rsi
               mov            $1, %rdi
+              vmovapd        TWO, ttwo
               call           final_k2_sclr
               bt             $0, N2
               jc             done1
@@ -406,26 +410,22 @@ final_k2_simd:mov            pos, %rdi
               vmovapd        32(X, %rdi, 8), %ymm3
               vmovapd        64(X, %rdi, 8), %ymm6
               vmovapd        96(X, %rdi, 8), %ymm1
-              vshufpd        $0, %ymm2, %ymm0, %ymm8
-              vshufpd        $0, %ymm3, %ymm1, %ymm12
-              vshufpd        $15, %ymm2, %ymm0, %ymm9
-              vshufpd        $15, %ymm3, %ymm1, %ymm13
-              vshufpd        $0, %ymm6, %ymm4, %ymm10
-              vshufpd        $0, %ymm7, %ymm5, %ymm14
-              vshufpd        $15, %ymm6, %ymm4, %ymm11
-              vshufpd        $15, %ymm7, %ymm5, %ymm15
-              vinsertf128    $1, %xmm10, %ymm8, %ymm0
-              vinsertf128    $1, %xmm14, %ymm12, %ymm4
-              vinsertf128    $1, %xmm11, %ymm9, %ymm1
-              vinsertf128    $1, %xmm15, %ymm13, %ymm5
-              vpermpd        $78, %ymm8, %ymm8
-              vpermpd        $78, %ymm12, %ymm12
-              vpermpd        $78, %ymm9, %ymm9
-              vpermpd        $78, %ymm13, %ymm13
-              vinsertf128    $0, %xmm8, %ymm10, %ymm2
-              vinsertf128    $0, %xmm12, %ymm14, %ymm6
-              vinsertf128    $0, %xmm9, %ymm11, %ymm3
-              vinsertf128    $0, %xmm13, %ymm15, %ymm7
+              vunpcklpd      %ymm2, %ymm0, %ymm8
+              vunpcklpd      %ymm3, %ymm1, %ymm12
+              vunpckhpd      %ymm2, %ymm0, %ymm9
+              vunpckhpd      %ymm3, %ymm1, %ymm13
+              vunpcklpd      %ymm6, %ymm4, %ymm10
+              vunpcklpd      %ymm7, %ymm5, %ymm14
+              vunpckhpd      %ymm6, %ymm4, %ymm11
+              vunpckhpd      %ymm7, %ymm5, %ymm15
+              vperm2f128     $0x20, %ymm10, %ymm8, %ymm0
+              vperm2f128     $0x20, %ymm14, %ymm12, %ymm4
+              vperm2f128     $0x20, %ymm11, %ymm9, %ymm1
+              vperm2f128     $0x20, %ymm15, %ymm13, %ymm5
+              vperm2f128     $0x31, %ymm10, %ymm8, %ymm2
+              vperm2f128     $0x31, %ymm14, %ymm12, %ymm6
+              vperm2f128     $0x31, %ymm11, %ymm9, %ymm3
+              vperm2f128     $0x31, %ymm15, %ymm13, %ymm7
               vmovapd        TWO, two
               shl            $2, k2rev
               vpermpd        $120, (S, k2rev, 8), sin1
@@ -470,28 +470,22 @@ final_k2_simd:mov            pos, %rdi
               vpermpd        $27, %ymm7, %ymm7
               vpermpd        $27, %ymm1, %ymm1
               vpermpd        $27, %ymm2, %ymm2
-              vshufpd        $0, %ymm5, %ymm0, %ymm8
-              vshufpd        $0, %ymm7, %ymm2, %ymm12
-              vshufpd        $15, %ymm5, %ymm0, %ymm9
-              vshufpd        $15, %ymm7, %ymm2, %ymm13
-              vshufpd        $0, %ymm6, %ymm3, %ymm10
-              vshufpd        $0, %ymm4, %ymm1, %ymm14
-              vshufpd        $15, %ymm6, %ymm3, %ymm11
-              vshufpd        $15, %ymm4, %ymm1, %ymm15
-              vinsertf128    $1, %xmm10, %ymm8, %ymm0
-              vinsertf128    $1, %xmm14, %ymm12, %ymm1
-              vinsertf128    $1, %xmm11, %ymm9, %ymm2
-              vinsertf128    $1, %xmm15, %ymm13, %ymm3
-              vpermpd        $78, %ymm8, %ymm8
-              vpermpd        $78, %ymm12, %ymm12
-              vpermpd        $78, %ymm9, %ymm9
-              vpermpd        $78, %ymm13, %ymm13
-              vinsertf128    $0, %xmm8, %ymm10, %ymm4
-              vinsertf128    $0, %xmm12, %ymm14, %ymm5
-              vinsertf128    $0, %xmm9, %ymm11, %ymm6
-              vinsertf128    $0, %xmm13, %ymm15, %ymm7
-              vmovapd        TW45, tw45
-              vmovapd        TWO, two
+              vunpcklpd      %ymm5, %ymm0, %ymm8
+              vunpcklpd      %ymm7, %ymm2, %ymm12
+              vunpckhpd      %ymm5, %ymm0, %ymm9
+              vunpckhpd      %ymm7, %ymm2, %ymm13
+              vunpcklpd      %ymm6, %ymm3, %ymm10
+              vunpcklpd      %ymm4, %ymm1, %ymm14
+              vunpckhpd      %ymm6, %ymm3, %ymm11
+              vunpckhpd      %ymm4, %ymm1, %ymm15
+              vperm2f128     $0x20, %ymm10, %ymm8, %ymm0
+              vperm2f128     $0x20, %ymm14, %ymm12, %ymm1
+              vperm2f128     $0x20, %ymm11, %ymm9, %ymm2
+              vperm2f128     $0x20, %ymm15, %ymm13, %ymm3
+              vperm2f128     $0x31, %ymm10, %ymm8, %ymm4
+              vperm2f128     $0x31, %ymm14, %ymm12, %ymm5
+              vperm2f128     $0x31, %ymm11, %ymm9, %ymm6
+              vperm2f128     $0x31, %ymm15, %ymm13, %ymm7
               vmovapd        %ymm0, (X)
               vmovapd        %ymm1, 32(X)
               vmovapd        %ymm2, 64(X)
@@ -562,8 +556,6 @@ radix8_loop:  lea            (X, ilo, 8), %rax
               add            $4, ilo
               cmp            ilo, NLO
               jg             radix8_loop
-              vmovapd        TW45, tw45
-              vmovapd        TWO, two
               cmp            $4, NLO
               jle            done3
               push           k2rev

@@ -23,11 +23,11 @@ scramble_hi:  push           %rbx
               mov            NHI, NHIm1
               dec            NHIm1
               cmp            $16, IMAX
-              jl             L100
+              jl             small
               xor            I, I
               xor            J, J
-L0:           cmp            I, J
-              jg             L5
+main_loop:    cmp            I, J
+              jg             skip_swap
               mov            I, I0
               mov            J, J0
               imul           NLO, I0
@@ -36,7 +36,7 @@ L0:           cmp            I, J
               mov            J0, %rdx
               mov            I0, IMAX
               add            NLO, IMAX
-L1:           vmovapd        (X, %rax, 8), %ymm0
+swap_loop:    vmovapd        (X, %rax, 8), %ymm0
               vmovapd        (X, %rdx, 8), %ymm1
               add            $4, %rax
               add            $4, %rdx
@@ -69,8 +69,8 @@ L1:           vmovapd        (X, %rax, 8), %ymm0
               add            $4, %rax
               add            $4, %rdx
               cmp            %rax, IMAX
-              jg             L1
-L5:           mov            J, %r10
+              jg             swap_loop
+skip_swap:    mov            J, %r10
               not            %r10
               and            NHIm1, %r10
               bsr            %r10, %rcx
@@ -84,12 +84,12 @@ L5:           mov            J, %r10
               mov            %rcx, J
               inc            I
               cmp            I, NHIm1
-              jg             L0
-              jmp            L400
-L100:         xor            I, I
+              jg             main_loop
+              jmp            done
+small:        xor            I, I
               xor            J, J
-L200:         cmp            I, J
-              jg             L250
+small_loop:   cmp            I, J
+              jg             skip_small
               mov            I, I0
               mov            J, J0
               imul           NLO, I0
@@ -98,15 +98,15 @@ L200:         cmp            I, J
               mov            J0, %rdx
               mov            I0, IMAX
               add            NLO, IMAX
-L210:         vmovapd        (X, %rax, 8), %ymm0
+small_swap:   vmovapd        (X, %rax, 8), %ymm0
               vmovapd        (X, %rdx, 8), %ymm1
               vmovapd        %ymm1, (X, %rax, 8)
               vmovapd        %ymm0, (X, %rdx, 8)
               add            $4, %rax
               add            $4, %rdx
               cmp            %rax, IMAX
-              jg             L210
-L250:         mov            J, %r10
+              jg             small_swap
+skip_small:   mov            J, %r10
               not            %r10
               and            NHIm1, %r10
               bsr            %r10, %rcx
@@ -120,8 +120,8 @@ L250:         mov            J, %r10
               mov            %rcx, J
               inc            I
               cmp            I, NHIm1
-              jg             L200
-L400:         pop            %r15
+              jg             small_loop
+done:         pop            %r15
               pop            %r14
               pop            %r13
               pop            %r12
