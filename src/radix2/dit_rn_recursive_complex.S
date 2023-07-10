@@ -95,7 +95,7 @@ L10:          add            stack_size, %rsp
               pop            %rbx
               ret
 next_level:   cmp            $4, N2
-              jle            fine_level
+              jle            Neq16
               push           Y
               push           X
               imul           $3, N2, %rdx
@@ -129,24 +129,30 @@ next_level:   cmp            $4, N2
               shl            $2, N2
               shl            $2, N
               jmp            coarse_level
-fine_level:   vmovapd        NONE, %ymm8
-              vmovapd        TRANSPOSE, %xmm15
-              vmovapd        %ymm8, %ymm9
-              vmovapd        %ymm8, %ymm10
-              vmovapd        %ymm8, %ymm11
-              vmovapd        %ymm8, %ymm12
-              vgatherdpd     %ymm9, (X, %xmm15, 8), er0
-              vgatherdpd     %ymm10, 16(X, %xmm15, 8), er1
-              vgatherdpd     %ymm11, 8(X, %xmm15, 8), er2
-              vgatherdpd     %ymm12, 24(X, %xmm15, 8), er3
-              vmovapd        %ymm8, %ymm9
-              vmovapd        %ymm8, %ymm10
-              vmovapd        %ymm8, %ymm11
-              vmovapd        %ymm8, %ymm12
-              vgatherdpd     %ymm9, (Y, %xmm15, 8), ei0
-              vgatherdpd     %ymm10, 16(Y, %xmm15, 8), ei1
-              vgatherdpd     %ymm11, 8(Y, %xmm15, 8), ei2
-              vgatherdpd     %ymm12, 24(Y, %xmm15, 8), ei3
+Neq16:        vmovapd        (X), %ymm0
+              vmovapd        32(X), %ymm1
+              vmovapd        64(X), %ymm2
+              vmovapd        96(X), %ymm3
+              vmovapd        (Y), %ymm4
+              vmovapd        32(Y), %ymm5
+              vmovapd        64(Y), %ymm6
+              vmovapd        96(Y), %ymm7
+              vunpcklpd      er1, er0, %ymm8
+              vunpckhpd      er1, er0, %ymm9
+              vunpcklpd      er3, er2, %ymm10
+              vunpckhpd      er3, er2, %ymm11
+              vperm2f128     $0x20, %ymm10, %ymm8, er0
+              vperm2f128     $0x20, %ymm11, %ymm9, er2
+              vperm2f128     $0x31, %ymm10, %ymm8, er1
+              vperm2f128     $0x31, %ymm11, %ymm9, er3
+              vunpcklpd      ei1, ei0, %ymm8
+              vunpckhpd      ei1, ei0, %ymm9
+              vunpcklpd      ei3, ei2, %ymm10
+              vunpckhpd      ei3, ei2, %ymm11
+              vperm2f128     $0x20, %ymm10, %ymm8, ei0
+              vperm2f128     $0x20, %ymm11, %ymm9, ei2
+              vperm2f128     $0x31, %ymm10, %ymm8, ei1
+              vperm2f128     $0x31, %ymm11, %ymm9, ei3
               vaddpd         er2, er0, tr0
               vaddpd         ei2, ei0, ti0
               vsubpd         er2, er0, tr2
@@ -168,25 +174,63 @@ fine_level:   vmovapd        NONE, %ymm8
               vunpcklpd      er3, er2, %ymm10
               vunpckhpd      er3, er2, %ymm11
               vperm2f128     $0x20, %ymm10, %ymm8, er0
-              vperm2f128     $0x20, %ymm11, %ymm9, er1
-              vperm2f128     $0x31, %ymm10, %ymm8, er2
+              vperm2f128     $0x20, %ymm11, %ymm9, er2
+              vperm2f128     $0x31, %ymm10, %ymm8, er1
               vperm2f128     $0x31, %ymm11, %ymm9, er3
               vunpcklpd      ei1, ei0, %ymm8
               vunpckhpd      ei1, ei0, %ymm9
               vunpcklpd      ei3, ei2, %ymm10
               vunpckhpd      ei3, ei2, %ymm11
               vperm2f128     $0x20, %ymm10, %ymm8, ei0
-              vperm2f128     $0x20, %ymm11, %ymm9, ei1
-              vperm2f128     $0x31, %ymm10, %ymm8, ei2
+              vperm2f128     $0x20, %ymm11, %ymm9, ei2
+              vperm2f128     $0x31, %ymm10, %ymm8, ei1
               vperm2f128     $0x31, %ymm11, %ymm9, ei3
+              vmovapd        TWO, two
+              vmovapd        tw16_1r, cos1
+              vmovapd        tw16_1i, sin1
+              vmovapd        tw16_2r, cos2
+              vmovapd        tw16_2i, sin2
+              vmovapd        er0, tr
+              vmovapd        ei0, ti
+              vfmadd231pd    sin2, ei2, tr
+              vfnmadd231pd   sin2, er2, ti
+              vfnmadd132pd   cos2, tr, er2
+              vfnmadd132pd   cos2, ti, ei2
+              vfmsub132pd    two, er2, er0
+              vfmsub132pd    two, ei2, ei0
+              vmovapd        er1, tr
+              vmovapd        ei1, ti
+              vfmadd231pd    sin2, ei3, tr
+              vfnmadd231pd   sin2, er3, ti
+              vfnmadd132pd   cos2, tr, er3
+              vfnmadd132pd   cos2, ti, ei3
+              vfmsub132pd    two, er3, er1
+              vfmsub132pd    two, ei3, ei1
+              vmovapd        er0, tr
+              vmovapd        ei0, ti
+              vfmadd231pd    sin1, ei1, tr
+              vfnmadd231pd   sin1, er1, ti
+              vfnmadd132pd   cos1, tr, er1
+              vfnmadd132pd   cos1, ti, ei1
+              vfmsub132pd    two, er1, er0
+              vfmsub132pd    two, ei1, ei0
+              vmovapd        er2, tr
+              vmovapd        ei2, ti
+              vfmadd231pd    cos1, ei3, tr
+              vfnmadd231pd   cos1, er3, ti
+              vfmadd132pd    sin1, tr, er3
+              vfmadd132pd    sin1, ti, ei3
+              vfmsub132pd    two, er3, er2
+              vfmsub132pd    two, ei3, ei2
               vmovapd        er0, (X)
-              vmovapd        er1, 32(X)
-              vmovapd        er2, 64(X)
-              vmovapd        er3, 96(X)
+              vmovapd        er3, 32(X)
+              vmovapd        er1, 64(X)
+              vmovapd        er2, 96(X)
               vmovapd        ei0, (Y)
-              vmovapd        ei1, 32(Y)
-              vmovapd        ei2, 64(Y)
-              vmovapd        ei3, 96(Y)
+              vmovapd        ei3, 32(Y)
+              vmovapd        ei1, 64(Y)
+              vmovapd        ei2, 96(Y)
+              jmp            done
 coarse_level: imul           $2, N2, %rcx
               imul           $3, N2, %rdx
               bsf            N, %rax
@@ -232,9 +276,9 @@ k2_loop:      vmovapd        (Wr, k2, 8), cos1
               vfmadd231pd    sin1, ei1, tr
               vfnmadd231pd   sin1, er1, ti
               vfnmadd132pd   cos1, tr, er1
-              vfmsub132pd    cos1, ti, ei1
+              vfnmadd132pd   cos1, ti, ei1
               vfmsub132pd    two, er1, er0
-              vfmadd132pd    two, ei1, ei0
+              vfmsub132pd    two, ei1, ei0
               vmovapd        er2, tr
               vmovapd        ei2, ti
               vfmadd231pd    cos1, ei3, tr
@@ -242,9 +286,7 @@ k2_loop:      vmovapd        (Wr, k2, 8), cos1
               vfmadd132pd    sin1, tr, er3
               vfmadd132pd    sin1, ti, ei3
               vfmsub132pd    two, er3, er2
-              vfnmadd132pd   two, ei3, ei2
-              vmulpd         NONE, ei1, ei1
-              vmulpd         NONE, ei2, ei2
+              vfmsub132pd    two, ei3, ei2
               vmovapd        er0, (%rax)
               vmovapd        er3, (%rax, N2, 8)
               vmovapd        er1, (%rax, %rcx, 8)
@@ -256,18 +298,25 @@ k2_loop:      vmovapd        (Wr, k2, 8), cos1
               add            $4, k2
               cmp            k2, N2
               jne            k2_loop
-              ret
+done:         ret
               .align         32
 TWO:          .double        2.0
               .double        2.0
               .double        2.0
               .double        2.0
-NONE:         .double        -1.0
-              .double        -1.0
-              .double        -1.0
-              .double        -1.0
-              .align         16
-TRANSPOSE:    .long          0
-              .long          4
-              .long          8
-              .long          12
+tw16_1r:      .double        +1.000000000000000000
+              .double        +0.923879532511286756
+              .double        +0.707106781186547524
+              .double        +0.382683432365089771
+tw16_1i:      .double        -0.000000000000000000
+              .double        -0.382683432365089771
+              .double        -0.707106781186547524
+              .double        -0.923879532511286756
+tw16_2r:      .double        +1.000000000000000000
+              .double        +0.707106781186547524
+              .double        +0.000000000000000000
+              .double        -0.707106781186547524
+tw16_2i:      .double        +0.000000000000000000
+              .double        -0.707106781186547524
+              .double        -1.000000000000000000
+              .double        -0.707106781186547524
