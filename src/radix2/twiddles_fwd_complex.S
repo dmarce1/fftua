@@ -23,10 +23,10 @@ twiddles_fwd_complex:
               mov            %rsp, %rbp
               sub            STACK_SIZE, %rsp
               push           %rbx
-              push           %r15
               push           %r12
               push           %r13
               push           %r14
+              push           %r15
               mov            %rdi, N
               bsr            N, logN
               mov            N, %rax
@@ -97,10 +97,10 @@ done:         mov            C, %rax
               mov            S, %rdx
               mov            $1, %rcx
               xchg           (LOCK), %rcx
+              pop            %r15
               pop            %r14
               pop            %r13
               pop            %r12
-              pop            %r15
               pop            %rbx
               mov            %rbp, %rsp
               pop            %rbp

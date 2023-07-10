@@ -1,3 +1,4 @@
+#include      "ymm.h"
 #define       X              %r15
 #define       Y              %r14
 #define       N              %r13
@@ -6,31 +7,9 @@
 #define       Wi             %r10
 #define       k2             %r9
 #define       Wptr           %r8
-#define       er0            %ymm0
-#define       er1            %ymm1
-#define       er2            %ymm2
-#define       er3            %ymm3
-#define       ei0            %ymm4
-#define       ei1            %ymm5
-#define       ei2            %ymm6
-#define       ei3            %ymm7
-#define       tr0            %ymm8
-#define       tr1            %ymm9
-#define       tr2            %ymm10
-#define       tr3            %ymm11
-#define       ti0            %ymm12
-#define       ti1            %ymm13
-#define       ti2            %ymm14
-#define       ti3            %ymm15
-#define       cos1           %ymm8
-#define       sin1           %ymm9
-#define       cos2           %ymm10
-#define       sin2           %ymm11
-#define       tr             %ymm12
-#define       ti             %ymm13
-#define       two            %ymm14
 #define       STACK_SIZE     $8
 #define       stack_size     -8(%rbp)
+
 
               .global        dit_rn_recursive_complex
 
@@ -46,7 +25,6 @@ dit_rn_recursive_complex:
               mov            %rdi, X
               mov            %rsi, Y
               mov            %rdx, N
-              mov            X, %rdi
               mov            N, %rsi
               call           scramble
               mov            Y, %rdi
@@ -290,23 +268,6 @@ k2_loop:      vmovapd        (Wr, k2, 8), cos1
               cmp            k2, N2
               jne            k2_loop
 done:         ret
-butterfly4:   vaddpd         er2, er0, tr0
-              vaddpd         ei2, ei0, ti0
-              vsubpd         er2, er0, tr2
-              vsubpd         ei2, ei0, ti2
-              vaddpd         er3, er1, tr1
-              vaddpd         ei3, ei1, ti1
-              vsubpd         er3, er1, tr3
-              vsubpd         ei3, ei1, ti3
-              vaddpd         tr1, tr0, er0
-              vaddpd         ti1, ti0, ei0
-              vaddpd         ti3, tr2, er1
-              vsubpd         tr3, ti2, ei1
-              vsubpd         tr1, tr0, er2
-              vsubpd         ti1, ti0, ei2
-              vsubpd         ti3, tr2, er3
-              vaddpd         tr3, ti2, ei3
-              ret
 transpose:    vunpcklpd      er1, er0, %ymm8
               vunpckhpd      er1, er0, %ymm9
               vunpcklpd      er3, er2, %ymm10
@@ -323,39 +284,6 @@ transpose:    vunpcklpd      er1, er0, %ymm8
               vperm2f128     $0x20, %ymm11, %ymm9, ei2
               vperm2f128     $0x31, %ymm10, %ymm8, ei1
               vperm2f128     $0x31, %ymm11, %ymm9, ei3
-              ret
-tw_butterfly4:vmovapd        er0, tr
-              vmovapd        ei0, ti
-              vfmadd231pd    sin2, ei2, tr
-              vfnmadd231pd   sin2, er2, ti
-              vfnmadd132pd   cos2, tr, er2
-              vfnmadd132pd   cos2, ti, ei2
-              vfmsub132pd    two, er2, er0
-              vfmsub132pd    two, ei2, ei0
-              vmovapd        er1, tr
-              vmovapd        ei1, ti
-              vfmadd231pd    sin2, ei3, tr
-              vfnmadd231pd   sin2, er3, ti
-              vfnmadd132pd   cos2, tr, er3
-              vfnmadd132pd   cos2, ti, ei3
-              vfmsub132pd    two, er3, er1
-              vfmsub132pd    two, ei3, ei1
-              vmovapd        er0, tr
-              vmovapd        ei0, ti
-              vfmadd231pd    sin1, ei1, tr
-              vfnmadd231pd   sin1, er1, ti
-              vfnmadd132pd   cos1, tr, er1
-              vfnmadd132pd   cos1, ti, ei1
-              vfmsub132pd    two, er1, er0
-              vfmsub132pd    two, ei1, ei0
-              vmovapd        er2, tr
-              vmovapd        ei2, ti
-              vfmadd231pd    cos1, ei3, tr
-              vfnmadd231pd   cos1, er3, ti
-              vfmadd132pd    sin1, tr, er3
-              vfmadd132pd    sin1, ti, ei3
-              vfmsub132pd    two, er3, er2
-              vfmsub132pd    two, ei3, ei2
               ret
               .align         32
 TWO:          .double        2.0
