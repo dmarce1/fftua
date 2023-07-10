@@ -9,15 +9,17 @@
 #define       cos            -32(%rbp)
 #define       sin            -40(%rbp)
 #define       N2             -48(%rbp)
+#define       ptr            -56(%rbp)
 #define       N1             $4
 #define       logN1          $2
 
-              .global        get_twiddles
+              .global        twiddles_fwd_complex
 
 
               .text
 
-get_twiddles: push           %rbp
+twiddles_fwd_complex:
+              push           %rbp
               mov            %rsp, %rbp
               sub            STACK_SIZE, %rsp
               push           %rbx
@@ -45,18 +47,16 @@ lock_acquired:lea            (Cs), %rax
               mov            (%rax), %rax
               cmp            $0, %rax
               jne            load_from_mem
-              imul           $2, N, %rdi
-              add            $32, %rdi
-              call           malloc
-              add            $32, %rax
-              and            $0xffffffffffffffe0, %rax
-              mov            %rax, C
-              imul           $2, N, %rdi
-              add            $32, %rdi
-              call           malloc
-              add            $32, %rax
-              and            $0xffffffffffffffe0, %rax
-              mov            %rax, S
+              lea            ptr, %rdi
+              imul           $2, N, %rdx
+              mov            $32, %rsi
+              call           posix_memalign
+              mov            ptr, C
+              lea            ptr, %rdi
+              imul           $2, N, %rdx
+              mov            $32, %rsi
+              call           posix_memalign
+              mov            ptr, S
               emms
               fldpi
               fldpi
@@ -66,38 +66,18 @@ lock_acquired:lea            (Cs), %rax
               fchs
               fstpl          twopioN
               xor            %rcx, %rcx
-              xor            %rdx, %rdx
-main_loop:    mov            %rdx, %rax
-              mov            N2, %rbx
-              sub            %rdx, %rbx
-              test           $1, %rcx
-              cmovnz         %rbx, %rax
-              mov            %rax, cos
+main_loop:    mov            %rcx, cos
               fildl          cos
               fmull          twopioN
               fcos
               fstpl          (C, %rcx, 8)
-              mov            %rax, sin
+              mov            %rcx, sin
               fildl          sin
               fmull          twopioN
               fsin
               fstpl          (S, %rcx, 8)
               cmp            %rcx, N2m1
               je             load_complete
-              push           %rcx
-              mov            %rdx, %rax
-              not            %rax
-              and            N2m1, %rax
-              bsr            %rax, %rcx
-              mov            $1, %rax
-              shl            %rcx, %rax
-              dec            %rax
-              mov            %rdx, %rcx
-              and            %rax, %rcx
-              inc            %rax
-              or             %rax, %rcx
-              mov            %rcx, %rdx
-              pop            %rcx
               inc            %rcx
               jmp            main_loop
 load_complete:lea            (Cs), %rax
@@ -125,6 +105,8 @@ done:         mov            C, %rax
               mov            %rbp, %rsp
               pop            %rbp
               ret
+
+
 
               .data
 

@@ -144,7 +144,7 @@ double fftw(std::vector<complex<double>>& x) {
 		in[N] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
 		out[N] = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
 		//out[N] = in[N];
-		plans[N] = fftw_plan_dft_1d(N, in[N], out[N], FFTW_FORWARD, FFTW_ESTIMATE | FFTW_NO_SIMD);
+		plans[N] = fftw_plan_dft_1d(N, in[N], out[N], FFTW_FORWARD, FFTW_MEASURE);
 	}
 	auto* i = in[N];
 	auto* o = out[N];

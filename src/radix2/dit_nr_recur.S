@@ -54,7 +54,7 @@ dit_nr_recur: push           %r12
               mov            %rsi, N
               mov            N, %rdi
               push           %r11
-              call           get_twiddles
+              call           rev_twiddles
               mov            %rax, C
               mov            %rdx, S
               pop            %r11
