@@ -1,6 +1,6 @@
 #include      "ymm.h"
 
-              .global        butterfly4
+              .global        tw_butterfly4
 
 
               .text

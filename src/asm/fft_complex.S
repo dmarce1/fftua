@@ -1,22 +1,21 @@
 #include      "ymm.h"
 #define       X              %r15
 #define       Y              %r14
-#define       N              %r13
-#define       N2             %r12
-#define       Wr             %r11
-#define       Wi             %r10
-#define       k2             %r9
-#define       Wptr           %r8
-#define       STACK_SIZE     $8
-#define       stack_size     -8(%rbp)
+#define       N2             %r13
+#define       Wr             %r12
+#define       Wi             %r11
+#define       k2             %r10
+#define       Wptr           %r9
+#define       stack_size     %r8
+#define       L1_size        $0x8000
 
 
-              .global        dit_rn_recursive_complex
+              .global        fft_radix2_complex
 
 
               .text
 
-dit_rn_recursive_complex:
+fft_radix2_complex:
               push           %rbx
               push           %r15
               push           %r14
@@ -24,22 +23,18 @@ dit_rn_recursive_complex:
               push           %r12
               mov            %rdi, X
               mov            %rsi, Y
-              mov            %rdx, N
-              mov            N, %rsi
-              call           scramble
-              mov            Y, %rdi
-              mov            N, %rsi
-              call           scramble
-              bsf            N, %rax
-              inc            %rax
+              mov            %rdx, N2
+              shr            $2, N2
+              bsf            N2, %rax
+              add            $3, %rax
               shl            $4, %rax
-              add            STACK_SIZE, %rax
               push           %rbp
               mov            %rsp, %rbp
               sub            %rax, %rsp
               mov            %rsp, Wptr
               mov            %rax, stack_size
-              bsf            N, %rdx
+              bsf            N2, %rdx
+              add            $2, %rdx
               mov            $2, %rdi
 twiddle_loop: mov            %rdi, %rcx
               push           %rdi
@@ -47,7 +42,13 @@ twiddle_loop: mov            %rdi, %rcx
               shl            %rcx, %rdi
               push           %rdx
               push           %r8
+              push           %r9
+              push           %r10
+              push           %r11
               call           twiddles_fwd_complex
+              pop            %r11
+              pop            %r10
+              pop            %r9
               pop            %r8
               pop            %rcx
               pop            %rdi
@@ -60,9 +61,7 @@ twiddle_loop: mov            %rdi, %rcx
               je             twiddle_esc
               inc            %rdi
               jmp            twiddle_loop
-twiddle_esc:  mov            N, N2
-              shr            $2, N2
-              call           next_level
+twiddle_esc:  call           next_level
               add            stack_size, %rsp
               mov            %rsp, %rbp
               pop            %rbp
@@ -72,7 +71,9 @@ twiddle_esc:  mov            N, N2
               pop            %r15
               pop            %rbx
               ret
-next_level:   cmp            $64, N
+next_level:
+
+cmp            $16, N2
               jl             Nlt64
               push           Y
               push           X
@@ -91,7 +92,6 @@ next_level:   cmp            $64, N
               push           %rbx
               push           %rax
               shr            $2, N2
-              shr            $2, N
               call           next_level
               pop            X
               pop            Y
@@ -105,7 +105,6 @@ next_level:   cmp            $64, N
               pop            X
               pop            Y
               shl            $2, N2
-              shl            $2, N
               jmp            coarse_level
 Nlt64:        vmovapd        (X), er0
               vmovapd        32(X), er1
@@ -115,9 +114,9 @@ Nlt64:        vmovapd        (X), er0
               vmovapd        32(Y), ei1
               vmovapd        64(Y), ei2
               vmovapd        96(Y), ei3
-              call           transpose
+              call           transpose_lo
               call           butterfly4
-              call           transpose
+              call           transpose_lo
               vmovapd        TWO, two
               vmovapd        tw16_1r, cos1
               vmovapd        tw16_1i, sin1
@@ -132,7 +131,7 @@ Nlt64:        vmovapd        (X), er0
               vmovapd        ei3, 32(Y)
               vmovapd        ei1, 64(Y)
               vmovapd        ei2, 96(Y)
-              cmp            $32, N
+              cmp            $8, N2
               jl             done
               vmovapd        128(X), er0
               vmovapd        160(X), er1
@@ -142,9 +141,9 @@ Nlt64:        vmovapd        (X), er0
               vmovapd        160(Y), ei1
               vmovapd        192(Y), ei2
               vmovapd        224(Y), ei3
-              call           transpose
+              call           transpose_lo
               call           butterfly4
-              call           transpose
+              call           transpose_lo
               vmovapd        TWO, two
               vmovapd        tw16_1r, cos1
               vmovapd        tw16_1i, sin1
@@ -232,12 +231,13 @@ Nlt64:        vmovapd        (X), er0
               vmovapd        ei0, 96(Y)
               vmovapd        ei2, 224(Y)
               jmp            done
-coarse_level: imul           $2, N2, %rcx
-              imul           $3, N2, %rdx
-              bsf            N, %rax
+coarse_level: bsf            N2, %rax
+              add            $2, %rax
               shl            %rax
               mov            (Wptr, %rax, 8), Wr
               mov            8(Wptr, %rax, 8), Wi
+              imul           $2, N2, %rcx
+              imul           $3, N2, %rdx
               xor            k2, k2
 k2_loop:      vmovapd        (Wr, k2, 8), cos1
               vmovapd        (Wi, k2, 8), sin1
@@ -268,23 +268,6 @@ k2_loop:      vmovapd        (Wr, k2, 8), cos1
               cmp            k2, N2
               jne            k2_loop
 done:         ret
-transpose:    vunpcklpd      er1, er0, %ymm8
-              vunpckhpd      er1, er0, %ymm9
-              vunpcklpd      er3, er2, %ymm10
-              vunpckhpd      er3, er2, %ymm11
-              vperm2f128     $0x20, %ymm10, %ymm8, er0
-              vperm2f128     $0x20, %ymm11, %ymm9, er2
-              vperm2f128     $0x31, %ymm10, %ymm8, er1
-              vperm2f128     $0x31, %ymm11, %ymm9, er3
-              vunpcklpd      ei1, ei0, %ymm8
-              vunpckhpd      ei1, ei0, %ymm9
-              vunpcklpd      ei3, ei2, %ymm10
-              vunpckhpd      ei3, ei2, %ymm11
-              vperm2f128     $0x20, %ymm10, %ymm8, ei0
-              vperm2f128     $0x20, %ymm11, %ymm9, ei2
-              vperm2f128     $0x31, %ymm10, %ymm8, ei1
-              vperm2f128     $0x31, %ymm11, %ymm9, ei3
-              ret
               .align         32
 TWO:          .double        2.0
               .double        2.0

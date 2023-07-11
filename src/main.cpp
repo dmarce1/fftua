@@ -116,6 +116,8 @@ void test_time(double* x, int N) {
 extern "C" {
 int fft_bit_reverse(int, int);
 void dit_rn_recursive_complex(double*, double*, int);
+void fft_radix2_real(double*, int);
+void fft_complex(double*, double*, int);
 }
 
 double dit_rn_recursive_complex_test(complex<double>* z, int N) {
@@ -126,7 +128,7 @@ double dit_rn_recursive_complex_test(complex<double>* z, int N) {
 	}
 	timer tm;
 	tm.start();
-	dit_rn_recursive_complex(x.data(), y.data(), N);
+//	fft_complex(x.data(), y.data(), N);
 	tm.stop();
 	for( int n = 0; n < N; n++) {
 		z[n].real() = x[n];
@@ -166,10 +168,9 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-	for (int N = 16; N <= 64*1024*1024; N *= 2) {
+	for (int N = 1024; N <= 64*1024*1024; N *= 2) {
 		auto pfac = prime_factorization(N);
-		goto COMPLEX;
-		{
+		if( true) {
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
@@ -181,19 +182,19 @@ int main(int argc, char **argv) {
 				for (int n = 0; n < N; n++) {
 					x[n] = (y[n] = rand1());
 				}
-				x[0] = y[0] = 1.0;
+				x[10] = y[10] = 1.0;
 //				x[0] = y[0] = 1.0;
 				const auto& c = cos_twiddles(N);
 				const auto& s = sin_twiddles(N);
 				if (i == 0) {
 					fftw_real(Y, y);
-					dit_nr_recur(x.data(),N);
+					fft_radix2_real(x.data(),N);
 				} else {
 
 					auto b = fftw_real(Y, y);
 					timer tm;
 					tm.start();
-					dit_nr_recur(x.data(),  N);
+					fft_radix2_real(x.data(),  N);
 					//test_time(x.data(), N);
 					tm.stop();
 					X[0].real() = x[0];
@@ -215,11 +216,11 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-					//	printf("%i: %16e %16e | %16e %16e | %16e %16e\n", n, X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+			//			printf("%i: %16e %16e | %16e %16e | %16e %16e\n", n, X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
-//			abort();
+		//	abort();
 			std::string f;
 			for (auto i = pfac.begin(); i != pfac.end(); i++) {
 				f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
@@ -235,7 +236,8 @@ int main(int argc, char **argv) {
 		}
 COMPLEX:
         {
-			double avg_err = 0.0;
+        	continue;
+        	double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
 			for (int i = 0; i < 2; i++) {
