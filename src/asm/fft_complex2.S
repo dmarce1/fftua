@@ -236,22 +236,12 @@ butterfly_tw4:vmovapd        TWO, two
               vfmadd132pd    sin1, ti, ei3
               vfmsub132pd    two, er3, er2
               vfmsub132pd    two, ei3, ei2
-              vmovapd        er0, tr0
-              vmovapd        er1, tr1
-              vmovapd        er2, tr2
-              vmovapd        er3, tr3
-              vmovapd        ei0, ti0
-              vmovapd        ei1, ti1
-              vmovapd        ei2, ti2
-              vmovapd        ei3, ti3
-              vmovapd        tr0, er0
-              vmovapd        tr1, er1
-              vmovapd        tr3, er2
-              vmovapd        tr2, er3
-              vmovapd        ti0, ei0
-              vmovapd        ti1, ei1
-              vmovapd        ti3, ei2
-              vmovapd        ti2, ei3
+              vmovapd        er2, tr
+              vmovapd        ei2, ti
+              vmovapd        er3, er2
+              vmovapd        ei3, ei2
+              vmovapd        tr, er3
+              vmovapd        ti, ei3
               ret
 
 trans34201:   vunpcklpd      er1, er0, %ymm8
