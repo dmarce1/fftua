@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
 	double score = 0.0;
 	int cnt = 0;
 
-	for (int N = 16; N <= 64*1024*1024; N *= 2) {
+	for (int N = 256; N <= 64*1024*1024; N *= 2) {
 		auto pfac = prime_factorization(N);
 		if( false) {
 			double avg_err = 0.0;
@@ -237,9 +237,9 @@ COMPLEX:
 				std::vector<complex<double>> Y(N);
 				for (int n = 0; n < N; n++) {
 					X[n].real() = (Y[n].real() = rand1());
-					X[n].imag() = (Y[n].imag() = rand1());
+					X[n].imag() = (Y[n].imag() = rand1() );
 				}
-				X[3].real() = (Y[3].real() = 1);
+				X[32].real() = (Y[32].real() = 1);
 			//	X[0].imag() = (Y[0].imag() = 0);
 				if (i == 0) {
 					fftw(Y);

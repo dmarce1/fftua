@@ -30,14 +30,14 @@
 #define       ti             %ymm13
 #define       two            %ymm14
 #define       half           %ymm15
-#define       X             %r15
-#define       Wr            %r14
-#define       Wi            %r13
-#define       k2rev         %r12
-#define       N             %r11
-#define       N2            %r10
-#define       NLO           %r9
-#define       nlo           %r8
+#define       X              %r15
+#define       Wr             %r14
+#define       Wi             %r13
+#define       k2rev          %r12
+#define       N              %r11
+#define       N2             %r10
+#define       NLO            %r9
+#define       nlo            %r8
 
               .global        fft_complex2
 
@@ -118,7 +118,41 @@ dispatch:     push           k2rev
               pop            k2rev
               ret
 
-radix4:       xor            nlo, nlo
+radix4:       cmp            $1, N2
+              jne            not_first
+              xor            nlo, nlo
+              mov            NLO, %rdi
+              shl            $4, %rdi
+first_loop:   mov            nlo, %rdx
+              shl            $4, %rdx
+              lea            (X, %rdx), %rax
+              lea            (%rax, %rdi), %rbx
+              lea            (%rbx, %rdi), %rcx
+              lea            (%rcx, %rdi), %rdx
+              vmovapd        (%rax), er0
+              vmovapd        (%rbx), er1
+              vmovapd        (%rcx), er2
+              vmovapd        (%rdx), er3
+              vmovapd        32(%rax), ei0
+              vmovapd        32(%rbx), ei1
+              vmovapd        32(%rcx), ei2
+              vmovapd        32(%rdx), ei3
+              call           trans21034
+              call           trans10234
+              call           butterfly_04
+              vmovapd        er0, (%rax)
+              vmovapd        er1, (%rbx)
+              vmovapd        er2, (%rcx)
+              vmovapd        er3, (%rdx)
+              vmovapd        ei0, 32(%rax)
+              vmovapd        ei1, 32(%rbx)
+              vmovapd        ei2, 32(%rcx)
+              vmovapd        ei3, 32(%rdx)
+              add            $4, nlo
+              cmp            nlo, NLO
+              jne            first_loop
+              jmp            radix4_end
+not_first:    xor            nlo, nlo
               vbroadcastsd   (Wr, k2rev, 8), cos1
               vbroadcastsd   (Wi, k2rev, 8), sin1
               vmulpd         sin1, sin1, cos2
@@ -137,27 +171,23 @@ radix4_loop:  mov            nlo, %rdx
               vmovapd        (%rbx), er1
               vmovapd        (%rcx), er2
               vmovapd        (%rdx), er3
-              vmovapd        8(%rax), ei0
-              vmovapd        8(%rbx), ei1
-              vmovapd        8(%rcx), ei2
-              vmovapd        8(%rdx), ei3
-              cmp            $1, N2
-              jne            skip_trans
-              call           trans10234
-              call           trans21034
-skip_trans:   call           butterfly_tw4
+              vmovapd        32(%rax), ei0
+              vmovapd        32(%rbx), ei1
+              vmovapd        32(%rcx), ei2
+              vmovapd        32(%rdx), ei3
+              call           butterfly_tw4
               vmovapd        er0, (%rax)
               vmovapd        er1, (%rbx)
               vmovapd        er2, (%rcx)
               vmovapd        er3, (%rdx)
-              vmovapd        ei0, 8(%rax)
-              vmovapd        ei1, 8(%rbx)
-              vmovapd        ei2, 8(%rcx)
-              vmovapd        ei3, 8(%rdx)
+              vmovapd        ei0, 32(%rax)
+              vmovapd        ei1, 32(%rbx)
+              vmovapd        ei2, 32(%rcx)
+              vmovapd        ei3, 32(%rdx)
               add            $4, nlo
               cmp            nlo, NLO
               jne            radix4_loop
-              ret
+radix4_end:   ret
 
 radix16:      vmovapd        (X), er0
               vmovapd        64(X), er1
@@ -242,6 +272,24 @@ butterfly_tw4:vmovapd        TWO, two
               vmovapd        ei3, ei2
               vmovapd        tr, er3
               vmovapd        ti, ei3
+              ret
+
+butterfly_04: vaddpd         er2, er0, tr0
+              vaddpd         ei2, ei0, ti0
+              vsubpd         er2, er0, tr2
+              vsubpd         ei2, ei0, ti2
+              vaddpd         er3, er1, tr1
+              vaddpd         ei3, ei1, ti1
+              vsubpd         er3, er1, tr3
+              vsubpd         ei3, ei1, ti3
+              vaddpd         tr1, tr0, er0
+              vaddpd         ti1, ti0, ei0
+              vaddpd         ti3, tr2, er2
+              vsubpd         tr3, ti2, ei2
+              vsubpd         tr1, tr0, er1
+              vsubpd         ti1, ti0, ei1
+              vsubpd         ti3, tr2, er3
+              vaddpd         tr3, ti2, ei3
               ret
 
 trans34201:   vunpcklpd      er1, er0, %ymm8
