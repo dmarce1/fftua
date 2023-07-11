@@ -85,7 +85,7 @@ second_pass:  mov            X, %rdi
               call           dit_nr_recur
               mov            X, %rdi
               mov            N, %rsi
-              call           scramble
+           //   call           scramble
               mov            stack_pointer, %rsp
               pop            %rbx
               pop            %r15

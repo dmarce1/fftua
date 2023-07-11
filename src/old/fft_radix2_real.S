@@ -23,7 +23,7 @@ fft_radix2_real:
               push           %r13
               mov            %rdi, X
               mov            %rsi, N
-              call           scramble
+             // call           scramble
               mov            N, No4
               shr            $2, No4
               lea            (X, No4, 8), %rax

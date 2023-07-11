@@ -63,7 +63,7 @@ dit_nr_recur: push           %r12
               call           next_level
               mov            X, %rdi
               mov            N, %rsi
-              call           scramble
+             // call           scramble
               pop            %rbx
               pop            %r15
               pop            %r14

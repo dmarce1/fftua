@@ -85,6 +85,7 @@ void fft_transpose_hilo(double*, int, int);
 void fft_recursive(double* X, const double* C, int N);
 void dit_nr_recur(double* X,int N);
 void dit_nr_recur(double* X,int N);
+void fft_complex2(double* X,int N);
 }
 
 
@@ -121,19 +122,10 @@ void fft_complex(double*, double*, int);
 }
 
 double dit_rn_recursive_complex_test(complex<double>* z, int N) {
-	std::vector<double> x(N), y(N);
-	for( int n = 0; n < N; n++) {
-		x[n] = z[n].real();
-		y[n] = z[n].imag();
-	}
 	timer tm;
 	tm.start();
-//	fft_complex(x.data(), y.data(), N);
+	fft_complex2((double*) z,  N);
 	tm.stop();
-	for( int n = 0; n < N; n++) {
-		z[n].real() = x[n];
-		z[n].imag() = y[n];
-	}
 	return tm.read();
 }
 
@@ -169,9 +161,9 @@ int main(int argc, char **argv) {
 	double score = 0.0;
 	int cnt = 0;
 
-	for (int N = 64; N <= 64*1024*1024; N *= 2) {
+	for (int N = 16; N <= 64*1024*1024; N *= 2) {
 		auto pfac = prime_factorization(N);
-		if( true) {
+		if( false) {
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
@@ -181,9 +173,9 @@ int main(int argc, char **argv) {
 				std::vector<complex<double>> X(N / 2 + 1);
 				std::vector<complex<double>> Y(N / 2 + 1);
 				for (int n = 0; n < N; n++) {
-					x[n] = (y[n] = rand1());
+					x[n] = y[n] = n;
 				}
-				x[10] = y[10] = 1.0;
+				//x[1] = y[1] = 1.0;
 //				x[0] = y[0] = 1.0;
 				const auto& c = cos_twiddles(N);
 				const auto& s = sin_twiddles(N);
@@ -237,7 +229,6 @@ int main(int argc, char **argv) {
 		}
 COMPLEX:
         {
-        	continue;
         	double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
@@ -248,7 +239,7 @@ COMPLEX:
 					X[n].real() = (Y[n].real() = rand1());
 					X[n].imag() = (Y[n].imag() = rand1());
 				}
-				X[1].real() = (Y[1].real() = 1);
+				X[3].real() = (Y[3].real() = 1);
 			//	X[0].imag() = (Y[0].imag() = 0);
 				if (i == 0) {
 					fftw(Y);
@@ -268,7 +259,7 @@ COMPLEX:
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-			//			printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+						printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
@@ -284,7 +275,7 @@ COMPLEX:
 			cnt++;
 			score /= cnt;
 			printf("C %c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
-			//abort();
+			abort();
 		}
 	}
 	return 0;
