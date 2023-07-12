@@ -160,31 +160,29 @@ not_first:    xor            nlo, nlo
               vmulpd         cos1, sin1, sin2
               vfmsub231pd    cos1, cos1, cos2
               vfmadd231pd    sin1, cos1, sin2
-              mov            NLO, %rdi
-              shl            $4, %rdi
+              imul           $16, NLO, %rax
+              imul           $32, NLO, %rbx
+              imul           $48, NLO, %rcx
 radix4_loop:  mov            nlo, %rdx
               shl            $4, %rdx
-              lea            (X, %rdx), %rax
-              lea            (%rax, %rdi), %rbx
-              lea            (%rbx, %rdi), %rcx
-              lea            (%rcx, %rdi), %rdx
-              vmovapd        (%rax), er0
-              vmovapd        (%rbx), er1
-              vmovapd        (%rcx), er2
-              vmovapd        (%rdx), er3
-              vmovapd        32(%rax), ei0
-              vmovapd        32(%rbx), ei1
-              vmovapd        32(%rcx), ei2
-              vmovapd        32(%rdx), ei3
+              lea            (X, %rdx), %rsi
+              vmovapd        (%rsi), er0
+              vmovapd        (%rsi, %rax), er1
+              vmovapd        (%rsi, %rbx), er2
+              vmovapd        (%rsi, %rcx), er3
+              vmovapd        32(%rsi), ei0
+              vmovapd        32(%rsi, %rax), ei1
+              vmovapd        32(%rsi, %rbx), ei2
+              vmovapd        32(%rsi, %rcx), ei3
               call           butterfly_tw4
-              vmovapd        er0, (%rax)
-              vmovapd        er1, (%rbx)
-              vmovapd        er2, (%rcx)
-              vmovapd        er3, (%rdx)
-              vmovapd        ei0, 32(%rax)
-              vmovapd        ei1, 32(%rbx)
-              vmovapd        ei2, 32(%rcx)
-              vmovapd        ei3, 32(%rdx)
+              vmovapd        er0, (%rsi)
+              vmovapd        er1, (%rsi, %rax)
+              vmovapd        er2, (%rsi, %rbx)
+              vmovapd        er3, (%rsi, %rcx)
+              vmovapd        ei0, 32(%rsi)
+              vmovapd        ei1, 32(%rsi, %rax)
+              vmovapd        ei2, 32(%rsi, %rbx)
+              vmovapd        ei3, 32(%rsi, %rcx)
               add            $4, nlo
               cmp            nlo, NLO
               jne            radix4_loop

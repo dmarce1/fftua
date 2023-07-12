@@ -29,9 +29,17 @@ transpose_re: enter          STACK_SIZE, $0
               mov            %rdx, N1N2
               xor            Ix, Ix
               xor            Iy, Iy
+              xor            IMID, IMID
               mov            N1, M
               call           next_level
-              pop            %rbx
+              cmp            $2, N2
+              jne            N2one
+              xor            Ix, Ix
+              xor            Iy, Iy
+              mov            $1, IMID
+              mov            N1, M
+              call           next_level
+N2one:        pop            %rbx
               pop            %r15
               pop            %r14
               pop            %r13
@@ -44,10 +52,9 @@ next_level:   cmp            Ix, Iy
               jg             next_levels
               imul           $2, N1N2, %rax
               imul           $3, N1N2, %rbx
-              xor            IMID, IMID
               cmp            Ix, Iy
               je             on_diagonal
-main_loop:    mov            Ix, %rsi
+              mov            Ix, %rsi
               mov            Iy, %rdi
               imul           N2, %rsi
               imul           N2, %rdi
@@ -91,7 +98,7 @@ main_loop:    mov            Ix, %rsi
               vmovapd        %ymm9, (%rsi, N1N2, 8)
               vmovapd        %ymm10, (%rsi, %rax, 8)
               vmovapd        %ymm11, (%rsi, %rbx, 8)
-              jmp            skip_diagonal
+              jmp            done
 on_diagonal:  mov            Ix, %rsi
               imul           N2, %rsi
               add            IMID, %rsi
@@ -114,9 +121,6 @@ on_diagonal:  mov            Ix, %rsi
               vmovapd        %ymm1, (%rsi, N1N2, 8)
               vmovapd        %ymm2, (%rsi, %rax, 8)
               vmovapd        %ymm3, (%rsi, %rbx, 8)
-skip_diagonal:inc            IMID
-              cmp            IMID, N2
-              jg             main_loop
               jmp            done
 next_levels:  shr            M
               call           next_level
