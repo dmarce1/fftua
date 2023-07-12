@@ -64,7 +64,8 @@ fft_complex2: push           %rbx
               call           next_level
               mov            X, %rdi
               mov            N, %rsi
-              call           scramble_complex
+              shl            %rsi
+              call           scramble
               pop            %r12
               pop            %r14
               pop            %r13

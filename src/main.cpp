@@ -76,7 +76,6 @@ void fft_scramble(double* X, int N);
 }
 void test_twiddles();
 
-
 extern "C" {
 void twiddle_gen_next(__m256d* C, __m256d* S, void *ptr);
 void twiddle_gen_init(void* ptr, int N);
@@ -88,24 +87,7 @@ void dit_nr_recur(double* X,int N);
 void fft_complex2(double* X,int N);
 }
 
-
 void test_twiddles() {
-	void* gen;
-	const int N = 1024*1024;
-	posix_memalign(&gen, 32, 4 * 32 * ilogb(N) + 32);
-	twiddle_gen_init(gen, N);
-	__m256d C, S;
-	for( int n = 0; n < 100; n++) {
-	//	printf( "%e\n", *((double*)(gen)+n));
-	}
-//	return;
-	for( int n = 1; n < N; n++) {
-		twiddle_gen_next(&C, &S, gen);
-		auto phi = 2.0 * M_PI * n / N;
-//		auto phi = 2.0 * M_PI / (1 << (ilogb(N)-n));
-		printf( "%i %e %e %e %e\n", n, C[0], S[0], cos(phi)-C[0], sin(-phi)-S[0]);
-	}
-	free(gen);
 }
 
 void test_time(double* x, int N) {
@@ -124,8 +106,15 @@ void fft_complex(double*, double*, int);
 double dit_rn_recursive_complex_test(complex<double>* z, int N) {
 	timer tm;
 	tm.start();
-	fft_complex2((double*) z,  N);
+	fft_complex2((double*) z, N);
 	tm.stop();
+	std::vector<complex<double>> tmp(N);
+	double* a = (double*) z;
+	for (int n = 0; n < N; n++) {
+		tmp[n].real() = a[n];
+		tmp[n].imag() = a[N + n];
+	}
+	std::memcpy(z, tmp.data(), sizeof(double) * 2 * N);
 	return tm.read();
 }
 
@@ -135,22 +124,22 @@ int main(int argc, char **argv) {
 	constexpr int N = 256;
 	timer tm;
 	std::vector<double> x(N);
-	for( int n = 0; n < N; n++) {
+	for (int n = 0; n < N; n++) {
 		x[n] = n;
 	}
 	tm.start();
 //	fft_scramble(x.data(), N);
 	tm.stop();
 	//printf( "%e\n", tm.read());
-	for( int n = 0; n < N; n++) {
+	for (int n = 0; n < N; n++) {
 		int i = n;
 		int k = 0;
-		for( int j = 0; j < ilogb(N); j++) {
+		for (int j = 0; j < ilogb(N); j++) {
 			k <<= 1;
 			k |= 1 & i;
 			i >>= 1;
 		}
-	//	printf( "          .byte          %i %i\n", k, fft_bit_reverse(n,8));
+		//	printf( "          .byte          %i %i\n", k, fft_bit_reverse(n,8));
 	}
 //	return 0;
 //	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
@@ -161,9 +150,9 @@ int main(int argc, char **argv) {
 	double score = 0.0;
 	int cnt = 0;
 
-	for (int N = 256; N <= 64*1024*1024; N *= 2) {
+	for (int N = 64; N <= 64 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
-		if( false) {
+		if (false) {
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
@@ -181,13 +170,13 @@ int main(int argc, char **argv) {
 				const auto& s = sin_twiddles(N);
 				if (i == 0) {
 					fftw_real(Y, y);
-					fft_radix2_real(x.data(),N);
+					fft_radix2_real(x.data(), N);
 				} else {
 
 					auto b = fftw_real(Y, y);
 					timer tm;
 					tm.start();
-					fft_radix2_real(x.data(),  N);
+					fft_radix2_real(x.data(), N);
 					//test_time(x.data(), N);
 					tm.stop();
 					X[0].real() = x[0];
@@ -209,14 +198,15 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-			//			printf("%i: %16e %16e | %16e %16e | %16e %16e\n", n, X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+						//			printf("%i: %16e %16e | %16e %16e | %16e %16e\n", n, X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
-		//	abort();
+			//	abort();
 			std::string f;
 			for (auto i = pfac.begin(); i != pfac.end(); i++) {
-				f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
+				f += "(" + std::to_string(i->first) + "^"
+						+ std::to_string(i->second) + ")";
 			}
 			printf("%i: %32s ", N, f.c_str());
 			fflush(stdout);
@@ -225,22 +215,23 @@ int main(int argc, char **argv) {
 			score += t1 / (t2 + 1e-20);
 			cnt++;
 			score /= cnt;
-			printf("R %c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
+			printf("R %c| %e %e %e %e %e | %e\n",
+					(pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ',
+					avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
 		}
-COMPLEX:
-        {
-        	double avg_err = 0.0;
+		COMPLEX: {
+			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 2; i++) {
+			for (int i = 0; i < 1002; i++) {
 				std::vector<complex<double>> X(N);
 				std::vector<complex<double>> Y(N);
 				for (int n = 0; n < N; n++) {
-					X[n].real() = (Y[n].real() = rand1());
-					X[n].imag() = (Y[n].imag() = rand1() );
+					X[n].real() = (Y[n].real() = 2 * n);
+					X[n].imag() = (Y[n].imag() = 2 * n + 1);
 				}
-				X[32].real() = (Y[32].real() = 1);
-			//	X[0].imag() = (Y[0].imag() = 0);
+				//	X[32].real() = (Y[32].real() = 1);
+				//	X[0].imag() = (Y[0].imag() = 0);
 				if (i == 0) {
 					fftw(Y);
 					dit_rn_recursive_complex_test(X.data(), N);
@@ -259,13 +250,17 @@ COMPLEX:
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-						printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+					//	printf("%16e %16e | %16e %16e | %16e %16e\n",
+							//	X[n].real(), X[n].imag(), Y[n].real(),
+							//	Y[n].imag(), X[n].real() - Y[n].real(),
+							//	X[n].imag() - Y[n].imag();
 					}
 				}
 			}
 			std::string f;
 			for (auto i = pfac.begin(); i != pfac.end(); i++) {
-				f += "(" + std::to_string(i->first) + "^" + std::to_string(i->second) + ")";
+				f += "(" + std::to_string(i->first) + "^"
+						+ std::to_string(i->second) + ")";
 			}
 			printf("%i: %32s ", N, f.c_str());
 			fflush(stdout);
@@ -274,8 +269,10 @@ COMPLEX:
 			score += t1 / (t2 + 1e-20);
 			cnt++;
 			score /= cnt;
-			printf("C %c| %e %e %e %e %e | %e\n", (pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ', avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
-			abort();
+			printf("C %c| %e %e %e %e %e | %e\n",
+					(pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ',
+					avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
+		//	abort();
 		}
 	}
 	return 0;

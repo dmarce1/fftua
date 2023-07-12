@@ -1172,7 +1172,7 @@ void fft_inplace_real(double* x, int N) {
 	int NHI, NMID, N2, TWHI, KLO, KHI;
 	const auto& c = cos_twiddles(N);
 	const auto& s = sin_twiddles(N);
-	fft_selfsort(x, (double*) c.data(), (double*) s.data(), N);
+//	fft_selfsort(x, (double*) c.data(), (double*) s.data(), N);
 	return;
 
 	/*	void butterfly4_and_tranpose(double* X, double* W, int NHI, int NMID, int N2);

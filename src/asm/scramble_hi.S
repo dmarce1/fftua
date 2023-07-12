@@ -8,12 +8,11 @@
 #define       NHI            %r13
 #define       NLO            %r15
 
-              .global        scramble_hi_complex
+              .global        scramble_hi
 
               .text
 
-scramble_hi_complex:
-              push           %rbx
+scramble_hi:  push           %rbx
               push           %r12
               push           %r13
               push           %r14
@@ -33,12 +32,9 @@ main_loop:    cmp            I, J
               mov            J, J0
               imul           NLO, I0
               imul           NLO, J0
-              shl            I0
-              shl            J0
               mov            I0, %rax
               mov            J0, %rdx
               mov            I0, IMAX
-              add            NLO, IMAX
               add            NLO, IMAX
 swap_loop:    vmovapd        (X, %rax, 8), %ymm0
               vmovapd        (X, %rdx, 8), %ymm1

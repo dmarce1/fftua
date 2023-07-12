@@ -3,12 +3,11 @@
 #define       N1             %r14
 #define       N2             %r15
 
-              .global        scramble_complex
+              .global        scramble
 
               .text
 
-scramble_complex:
-              push           %r15
+scramble:     push           %r15
               push           %r14
               push           %r13
               push           %r12
@@ -31,16 +30,16 @@ scramble_complex:
               mov            N1, %rsi
               mov            N1, %rdx
               imul           N2, %rdx
-              call           scramble_hi_complex
+              call           scramble_hi
               mov            X, %rdi
               mov            N1, %rsi
               mov            N2, %rdx
-              call           transpose_complex
+              call           transpose_re
               mov            X, %rdi
               mov            N1, %rsi
               mov            N1, %rdx
               imul           N2, %rdx
-              call           scramble_hi_complex
+              call           scramble_hi
               jmp            done
 small:        xor            %rdx, %rdx
               xor            %rbx, %rbx
@@ -48,16 +47,9 @@ small:        xor            %rdx, %rdx
               dec            %r8
 small_loop:   cmp            %rbx, %rdx
               jle            skip_swap
-              shl            %rbx
-              shl            %rdx
               mov            (X, %rbx, 8), %rcx
               xchg           %rcx, (X, %rdx, 8)
               mov            %rcx, (X, %rbx, 8)
-              mov            8(X, %rbx, 8), %rcx
-              xchg           %rcx, 8(X, %rdx, 8)
-              mov            %rcx, 8(X, %rbx, 8)
-              shr            %rbx
-              shr            %rdx
 skip_swap:    cmp            %rbx, %r8
               je             done
               mov            %rdx, %rax
