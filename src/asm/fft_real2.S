@@ -180,9 +180,46 @@ first_loop:   mov            nlo, %rdx
               vmovapd        32(%rbx), ei1
               vmovapd        32(%rcx), ei2
               vmovapd        32(%rdx), ei3
-              call           trans21034
-              call           trans10234
-              call           butterfly_04
+              vpermpd        $177, %ymm0, %ymm8
+              vpermpd        $177, %ymm1, %ymm9
+              vpermpd        $177, %ymm2, %ymm10
+              vpermpd        $177, %ymm3, %ymm11
+              vpermpd        $177, %ymm4, %ymm12
+              vpermpd        $177, %ymm5, %ymm13
+              vpermpd        $177, %ymm6, %ymm14
+              vpermpd        $177, %ymm7, %ymm15
+              vblendpd       $5, %ymm0, %ymm9, %ymm0
+              vblendpd       $10, %ymm1, %ymm8, %ymm1
+              vblendpd       $5, %ymm2, %ymm11, %ymm2
+              vblendpd       $10, %ymm3, %ymm10, %ymm3
+              vblendpd       $5, %ymm4, %ymm13, %ymm4
+              vblendpd       $10, %ymm5, %ymm12, %ymm5
+              vblendpd       $5, %ymm6, %ymm15, %ymm6
+              vblendpd       $10, %ymm7, %ymm14, %ymm7
+              vpermpd        $216, %ymm0, %ymm0
+              vpermpd        $216, %ymm1, %ymm1
+              vpermpd        $216, %ymm2, %ymm2
+              vpermpd        $216, %ymm3, %ymm3
+              vpermpd        $216, %ymm4, %ymm4
+              vpermpd        $216, %ymm5, %ymm5
+              vpermpd        $216, %ymm6, %ymm6
+              vpermpd        $216, %ymm7, %ymm7
+              vaddpd         er2, er0, tr0
+              vaddpd         ei2, ei0, ti0
+              vsubpd         er2, er0, tr2
+              vsubpd         ei2, ei0, ti2
+              vaddpd         er3, er1, tr1
+              vaddpd         ei3, ei1, ti1
+              vsubpd         er3, er1, tr3
+              vsubpd         ei3, ei1, ti3
+              vaddpd         tr1, tr0, er0
+              vaddpd         ti1, ti0, ei0
+              vaddpd         ti3, tr2, er2
+              vsubpd         tr3, ti2, ei2
+              vsubpd         tr1, tr0, er1
+              vsubpd         ti1, ti0, ei1
+              vsubpd         ti3, tr2, er3
+              vaddpd         tr3, ti2, ei3
               vmovapd        er0, (%rax)
               vmovapd        er1, (%rbx)
               vmovapd        er2, (%rcx)
@@ -223,12 +260,12 @@ radix4_loop:  mov            nlo, %rdx
               call           butterfly_tw4
               vmovapd        er0, (%rsi)
               vmovapd        er1, (%rsi, %rax)
-              vmovapd        er2, (%rsi, %rbx)
-              vmovapd        er3, (%rsi, %rcx)
+              vmovapd        er3, (%rsi, %rbx)
+              vmovapd        er2, (%rsi, %rcx)
               vmovapd        ei0, 32(%rsi)
               vmovapd        ei1, 32(%rsi, %rax)
-              vmovapd        ei2, 32(%rsi, %rbx)
-              vmovapd        ei3, 32(%rsi, %rcx)
+              vmovapd        ei3, 32(%rsi, %rbx)
+              vmovapd        ei2, 32(%rsi, %rcx)
               add            $4, nlo
               cmp            nlo, NLO
               jne            radix4_loop
@@ -386,7 +423,22 @@ radix16:      vmovapd        (X), er0
               vfmadd231pd    sin1, cos1, sin2
               vmovapd        TWO, two
               call           butterfly_tw4
-              call           trans34201
+              vunpcklpd      er1, er0, %ymm8
+              vunpckhpd      er1, er0, %ymm9
+              vunpcklpd      er2, er3, %ymm10
+              vunpckhpd      er2, er3, %ymm11
+              vperm2f128     $0x20, %ymm10, %ymm8, er0
+              vperm2f128     $0x20, %ymm11, %ymm9, er1
+              vperm2f128     $0x31, %ymm10, %ymm8, er2
+              vperm2f128     $0x31, %ymm11, %ymm9, er3
+              vunpcklpd      ei1, ei0, %ymm8
+              vunpckhpd      ei1, ei0, %ymm9
+              vunpcklpd      ei2, ei3, %ymm10
+              vunpckhpd      ei2, ei3, %ymm11
+              vperm2f128     $0x20, %ymm10, %ymm8, ei0
+              vperm2f128     $0x20, %ymm11, %ymm9, ei1
+              vperm2f128     $0x31, %ymm10, %ymm8, ei2
+              vperm2f128     $0x31, %ymm11, %ymm9, ei3
               shl            $2, k2rev
               vmovapd        (Wr, k2rev, 8), cos1
               vmovapd        (Wi, k2rev, 8), sin1
@@ -396,9 +448,24 @@ radix16:      vmovapd        (X), er0
               vfmadd231pd    sin1, cos1, sin2
               vmovapd        TWO, two
               call           butterfly_tw4
-              call           trans34201
-              call           trans10234
-              call           trans21034
+              vmovapd        %ymm6, %ymm12
+              vmovapd        %ymm4, %ymm13
+              vunpcklpd      %ymm1, %ymm0, %ymm8
+              vunpckhpd      %ymm1, %ymm0, %ymm9
+              vunpcklpd      %ymm3, %ymm2, %ymm10
+              vunpckhpd      %ymm3, %ymm2, %ymm11
+              vperm2f128     $0x20, %ymm10, %ymm8, %ymm0
+              vperm2f128     $0x20, %ymm11, %ymm9, %ymm2
+              vperm2f128     $0x31, %ymm10, %ymm8, %ymm4
+              vperm2f128     $0x31, %ymm11, %ymm9, %ymm6
+              vunpcklpd      %ymm7, %ymm12, %ymm8
+              vunpckhpd      %ymm7, %ymm12, %ymm9
+              vunpcklpd      %ymm5, %ymm13, %ymm10
+              vunpckhpd      %ymm5, %ymm13, %ymm11
+              vperm2f128     $0x20, %ymm10, %ymm8, %ymm1
+              vperm2f128     $0x20, %ymm11, %ymm9, %ymm3
+              vperm2f128     $0x31, %ymm10, %ymm8, %ymm5
+              vperm2f128     $0x31, %ymm11, %ymm9, %ymm7
               vmovapd        er0, (X)
               vmovapd        ei0, 32(X)
               vmovapd        er1, 64(X)
@@ -441,77 +508,8 @@ butterfly_tw4:vmovapd        er0, tr
               vfmadd132pd    sin1, ti, ei3
               vfmsub132pd    two, er3, er2
               vfmsub132pd    two, ei3, ei2
-              vmovapd        er2, tr
-              vmovapd        ei2, ti
-              vmovapd        er3, er2
-              vmovapd        ei3, ei2
-              vmovapd        tr, er3
-              vmovapd        ti, ei3
               ret
 
-butterfly_04: vaddpd         er2, er0, tr0
-              vaddpd         ei2, ei0, ti0
-              vsubpd         er2, er0, tr2
-              vsubpd         ei2, ei0, ti2
-              vaddpd         er3, er1, tr1
-              vaddpd         ei3, ei1, ti1
-              vsubpd         er3, er1, tr3
-              vsubpd         ei3, ei1, ti3
-              vaddpd         tr1, tr0, er0
-              vaddpd         ti1, ti0, ei0
-              vaddpd         ti3, tr2, er2
-              vsubpd         tr3, ti2, ei2
-              vsubpd         tr1, tr0, er1
-              vsubpd         ti1, ti0, ei1
-              vsubpd         ti3, tr2, er3
-              vaddpd         tr3, ti2, ei3
-              ret
-
-trans34201:   vunpcklpd      er1, er0, %ymm8
-              vunpckhpd      er1, er0, %ymm9
-              vunpcklpd      er3, er2, %ymm10
-              vunpckhpd      er3, er2, %ymm11
-              vperm2f128     $0x20, %ymm10, %ymm8, er0
-              vperm2f128     $0x20, %ymm11, %ymm9, er1
-              vperm2f128     $0x31, %ymm10, %ymm8, er2
-              vperm2f128     $0x31, %ymm11, %ymm9, er3
-              vunpcklpd      ei1, ei0, %ymm8
-              vunpckhpd      ei1, ei0, %ymm9
-              vunpcklpd      ei3, ei2, %ymm10
-              vunpckhpd      ei3, ei2, %ymm11
-              vperm2f128     $0x20, %ymm10, %ymm8, ei0
-              vperm2f128     $0x20, %ymm11, %ymm9, ei1
-              vperm2f128     $0x31, %ymm10, %ymm8, ei2
-              vperm2f128     $0x31, %ymm11, %ymm9, ei3
-              ret
-
-trans10234:   vpermpd        $216, %ymm0, %ymm0
-              vpermpd        $216, %ymm1, %ymm1
-              vpermpd        $216, %ymm2, %ymm2
-              vpermpd        $216, %ymm3, %ymm3
-              vpermpd        $216, %ymm4, %ymm4
-              vpermpd        $216, %ymm5, %ymm5
-              vpermpd        $216, %ymm6, %ymm6
-              vpermpd        $216, %ymm7, %ymm7
-              ret
-
-trans21034:   vpermpd        $177, %ymm0, %ymm8
-              vpermpd        $177, %ymm1, %ymm9
-              vpermpd        $177, %ymm2, %ymm10
-              vpermpd        $177, %ymm3, %ymm11
-              vpermpd        $177, %ymm4, %ymm12
-              vpermpd        $177, %ymm5, %ymm13
-              vpermpd        $177, %ymm6, %ymm14
-              vpermpd        $177, %ymm7, %ymm15
-              vblendpd       $5, %ymm0, %ymm9, %ymm0
-              vblendpd       $10, %ymm1, %ymm8, %ymm1
-              vblendpd       $5, %ymm2, %ymm11, %ymm2
-              vblendpd       $10, %ymm3, %ymm10, %ymm3
-              vblendpd       $5, %ymm4, %ymm13, %ymm4
-              vblendpd       $10, %ymm5, %ymm12, %ymm5
-              vblendpd       $5, %ymm6, %ymm15, %ymm6
-              vblendpd       $10, %ymm7, %ymm14, %ymm7
-              ret
 
               .align         32
 TWO:          .double        2.0

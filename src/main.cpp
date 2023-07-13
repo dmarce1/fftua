@@ -119,6 +119,33 @@ double dit_rn_recursive_complex_test(complex<double>* z, int N) {
 }
 
 int main(int argc, char **argv) {
+	for( int i = 0; i < 2; i++) {
+		for( int j = 0; j < 2; j++) {
+			for( int k = 0; k < 2; k++) {
+				for( int l = 0; l < 2; l++) {
+					for( int m = 0; m < 2; m++) {
+						printf( "%2i ", m + 2 * l + 4 * k + 8 * j + 16 * i);
+					}
+				}
+				printf( "\n");
+			}
+		}
+	}
+	printf( "\n");
+	for( int i = 0; i < 2; i++) {
+		for( int j = 0; j < 2; j++) {
+			for( int k = 0; k < 2; k++) {
+				for( int l = 0; l < 2; l++) {
+					for( int m = 0; m < 2; m++) {
+
+						printf( "%2i ", k + 2 * j + 4 * i + 8 * m + 16 * l);
+					}
+				}
+				printf( "\n");
+			}
+		}
+	}
+	//abort();
 	//test_twiddles();
 	//return 0;
 	constexpr int N = 256;
@@ -162,7 +189,7 @@ int main(int argc, char **argv) {
 				std::vector<complex<double>> X(N / 2 + 1);
 				std::vector<complex<double>> Y(N / 2 + 1);
 				for (int n = 0; n < N; n++) {
-					x[n] = y[n] = n;
+					x[n] = y[n] = rand1();
 				}
 				//x[1] = y[1] = 1.0;
 //				x[0] = y[0] = 1.0;
