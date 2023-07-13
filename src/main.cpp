@@ -99,7 +99,7 @@ void test_time(double* x, int N) {
 extern "C" {
 int fft_bit_reverse(int, int);
 void dit_rn_recursive_complex(double*, double*, int);
-void fft_radix2_real(double*, int);
+void fft_real2(double*, int);
 void fft_complex(double*, double*, int);
 }
 
@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
 
 	for (int N = 128; N <= 64 * 1024 * 1024; N *= 2) {
 		auto pfac = prime_factorization(N);
-		if (false) {
+		if (true) {
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
@@ -170,13 +170,13 @@ int main(int argc, char **argv) {
 				const auto& s = sin_twiddles(N);
 				if (i == 0) {
 					fftw_real(Y, y);
-					fft_radix2_real(x.data(), N);
+					fft_real2(x.data(), N);
 				} else {
 
 					auto b = fftw_real(Y, y);
 					timer tm;
 					tm.start();
-					fft_radix2_real(x.data(), N);
+					fft_real2(x.data(), N);
 					//test_time(x.data(), N);
 					tm.stop();
 					X[0].real() = x[0];
@@ -220,6 +220,7 @@ int main(int argc, char **argv) {
 					avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
 		}
 		COMPLEX: {
+			continue;
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
