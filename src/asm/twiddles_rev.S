@@ -12,12 +12,13 @@
 #define       N1             $4
 #define       logN1          $2
 
-              .global        get_twiddles
+              .global        get_reverse_twiddles
 
 
               .text
 
-get_twiddles: push           %rbp
+get_reverse_twiddles:
+              push           %rbp
               mov            %rsp, %rbp
               sub            STACK_SIZE, %rsp
               push           %rbx

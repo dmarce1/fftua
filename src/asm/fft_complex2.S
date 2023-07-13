@@ -54,7 +54,7 @@ fft_complex2: push           %rbx
               mov            N, %rdi
               push           X
               push           N
-              call           get_twiddles
+              call           get_reverse_twiddles
               pop            N
               pop            X
               mov            %rax, Wr
