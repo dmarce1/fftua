@@ -50,12 +50,10 @@
 #define       Wr             %r14
 #define       Wi             %r13
 #define       N              %r12
-#define       k2rev          %r11
+#define       k2             %r11
 #define       level          %r10
-#define       NLO            %r9
-#define       nlo            %r8
-#define       N2             %r9
-#define       k2             %r8
+#define       M              %r9
+#define       I              %r8
 
               .global        fft_real2
 
@@ -79,7 +77,7 @@ fft_real2:    push           %rbx
               mov            %rax, Wr
               mov            %rdx, Wi
               xor            level, level
-              xor            k2rev, k2rev
+              xor            k2, k2
               call           next_level
               shl            N
               mov            X, %rdi
@@ -110,63 +108,63 @@ call2:        call           radix2
               jmp            dispatch2
 call16:       call           radix16
               jmp            done
-dispatch2:    push           k2rev
+dispatch2:    push           k2
               mov            N, %rdx
               shl            $3, %rdx
-              shl            k2rev
-              push           k2rev
+              shl            k2
+              push           k2
               push           X
               lea            (X, %rdx), X
-              inc            k2rev
+              inc            k2
               shr            N
               inc            level
               call           next_level
               pop            X
-              pop            k2rev
+              pop            k2
               call           next_level
               shl            N
               dec            level
-              pop            k2rev
+              pop            k2
               jmp            done
-dispatch4:    push           k2rev
+dispatch4:    push           k2
               mov            N, %rdx
               shl            $2, %rdx
-              shl            $2, k2rev
-              push           k2rev
+              shl            $2, k2
+              push           k2
               push           X
               lea            (X, %rdx), X
-              inc            k2rev
-              push           k2rev
+              inc            k2
+              push           k2
               push           X
               lea            (X, %rdx), X
-              inc            k2rev
-              push           k2rev
+              inc            k2
+              push           k2
               push           X
               lea            (X, %rdx), X
-              inc            k2rev
+              inc            k2
               shr            $2, N
               add            $2, level
               call           next_level
               pop            X
-              pop            k2rev
+              pop            k2
               call           next_level
               pop            X
-              pop            k2rev
+              pop            k2
               call           next_level
               pop            X
-              pop            k2rev
+              pop            k2
               call           next_level
               shl            $2, N
               sub            $2, level
-              pop            k2rev
+              pop            k2
 done:         ret
 
-first_radix4: mov            N, NLO
-              shr            $2, NLO
-              xor            nlo, nlo
-              mov            NLO, %rdi
+first_radix4: mov            N, M
+              shr            $2, M
+              xor            I, I
+              mov            M, %rdi
               shl            $4, %rdi
-first_loop:   mov            nlo, %rdx
+first_loop:   mov            I, %rdx
               shl            $4, %rdx
               lea            (X, %rdx), %rax
               lea            (%rax, %rdi), %rbx
@@ -228,25 +226,25 @@ first_loop:   mov            nlo, %rdx
               vmovapd        ei1, 32(%rbx)
               vmovapd        ei2, 32(%rcx)
               vmovapd        ei3, 32(%rdx)
-              add            $4, nlo
-              cmp            nlo, NLO
+              add            $4, I
+              cmp            I, M
               jne            first_loop
               ret
 
 radix4:       vmovapd        TWO, two
-              mov            N, NLO
-              shr            $2, NLO
-              xor            nlo, nlo
-              vbroadcastsd   (Wr, k2rev, 8), cos1
-              vbroadcastsd   (Wi, k2rev, 8), sin1
+              mov            N, M
+              shr            $2, M
+              xor            I, I
+              vbroadcastsd   (Wr, k2, 8), cos1
+              vbroadcastsd   (Wi, k2, 8), sin1
               vmulpd         sin1, sin1, cos2
               vmulpd         cos1, sin1, sin2
               vfmsub231pd    cos1, cos1, cos2
               vfmadd231pd    sin1, cos1, sin2
-              imul           $16, NLO, %rax
-              imul           $32, NLO, %rbx
-              imul           $48, NLO, %rcx
-radix4_loop:  mov            nlo, %rdx
+              imul           $16, M, %rax
+              imul           $32, M, %rbx
+              imul           $48, M, %rcx
+radix4_loop:  mov            I, %rdx
               shl            $4, %rdx
               lea            (X, %rdx), %rsi
               vmovapd        (%rsi), er0
@@ -266,23 +264,23 @@ radix4_loop:  mov            nlo, %rdx
               vmovapd        ei1, 32(%rsi, %rax)
               vmovapd        ei3, 32(%rsi, %rbx)
               vmovapd        ei2, 32(%rsi, %rcx)
-              add            $4, nlo
-              cmp            nlo, NLO
+              add            $4, I
+              cmp            I, M
               jne            radix4_loop
               ret
 
-radix2:       mov            N, NLO
-              shr            NLO
-              xor            nlo, nlo
-              vbroadcastsd   (Wr, k2rev, 8), cos1
-              vbroadcastsd   (Wi, k2rev, 8), sin1
+radix2:       mov            N, M
+              shr            M
+              xor            I, I
+              vbroadcastsd   (Wr, k2, 8), cos1
+              vbroadcastsd   (Wi, k2, 8), sin1
               vmulpd         sin1, sin1, cos2
               vmulpd         cos1, sin1, sin2
               vfmsub231pd    cos1, cos1, cos2
               vfmadd231pd    sin1, cos1, sin2
               vmovapd        TWO, two
-              imul           $16, NLO, %rax
-radix2_loop:  mov            nlo, %rdx
+              imul           $16, M, %rax
+radix2_loop:  mov            I, %rdx
               shl            $4, %rdx
               lea            (X, %rdx), %rsi
               vmovapd        (%rsi), er0
@@ -301,17 +299,17 @@ radix2_loop:  mov            nlo, %rdx
               vmovapd        er1, (%rsi, %rax)
               vmovapd        ei0, 32(%rsi)
               vmovapd        ei1, 32(%rsi, %rax)
-              add            $4, nlo
-              cmp            nlo, NLO
+              add            $4, I
+              cmp            I, M
               jne            radix2_loop
               ret
 
-final_level:  mov            N, N2
-              shr            N2
+final_level:  mov            N, M
+              shr            M
               lea            (X), %rax
-              lea            (%rax, N2, 4), %rbx
-              lea            (%rbx, N2, 4), %rcx
-              lea            (%rcx, N2, 4), %rdx
+              lea            (%rax, M, 4), %rbx
+              lea            (%rbx, M, 4), %rcx
+              lea            (%rcx, M, 4), %rdx
               vmovq          (%rax), ter0
               vmovq          (%rbx), ter1
               vmovq          (%rcx), tei0
@@ -325,11 +323,11 @@ final_level:  mov            N, N2
               vmovq          ttr1, (%rcx)
               vmovq          tti, (%rdx)
               mov            $1, k2
-final_scalar: mov            N2, %rdi
+final_scalar: mov            M, %rdi
               sub            k2, %rdi
               sub            k2, %rdi
               lea            (X, k2, 8), %rax
-              lea            (%rax, N2, 8), %rdx
+              lea            (%rax, M, 8), %rdx
               vmovq          (%rax), ter0
               vmovq          (%rax, %rdi, 8), ter1
               vmovq          (%rdx), tei0
@@ -363,15 +361,15 @@ final_scalar: mov            N2, %rdi
               cmp            $4, k2
               jne            final_scalar
               mov            $4, k2
-final_simd:   mov            N2, %rdi
+final_simd:   mov            M, %rdi
               sub            k2, %rdi
               sub            k2, %rdi
               sub            $3, %rdi
               lea            (X, k2, 8), %rax
-              lea            (%rax, N2, 8), %rdx
+              lea            (%rax, M, 8), %rdx
               vmovapd        (%rax), er0
-              vpermpd        $27, (%rax, %rdi, 8), er1
               vmovapd        (%rdx), ei0
+              vpermpd        $27, (%rax, %rdi, 8), er1
               vpermpd        $27, (%rdx, %rdi, 8), ei1
               vaddpd         er1, er0, tr0
               vsubpd         ei1, ei0, ti0
@@ -397,11 +395,11 @@ final_simd:   mov            N2, %rdi
               vpermpd        $27, er1, er1
               vpermpd        $27, ei0, ei0
               vmovapd        er0, (%rax)
-              vmovupd        er1, (%rax, %rdi, 8)
               vmovapd        ei1, (%rdx)
+              vmovupd        er1, (%rax, %rdi, 8)
               vmovupd        ei0, (%rdx, %rdi, 8)
               add            $4, k2
-              mov            N2, %rax
+              mov            M, %rax
               shr            %rax
               cmp            k2, %rax
               jne            final_simd
@@ -415,8 +413,8 @@ radix16:      vmovapd        (X), er0
               vmovapd        96(X), ei1
               vmovapd        160(X), ei2
               vmovapd        224(X), ei3
-              vbroadcastsd   (Wr, k2rev, 8), cos1
-              vbroadcastsd   (Wi, k2rev, 8), sin1
+              vbroadcastsd   (Wr, k2, 8), cos1
+              vbroadcastsd   (Wi, k2, 8), sin1
               vmulpd         sin1, sin1, cos2
               vmulpd         cos1, sin1, sin2
               vfmsub231pd    cos1, cos1, cos2
@@ -439,9 +437,9 @@ radix16:      vmovapd        (X), er0
               vperm2f128     $0x20, %ymm11, %ymm9, ei1
               vperm2f128     $0x31, %ymm10, %ymm8, ei2
               vperm2f128     $0x31, %ymm11, %ymm9, ei3
-              shl            $2, k2rev
-              vmovapd        (Wr, k2rev, 8), cos1
-              vmovapd        (Wi, k2rev, 8), sin1
+              shl            $2, k2
+              vmovapd        (Wr, k2, 8), cos1
+              vmovapd        (Wi, k2, 8), sin1
               vmulpd         sin1, sin1, cos2
               vmulpd         cos1, sin1, sin2
               vfmsub231pd    cos1, cos1, cos2
@@ -524,11 +522,3 @@ NONE:         .double        -1.0
               .double        -1.0
               .double        -1.0
               .double        -1.0
-ONE:          .double        1.0
-              .double        1.0
-              .double        1.0
-              .double        1.0
-ZERO:         .double        .0
-              .double        .0
-              .double        .0
-              .double        .0
