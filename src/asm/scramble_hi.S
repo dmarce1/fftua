@@ -22,7 +22,9 @@ scramble_hi:  push           %rbx
               mov            %rdx, NLO
               mov            NHI, NHIm1
               dec            NHIm1
-              cmp            $16, IMAX
+              cmp            $16, NHI
+              jl             small
+              cmp            $16, NLO
               jl             small
               xor            I, I
               xor            J, J

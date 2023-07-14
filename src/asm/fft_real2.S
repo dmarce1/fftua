@@ -508,7 +508,6 @@ butterfly_tw4:vmovapd        er0, tr
               vfmsub132pd    two, ei3, ei2
               ret
 
-
               .align         32
 TWO:          .double        2.0
               .double        2.0
