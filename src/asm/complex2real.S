@@ -21,7 +21,7 @@
 #define       tr             %ymm12
 #define       ti             %ymm13
 #define       two            %ymm14
-#define       half           %ymm14
+#define       half           %ymm15
 #define       ter0           %xmm0
 #define       tei0           %xmm1
 #define       ter1           %xmm2
@@ -45,113 +45,38 @@
 #define       ttr            %xmm12
 #define       tti            %xmm13
 #define       ttwo           %xmm14
-#define       thalf          %xmm14
+#define       thalf          %xmm15
 #define       X              %r15
-#define       N              %r14
-#define       I              %r13
-#define       N2             %r12
+#define       Wr             %r14
+#define       Wi             %r13
+#define       N              %r12
 #define       k2             %r11
-#define       Wr             %r10
-#define       Wi             %r9
-#define       N2o2           %r8
+#define       M              %r10
+#define       I              %r9
 
-//ur0 ur1 ur2 ur3 ui0 ui1 ui2 ui3
-// e0  o0  e1  o1  e2  o2  e3  o3
+
               .global        complex2real
+
 
               .text
 
-complex2real: push           %r15
-              push           %r14
+complex2real: push           %rbx
+              push           %r15
               push           %r13
+              push           %r14
               push           %r12
-              push           %rbx
               mov            %rdi, X
               mov            %rsi, N
-              mov            N, N2
-              shr            $3, N2
               mov            N, %rdi
-              call           get_forward_twiddles
-              push           %rdx
-              push           %rax
-              mov            N, %rdi
-              shr            %rdi
               call           get_forward_twiddles
               mov            %rax, Wr
               mov            %rdx, Wi
-              mov            N2, %rdi
-              shl            $2, %rdi
-              xor            k2, k2
-              vmovapd        TWO, two
-radix4:       vmovapd        (Wr, k2, 8), cos1
-              vmovapd        (Wi, k2, 8), sin1
-              vmulpd         sin1, sin1, cos2
-              vmulpd         cos1, sin1, sin2
-              vfmsub231pd    cos1, cos1, cos2
-              vfmadd231pd    sin1, cos1, sin2
-              lea            (X, k2, 8), %rax
-              lea            (%rax, N2, 8), %rbx
-              lea            (%rbx, N2, 8), %rcx
-              lea            (%rcx, N2, 8), %rdx
-              vmovapd        (%rax), er0
-              vmovapd        (%rbx), ei0
-              vmovapd        (%rcx), er2
-              vmovapd        (%rdx), ei2
-              vmovapd        (%rax, %rdi, 8), er1
-              vmovapd        (%rbx, %rdi, 8), ei1
-              vmovapd        (%rcx, %rdi, 8), er3
-              vmovapd        (%rdx, %rdi, 8), ei3
-              vmovapd        er0, tr
-              vmovapd        ei0, ti
-              vfmadd231pd    sin2, ei2, tr
-              vfnmadd231pd   sin2, er2, ti
-              vfnmadd132pd   cos2, tr, er2
-              vfnmadd132pd   cos2, ti, ei2
-              vfmsub132pd    two, er2, er0
-              vfmsub132pd    two, ei2, ei0
-              vmovapd        er1, tr
-              vmovapd        ei1, ti
-              vfmadd231pd    sin2, ei3, tr
-              vfnmadd231pd   sin2, er3, ti
-              vfnmadd132pd   cos2, tr, er3
-              vfnmadd132pd   cos2, ti, ei3
-              vfmsub132pd    two, er3, er1
-              vfmsub132pd    two, ei3, ei1
-              vmovapd        er0, tr
-              vmovapd        ei0, ti
-              vfmadd231pd    sin1, ei1, tr
-              vfnmadd231pd   sin1, er1, ti
-              vfnmadd132pd   cos1, tr, er1
-              vfnmadd132pd   cos1, ti, ei1
-              vfmsub132pd    two, er1, er0
-              vfmsub132pd    two, ei1, ei0
-              vmovapd        er2, tr
-              vmovapd        ei2, ti
-              vfmadd231pd    cos1, ei3, tr
-              vfnmadd231pd   cos1, er3, ti
-              vfmadd132pd    sin1, tr, er3
-              vfmadd132pd    sin1, ti, ei3
-              vfmsub132pd    two, er3, er2
-              vfmsub132pd    two, ei3, ei2
-              vmovapd        er0, (%rax)
-              vmovapd        er3, (%rbx)
-              vmovapd        er1, (%rcx)
-              vmovapd        er2, (%rdx)
-              vmovapd        ei0, (%rax, %rdi, 8)
-              vmovapd        ei3, (%rbx, %rdi, 8)
-              vmovapd        ei1, (%rcx, %rdi, 8)
-              vmovapd        ei2, (%rdx, %rdi, 8)
-              add            $4, k2
-              cmp            k2, N2
-              jne            radix4
-              pop            Wr
-              pop            Wi
-              mov            N, N2
-              shr            N2
+              mov            N, M
+              shr            M
               lea            (X), %rax
-              lea            (%rax, N2, 4), %rbx
-              lea            (%rbx, N2, 4), %rcx
-              lea            (%rcx, N2, 4), %rdx
+              lea            (%rax, M, 4), %rbx
+              lea            (%rbx, M, 4), %rcx
+              lea            (%rcx, M, 4), %rdx
               vmovq          (%rax), ter0
               vmovq          (%rbx), ter1
               vmovq          (%rcx), tei0
@@ -165,21 +90,19 @@ radix4:       vmovapd        (Wr, k2, 8), cos1
               vmovq          ttr1, (%rcx)
               vmovq          tti, (%rdx)
               mov            $1, k2
-radix2_sclar: mov            N2, %rdi
+final_scalar: mov            M, %rdi
               sub            k2, %rdi
               sub            k2, %rdi
               lea            (X, k2, 8), %rax
-              lea            (%rax, N2, 8), %rcx
-              lea            (%rax, %rdi, 8), %rbx
-              lea            (%rcx, %rdi, 8), %rdx
+              lea            (%rax, M, 8), %rdx
               vmovq          (%rax), ter0
-              vmovq          (%rbx), ter1
-              vmovq          (%rcx), tei0
-              vmovq          (%rdx), tei1
+              vmovq          (%rax, %rdi, 8), ter1
+              vmovq          (%rdx), tei0
+              vmovq          (%rdx, %rdi, 8), tei1
               vaddsd         ter1, ter0, ttr0
               vsubsd         tei1, tei0, tti0
+              vaddsd         tei0, tei1, ttr1
               vsubsd         ter0, ter1, tti1
-              vaddsd         tei1, tei0, ttr1
               vmovq          HALF, thalf
               vmulsd         thalf, ttr0, ter0
               vmulsd         thalf, ttr1, ter1
@@ -198,30 +121,26 @@ radix2_sclar: mov            N2, %rdi
               vfmsub132sd    ttwo, tei1, tei0
               vmulsd         NONE, tei1, tei1
               vmovq          ter0, (%rax)
-              vmovq          ter1, (%rbx)
-              vmovq          tei1, (%rcx)
-              vmovq          tei0, (%rdx)
+              vmovq          ter1, (%rax, %rdi, 8)
+              vmovq          tei1, (%rdx)
+              vmovq          tei0, (%rdx, %rdi, 8)
               inc            k2
               cmp            $4, k2
-              jne            radix2_sclar
+              jne            final_scalar
               mov            $4, k2
-              mov            N2, N2o2
-              shr            N2o2
-radix2:       mov            N2, %rdi
+final_simd:   mov            M, %rdi
               sub            k2, %rdi
               sub            k2, %rdi
               sub            $3, %rdi
               lea            (X, k2, 8), %rax
-              lea            (%rax, %rdi, 8), %rbx
-              lea            (%rax, N2, 8), %rcx
-              lea            (%rcx, %rdi, 8), %rdx
+              lea            (%rax, M, 8), %rdx
               vmovapd        (%rax), er0
-              vpermpd        $27, (%rbx), er1
-              vmovapd        (%rcx), ei0
-              vpermpd        $27, (%rdx), ei1
+              vmovapd        (%rdx), ei0
+              vpermpd        $27, (%rax, %rdi, 8), er1
+              vpermpd        $27, (%rdx, %rdi, 8), ei1
               vaddpd         er1, er0, tr0
               vsubpd         ei1, ei0, ti0
-              vaddpd         ei1, ei0, tr1
+              vaddpd         ei0, ei1, tr1
               vsubpd         er0, er1, ti1
               vmovapd        HALF, half
               vmulpd         half, tr0, er0
@@ -243,36 +162,17 @@ radix2:       mov            N2, %rdi
               vpermpd        $27, er1, er1
               vpermpd        $27, ei0, ei0
               vmovapd        er0, (%rax)
-              vmovupd        er1, (%rbx)
-              vmovapd        ei1, (%rcx)
-              vmovupd        ei0, (%rdx)
+              vmovapd        ei1, (%rdx)
+              vmovupd        er1, (%rax, %rdi, 8)
+              vmovupd        ei0, (%rdx, %rdi, 8)
               add            $4, k2
-              cmp            k2, N2o2
-              jne            radix2
-done:         pop            %rbx
+              mov            M, %rax
+              shr            %rax
+              cmp            k2, %rax
+              jne            final_simd
               pop            %r12
-              pop            %r13
               pop            %r14
+              pop            %r13
               pop            %r15
+              pop            %rbx
               ret
-              .align         32
-TWO:          .double        2.0
-              .double        2.0
-              .double        2.0
-              .double        2.0
-HALF:         .double        0.5
-              .double        0.5
-              .double        0.5
-              .double        0.5
-NONE:         .double        -1.0
-              .double        -1.0
-              .double        -1.0
-              .double        -1.0
-ZERO:         .double         0.0
-              .double         0.0
-              .double         0.0
-              .double         0.0
-ONE:          .double         1.0
-              .double         1.0
-              .double         1.0
-              .double         1.0

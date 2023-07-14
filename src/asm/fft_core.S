@@ -55,12 +55,12 @@
 #define       M              %r9
 #define       I              %r8
 
-              .global        fft_real2
+              .global        fft_core2
 
 
               .text
 
-fft_real2:    push           %rbx
+fft_core2:    push           %rbx
               push           %r15
               push           %r13
               push           %r14
@@ -68,24 +68,12 @@ fft_real2:    push           %rbx
               mov            %rdi, X
               mov            %rsi, N
               mov            N, %rdi
-              call           get_forward_twiddles
-              push           %rdx
-              push           %rax
-              shr            N
-              mov            N, %rdi
               call           get_reverse_twiddles
               mov            %rax, Wr
               mov            %rdx, Wi
               xor            level, level
               xor            k2, k2
               call           next_level
-              shl            N
-              mov            X, %rdi
-              mov            N, %rsi
-              call           scramble
-              pop            Wr
-              pop            Wi
-              call           final_level
               pop            %r12
               pop            %r14
               pop            %r13
@@ -164,20 +152,19 @@ first_radix4: mov            N, M
               xor            I, I
               mov            M, %rdi
               shl            $4, %rdi
+              imul           $16, M, %rax
+              imul           $48, M, %rbx
 first_loop:   mov            I, %rdx
               shl            $4, %rdx
-              lea            (X, %rdx), %rax
-              lea            (%rax, %rdi), %rbx
-              lea            (%rbx, %rdi), %rcx
-              lea            (%rcx, %rdi), %rdx
-              vmovapd        (%rax), er0
-              vmovapd        (%rbx), er1
-              vmovapd        (%rcx), er2
-              vmovapd        (%rdx), er3
-              vmovapd        32(%rax), ei0
-              vmovapd        32(%rbx), ei1
-              vmovapd        32(%rcx), ei2
-              vmovapd        32(%rdx), ei3
+              lea            (X, %rdx), %rsi
+              vmovapd        (%rsi), er0
+              vmovapd        (%rsi, %rax), er1
+              vmovapd        (%rsi, %rax, 2), er2
+              vmovapd        (%rsi, %rbx), er3
+              vmovapd        32(%rsi), ei0
+              vmovapd        32(%rsi, %rax), ei1
+              vmovapd        32(%rsi, %rax, 2), ei2
+              vmovapd        32(%rsi, %rbx), ei3
               vpermpd        $177, %ymm0, %ymm8
               vpermpd        $177, %ymm1, %ymm9
               vpermpd        $177, %ymm2, %ymm10
@@ -218,14 +205,14 @@ first_loop:   mov            I, %rdx
               vsubpd         ti1, ti0, ei1
               vsubpd         ti3, tr2, er3
               vaddpd         tr3, ti2, ei3
-              vmovapd        er0, (%rax)
-              vmovapd        er1, (%rbx)
-              vmovapd        er2, (%rcx)
-              vmovapd        er3, (%rdx)
-              vmovapd        ei0, 32(%rax)
-              vmovapd        ei1, 32(%rbx)
-              vmovapd        ei2, 32(%rcx)
-              vmovapd        ei3, 32(%rdx)
+              vmovapd        er0, (%rsi)
+              vmovapd        er1, (%rsi, %rax)
+              vmovapd        er2, (%rsi, %rax, 2)
+              vmovapd        er3, (%rsi, %rbx)
+              vmovapd        ei0, 32(%rsi)
+              vmovapd        ei1, 32(%rsi, %rax)
+              vmovapd        ei2, 32(%rsi, %rax, 2)
+              vmovapd        ei3, 32(%rsi, %rbx)
               add            $4, I
               cmp            I, M
               jne            first_loop
@@ -242,28 +229,27 @@ radix4:       vmovapd        TWO, two
               vfmsub231pd    cos1, cos1, cos2
               vfmadd231pd    sin1, cos1, sin2
               imul           $16, M, %rax
-              imul           $32, M, %rbx
-              imul           $48, M, %rcx
+              imul           $48, M, %rbx
 radix4_loop:  mov            I, %rdx
               shl            $4, %rdx
               lea            (X, %rdx), %rsi
               vmovapd        (%rsi), er0
               vmovapd        (%rsi, %rax), er1
-              vmovapd        (%rsi, %rbx), er2
-              vmovapd        (%rsi, %rcx), er3
+              vmovapd        (%rsi, %rax, 2), er2
+              vmovapd        (%rsi, %rbx), er3
               vmovapd        32(%rsi), ei0
               vmovapd        32(%rsi, %rax), ei1
-              vmovapd        32(%rsi, %rbx), ei2
-              vmovapd        32(%rsi, %rcx), ei3
+              vmovapd        32(%rsi, %rax, 2), ei2
+              vmovapd        32(%rsi, %rbx), ei3
               call           butterfly_tw4
               vmovapd        er0, (%rsi)
               vmovapd        er1, (%rsi, %rax)
-              vmovapd        er3, (%rsi, %rbx)
-              vmovapd        er2, (%rsi, %rcx)
+              vmovapd        er3, (%rsi, %rax, 2)
+              vmovapd        er2, (%rsi, %rbx)
               vmovapd        ei0, 32(%rsi)
               vmovapd        ei1, 32(%rsi, %rax)
-              vmovapd        ei3, 32(%rsi, %rbx)
-              vmovapd        ei2, 32(%rsi, %rcx)
+              vmovapd        ei3, 32(%rsi, %rax, 2)
+              vmovapd        ei2, 32(%rsi, %rbx)
               add            $4, I
               cmp            I, M
               jne            radix4_loop
@@ -304,106 +290,6 @@ radix2_loop:  mov            I, %rdx
               jne            radix2_loop
               ret
 
-final_level:  mov            N, M
-              shr            M
-              lea            (X), %rax
-              lea            (%rax, M, 4), %rbx
-              lea            (%rbx, M, 4), %rcx
-              lea            (%rcx, M, 4), %rdx
-              vmovq          (%rax), ter0
-              vmovq          (%rbx), ter1
-              vmovq          (%rcx), tei0
-              vmovq          (%rdx), tei1
-              vaddpd         tei0, ter0, ttr0
-              vsubpd         tei0, ter0, ttr1
-              vmovq          ter1, ttr
-              vmulsd         NONE, tei1, tti
-              vmovq          ttr0, (%rax)
-              vmovq          ttr, (%rbx)
-              vmovq          ttr1, (%rcx)
-              vmovq          tti, (%rdx)
-              mov            $1, k2
-final_scalar: mov            M, %rdi
-              sub            k2, %rdi
-              sub            k2, %rdi
-              lea            (X, k2, 8), %rax
-              lea            (%rax, M, 8), %rdx
-              vmovq          (%rax), ter0
-              vmovq          (%rax, %rdi, 8), ter1
-              vmovq          (%rdx), tei0
-              vmovq          (%rdx, %rdi, 8), tei1
-              vaddsd         ter1, ter0, ttr0
-              vsubsd         tei1, tei0, tti0
-              vaddsd         tei0, tei1, ttr1
-              vsubsd         ter0, ter1, tti1
-              vmovq          HALF, thalf
-              vmulsd         thalf, ttr0, ter0
-              vmulsd         thalf, ttr1, ter1
-              vmulsd         thalf, tti0, tei0
-              vmulsd         thalf, tti1, tei1
-              vmovq          (Wr, k2, 8), tcos1
-              vmovq          (Wi, k2, 8), tsin1
-              vmovq          TWO, ttwo
-              vmovq          ter0, ttr
-              vmovq          tei0, tti
-              vfmadd231sd    tsin1, tei1, ttr
-              vfnmadd231sd   tsin1, ter1, tti
-              vfnmadd132sd   tcos1, ttr, ter1
-              vfnmadd132sd   tcos1, tti, tei1
-              vfmsub132sd    ttwo, ter1, ter0
-              vfmsub132sd    ttwo, tei1, tei0
-              vmulsd         NONE, tei1, tei1
-              vmovq          ter0, (%rax)
-              vmovq          ter1, (%rax, %rdi, 8)
-              vmovq          tei1, (%rdx)
-              vmovq          tei0, (%rdx, %rdi, 8)
-              inc            k2
-              cmp            $4, k2
-              jne            final_scalar
-              mov            $4, k2
-final_simd:   mov            M, %rdi
-              sub            k2, %rdi
-              sub            k2, %rdi
-              sub            $3, %rdi
-              lea            (X, k2, 8), %rax
-              lea            (%rax, M, 8), %rdx
-              vmovapd        (%rax), er0
-              vmovapd        (%rdx), ei0
-              vpermpd        $27, (%rax, %rdi, 8), er1
-              vpermpd        $27, (%rdx, %rdi, 8), ei1
-              vaddpd         er1, er0, tr0
-              vsubpd         ei1, ei0, ti0
-              vaddpd         ei0, ei1, tr1
-              vsubpd         er0, er1, ti1
-              vmovapd        HALF, half
-              vmulpd         half, tr0, er0
-              vmulpd         half, tr1, er1
-              vmulpd         half, ti0, ei0
-              vmulpd         half, ti1, ei1
-              vmovapd        (Wr, k2, 8), cos1
-              vmovapd        (Wi, k2, 8), sin1
-              vmovapd        TWO, two
-              vmovapd        er0, tr
-              vmovapd        ei0, ti
-              vfmadd231pd    sin1, ei1, tr
-              vfnmadd231pd   sin1, er1, ti
-              vfnmadd132pd   cos1, tr, er1
-              vfnmadd132pd   cos1, ti, ei1
-              vfmsub132pd    two, er1, er0
-              vfmsub132pd    two, ei1, ei0
-              vmulpd         NONE, ei1, ei1
-              vpermpd        $27, er1, er1
-              vpermpd        $27, ei0, ei0
-              vmovapd        er0, (%rax)
-              vmovapd        ei1, (%rdx)
-              vmovupd        er1, (%rax, %rdi, 8)
-              vmovupd        ei0, (%rdx, %rdi, 8)
-              add            $4, k2
-              mov            M, %rax
-              shr            %rax
-              cmp            k2, %rax
-              jne            final_simd
-              ret
 
 radix16:      vmovapd        (X), er0
               vmovapd        64(X), er1
@@ -507,17 +393,3 @@ butterfly_tw4:vmovapd        er0, tr
               vfmsub132pd    two, er3, er2
               vfmsub132pd    two, ei3, ei2
               ret
-
-              .align         32
-TWO:          .double        2.0
-              .double        2.0
-              .double        2.0
-              .double        2.0
-HALF:         .double        0.5
-              .double        0.5
-              .double        0.5
-              .double        0.5
-NONE:         .double        -1.0
-              .double        -1.0
-              .double        -1.0
-              .double        -1.0
