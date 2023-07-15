@@ -101,7 +101,7 @@ extern "C" {
 int fft_bit_reverse(int, int);
 void dit_rn_recursive_complex(double*, double*, int);
 void fft_real2(double*, int);
-void fft_complex2(double*,int);
+void fft_complex2(double*, int);
 }
 
 double dit_rn_recursive_complex_test(complex<double>* z, int N) {
@@ -120,29 +120,29 @@ double dit_rn_recursive_complex_test(complex<double>* z, int N) {
 }
 
 int main(int argc, char **argv) {
-	for( int i = 0; i < 2; i++) {
-		for( int j = 0; j < 2; j++) {
-			for( int k = 0; k < 2; k++) {
-				for( int l = 0; l < 2; l++) {
-					for( int m = 0; m < 2; m++) {
-						printf( "%2i ", m + 2 * l + 4 * k + 8 * j + 16 * i);
+	for (int i = 0; i < 2; i++) {
+		for (int j = 0; j < 2; j++) {
+			for (int k = 0; k < 2; k++) {
+				for (int l = 0; l < 2; l++) {
+					for (int m = 0; m < 2; m++) {
+						printf("%2i ", m + 2 * l + 4 * k + 8 * j + 16 * i);
 					}
 				}
-				printf( "\n");
+				printf("\n");
 			}
 		}
 	}
-	printf( "\n");
-	for( int i = 0; i < 2; i++) {
-		for( int j = 0; j < 2; j++) {
-			for( int k = 0; k < 2; k++) {
-				for( int l = 0; l < 2; l++) {
-					for( int m = 0; m < 2; m++) {
+	printf("\n");
+	for (int i = 0; i < 2; i++) {
+		for (int j = 0; j < 2; j++) {
+			for (int k = 0; k < 2; k++) {
+				for (int l = 0; l < 2; l++) {
+					for (int m = 0; m < 2; m++) {
 
-						printf( "%2i ", k + 2 * j + 4 * i + 8 * m + 16 * l);
+						printf("%2i ", k + 2 * j + 4 * i + 8 * m + 16 * l);
 					}
 				}
-				printf( "\n");
+				printf("\n");
 			}
 		}
 	}
@@ -177,22 +177,24 @@ int main(int argc, char **argv) {
 	std::vector<int> Ns;
 	double score = 0.0;
 	int cnt = 0;
-
+	feenableexcept( FE_DIVBYZERO);
+	feenableexcept( FE_INVALID);
+	feenableexcept( FE_OVERFLOW);
 	for (int N = 128; N <= 64 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		if (true) {
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 101; i++) {
+			for (int i = 0; i < 2; i++) {
 				std::vector<double> x(N);
 				std::vector<double> y(N);
 				std::vector<complex<double>> X(N / 2 + 1);
 				std::vector<complex<double>> Y(N / 2 + 1);
 				for (int n = 0; n < N; n++) {
-					x[n] = y[n] = rand1();
+					x[n] = y[n] = 0;
 				}
-				//x[1] = y[1] = 1.0;
+				x[0] = y[0] = 1.0;
 //				x[0] = y[0] = 1.0;
 				const auto& c = cos_twiddles(N);
 				const auto& s = sin_twiddles(N);
@@ -226,11 +228,11 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-						//			printf("%i: %16e %16e | %16e %16e | %16e %16e\n", n, X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+								printf("%i: %16e %16e | %16e %16e | %16e %16e\n", n, X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
-			//	abort();
+				abort();
 			std::string f;
 			for (auto i = pfac.begin(); i != pfac.end(); i++) {
 				f += "(" + std::to_string(i->first) + "^"
@@ -279,10 +281,10 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-					//	printf("%16e %16e | %16e %16e | %16e %16e\n",
-							//	X[n].real(), X[n].imag(), Y[n].real(),
-							//	Y[n].imag(), X[n].real() - Y[n].real(),
-							//	X[n].imag() - Y[n].imag();
+						//	printf("%16e %16e | %16e %16e | %16e %16e\n",
+						//	X[n].real(), X[n].imag(), Y[n].real(),
+						//	Y[n].imag(), X[n].real() - Y[n].real(),
+						//	X[n].imag() - Y[n].imag();
 					}
 				}
 			}
@@ -301,7 +303,7 @@ int main(int argc, char **argv) {
 			printf("C %c| %e %e %e %e %e | %e\n",
 					(pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ',
 					avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
-		//	abort();
+			//	abort();
 		}
 	}
 	return 0;
