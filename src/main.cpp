@@ -85,6 +85,7 @@ void fft_recursive(double* X, const double* C, int N);
 void dit_nr_recur(double* X,int N);
 void dit_nr_recur(double* X,int N);
 void fft_complex2(double* X,int N);
+void fft_selfsort_real(double* X, int N);
 }
 
 void test_twiddles() {
@@ -100,13 +101,13 @@ extern "C" {
 int fft_bit_reverse(int, int);
 void dit_rn_recursive_complex(double*, double*, int);
 void fft_real2(double*, int);
-void fft_complex(double*, double*, int);
+void fft_complex2(double*,int);
 }
 
 double dit_rn_recursive_complex_test(complex<double>* z, int N) {
 	timer tm;
 	tm.start();
-	fft_complex2((double*) z, N);
+	//fft_complex2((double*) z, N);
 	tm.stop();
 	std::vector<complex<double>> tmp(N);
 	double* a = (double*) z;
@@ -177,7 +178,7 @@ int main(int argc, char **argv) {
 	double score = 0.0;
 	int cnt = 0;
 
-	for (int N = 128; N <= 64 * 1024 * 1024; N *= 2) {
+	for (int N = 128; N <= 64 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		if (true) {
 			double avg_err = 0.0;
@@ -197,13 +198,13 @@ int main(int argc, char **argv) {
 				const auto& s = sin_twiddles(N);
 				if (i == 0) {
 					fftw_real(Y, y);
-					fft_real2(x.data(), N);
+					fft_selfsort_real(x.data(), N);
 				} else {
 
 					auto b = fftw_real(Y, y);
 					timer tm;
 					tm.start();
-					fft_real2(x.data(), N);
+					fft_selfsort_real(x.data(), N);
 					//test_time(x.data(), N);
 					tm.stop();
 					X[0].real() = x[0];
@@ -251,26 +252,26 @@ int main(int argc, char **argv) {
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 1002; i++) {
+			for (int i = 0; i < 101; i++) {
 				std::vector<complex<double>> X(N);
 				std::vector<complex<double>> Y(N);
 				for (int n = 0; n < N; n++) {
-					X[n].real() = (Y[n].real() = 2 * n);
-					X[n].imag() = (Y[n].imag() = 2 * n + 1);
+					X[n].real() = (Y[n].real() = rand1());
+					X[n].imag() = (Y[n].imag() = rand1());
 				}
 				//	X[32].real() = (Y[32].real() = 1);
 				//	X[0].imag() = (Y[0].imag() = 0);
 				if (i == 0) {
 					fftw(Y);
-					dit_rn_recursive_complex_test(X.data(), N);
+					fft_complex2((double*) X.data(), N);
 				} else {
 					auto b = fftw(Y);
 					timer tm;
 					tm.start();
-					double c = dit_rn_recursive_complex_test(X.data(), N);
+					fft_complex2((double*) X.data(), N);
 					tm.stop();
-					t2 += c;
-					t4 += c;
+					t2 += tm.read();
+					t4 += tm.read();
 					t1 += b;
 					t3 += b;
 					for (int n = 0; n < N; n++) {

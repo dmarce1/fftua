@@ -49,20 +49,28 @@ fft_selfsort_real:
               push           %r12
               push           %rbx
               mov            %rdi, X
+              shr            %rsi
               mov            %rsi, N
               bsf            N, %rax
               inc            %rax
               shl            $4, %rax
               sub            %rax, %rsp
               mov            %rsp, Wptr
-              mov            %rsp, %rdi
-              mov            N, %rcx
-twiddle_loop: call           get_forward_twiddles
+              mov            %rsp, %rsi
+              bsf            N, %rcx
+twiddle_loop: push           %rcx
+              push           %rsi
+              mov            %rcx, %rdi
+              call           get_forward_twiddles
+              pop            %rsi
+              pop            %rcx
               mov            %rcx, %rbx
               shl            %rbx
-              mov            (%rdi, %rbx, 8), %rax
-              mov            8(%rdi, %rbx, 8), %rdx
-              loop           twiddle_loop
+              mov            %rax, (%rsi, %rbx, 8)
+              mov            %rdx, 8(%rsi, %rbx, 8)
+              dec            %rcx
+              test           %rcx, %rcx
+              jnz            twiddle_loop
               mov            N, %rax
               shr            %rax
               lea            (X, %rax, 8), Y
@@ -71,6 +79,10 @@ twiddle_loop: call           get_forward_twiddles
               shr            N2
               vmovapd        TWO, two
               call           next_level
+              mov            X, %rdi
+              mov            N, %rsi
+              shl            %rsi
+              call           complex2real
               pop            %rbx
               pop            %r15
               pop            %r14
@@ -84,11 +96,19 @@ next_level:   mov            lev, %rcx
               mov            $1, %rax
               shl            %rcx, %rax
               mov            %rax, N2
+              mov            N, %rbx
+              shr            $2, %rbx
+              cmp            %rbx, %rax
+              je             call2
+              jg             return
               test           lev, lev
               jz             call0
               call           radix4_pass1
               jmp            call1
 call0:        call           first_level
+              jmp            call1
+call2:        call           radix4_NN
+              jmp            return
 call1:        mov            N, %rdx
               shl            $2, %rdx
               push           Y
@@ -123,14 +143,14 @@ call1:        mov            N, %rdx
               mov            %rax, N
               sub            $2, lev
               call           radix4_RN
-              ret
+return:       ret
 
 
 
 first_level:  mov            N, %rdi
               shr            %rdi
               mov            %rdi, %rsi
-              shr            $3, %rsi
+              shr            %rsi
               xor            I, I
 first_loop:   lea            (X, I, 8), %rax
               lea            (%rax, %rdi, 8), %rax
@@ -204,6 +224,7 @@ first_loop:   lea            (X, I, 8), %rax
               vmovapd        %ymm7, (%rdx, %rsi, 8)
               add            $16, I
               cmp            I, %rdi
+              jne            first_loop
               ret
 
 radix4_pass1: mov            %rsp, %rbx
@@ -417,6 +438,7 @@ butterfly:    vmovapd        er0, tr
               vfmsub132pd    two, ei3, ei2
               ret
 
+              .align         32
 TWO:          .double        2.0
               .double        2.0
               .double        2.0
