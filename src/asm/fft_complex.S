@@ -10,6 +10,8 @@ fft_complex2: push           %r15
               push           %r14
               mov            %rdi, X
               mov            %rsi, N
+              mov            X, %rdi
+              mov            N, %rsi
               call           fft_core2
               mov            X, %rdi
               mov            N, %rsi

@@ -31,6 +31,7 @@
 #define       I              %r8
 
               .global        fft_core2
+              .global        butterfly_tw4
 
 
               .text
