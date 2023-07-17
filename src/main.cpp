@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
 	feenableexcept( FE_DIVBYZERO);
 	feenableexcept( FE_INVALID);
 	feenableexcept( FE_OVERFLOW);
-	for (int N = 64; N <= 64 * 1024 * 1024; N *= 4) {
+	for (int N = 256; N <= 64 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		if (true) {
 			double avg_err = 0.0;

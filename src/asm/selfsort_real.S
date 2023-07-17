@@ -31,13 +31,15 @@
 #define       Wi             %r13
 #define       k2             %r12
 #define       N2             %r11
-#define       NHI            %r10
+#define       dN             %r10
 #define       I              %r9
-#define       N              %r8
-#define       STACK_SIZE     $32
+#define       J              %r8
+#define       STACK_SIZE     $40
 #define       Wptr           -8(%rbp)
 #define       lev            -16(%rbp)
-#define       dyn_size       -24(%rbp)
+#define       N              -24(%rbp)
+#define       NHI            -32(%rbp)
+#define       dyn_size       -40(%rbp)
 
               .global        fft_selfsort_real
 
@@ -100,13 +102,15 @@ next_level:   bsf            N, %rax
               test           %rcx, %rcx
               jz             call_first
               sub            %rcx, %rax
-              cmp            $0, %rcx
+              cmp            $0, %rax
               jle            call0
-              cmp            $2, %rcx
+              cmp            $2, %rax
               jl             call1
               je             call2
-              cmp            $3, %rcx
+              cmp            $3, %rax
               je             call3
+              mov            $1, N2
+              shl            %rcx, N2
               call           radix4_selfsort
               jmp            continue
 call_first:   call           radix4_first
@@ -127,7 +131,10 @@ continue:     mov            N, %rdx
               push           X
               lea            (X, %rdx, 8), X
               add            $2, lev
-              shr            $2, N
+              mov            N, %rax
+              shr            $2, %rax
+              mov            %rax, N
+              shl            $2, N2
               call           next_level
               pop            X
               call           next_level
@@ -136,7 +143,9 @@ continue:     mov            N, %rdx
               pop            X
               call           next_level
               mov            N, N2
-              shl            $2, N
+              mov            N, %rax
+              shl            $2, %rax
+              mov            %rax, N
               sub            $2, lev
               call           radix4
               ret
@@ -171,80 +180,114 @@ first_loop:   lea            (X, I, 8), %rax
               ret
 
 radix4_selfsort:
-              mov            %rsp, %rbx
+              mov            %rsp, %rax
               sub            $39, %rsp
               and            $0xffffffffffffffc0, %rsp
-              mov            %rbx, (%rsp)
-              mov            Wptr, %rdx
-              bsf            N2, %rax
-              add            $2, %rax
+              mov            %rax, (%rsp)
+              bsf            N, %rax
               shl            %rax
+              mov            Wptr, %rdx
               mov            (%rdx, %rax, 8), Wr
               mov            8(%rdx, %rax, 8), Wi
-              bsf            N, %rcx
-              bsf            N2, %rax
+              mov            N, %rax
+              bsr            %rax, %rcx
+              bsr            N2, %rax
               sub            %rax, %rcx
               sub            $4, %rcx
-              mov            $1, %rdx
-              shl            %rcx, %rdx
-              mov            %rdx, NHI
+              mov            $1, %rax
+              shl            %rcx, %rax
+              mov            %rax, NHI
+// k2 + N2 * (J + 4 * (I + NHI * bhi)
+//N2 * 4 * NHI
               xor            I, I
-hi_loop:      xor            k2, k2
-k2_loop:      mov            $-1, %rsi
-butter_loop:  inc            %rsi
-              mov            I, %rdx
-              shl            $2, %rdx
-              add            %rsi, %rdx
-              imul           N2, %rdx
-              add            k2, %rdx
+hi_loop:      mov            $4, k2
+k2_loop:      mov            N2, %rax
+              shr            %rax
+              cmp            k2, %rax
+              jle            exit2
+              vmovapd        (Wr, k2, 8), cos1
+              vmovapd        (Wi, k2, 8), sin1
+              vmulpd         sin1, sin1, cos2
+              vmulpd         cos1, sin1, sin2
+              vfmsub231pd    cos1, cos1, cos2
+              vfmadd231pd    sin1, cos1, sin2
               mov            N2, %rdi
-              shl            $2, %rdi
-              imul           NHI, %rdi
-              lea            (X, %rdx, 8), %rax
-
-
-              cmp            $3, %rsi
-              je             exit_butter
+              sub            k2, %rdi
+              sub            k2, %rdi
+              sub            $3, %rdi
+              mov            N, dN
+              shr            $2, dN
+              xor            J, J
+lo_loop0:     mov            I, %rax
+              shl            $2, %rax
+              add            J, %rax
+              imul           N2, %rax
+              add            k2, %rax
+              lea            (X, %rax, 8), %rax
+              lea            (%rax, dN, 8), %rbx
+              lea            (%rbx, dN, 8), %rcx
+              lea            (%rcx, dN, 8), %rdx
+              vmovapd        (%rax), er0
+              vmovapd        (%rbx), er1
+              vmovapd        (%rcx), er2
+              vmovapd        (%rdx), er3
+              vpermpd        $27, (%rax, %rdi, 8), ei0
+              vpermpd        $27, (%rbx, %rdi, 8), ei1
+              vpermpd        $27, (%rcx, %rdi, 8), ei2
+              vpermpd        $27, (%rdx, %rdi, 8), ei3
+              call           butter_4
+              vpermpd        $27, er2, er2
+              vpermpd        $27, er1, er1
+              vpermpd        $27, ei3, ei3
+              vpermpd        $27, ei0, ei0
+              cmp            $3, J
+              je             exit0
               sub            $256, %rsp
-              vmovapd        %ymm0, (%rsp)
-              vmovapd        %ymm1, 32(%rsp)
-              vmovapd        %ymm2, 64(%rsp)
-              vmovapd        %ymm3, 96(%rsp)
-              vmovapd        %ymm4, 128(%rsp)
-              vmovapd        %ymm5, 160(%rsp)
-              vmovapd        %ymm6, 192(%rsp)
-              vmovapd        %ymm7, 224(%rsp)
-              jmp            butter_loop
-exit_butter:  inc            %rsi
-              mov            N2, %rdi
-store_loop:   dec            %rsi
-              mov            %rsi, %rdx
-              imul           NHI, %rdx
-              add            I, %rdx
-              shl            $2, %rdx
-              imul           N2, %rdx
-              add            k2, %rdx
-              mov            N2, %rdi
-              lea            (X, %rdx, 8), %rax
-
-
-
-              test           %rsi, %rsi
-              jz             exit_store
-              vmovapd        (%rsp), %ymm0
-              vmovapd        32(%rsp), %ymm1
-              vmovapd        64(%rsp), %ymm2
-              vmovapd        96(%rsp), %ymm3
-              vmovapd        128(%rsp), %ymm4
-              vmovapd        160(%rsp), %ymm5
-              vmovapd        192(%rsp), %ymm6
-              vmovapd        224(%rsp), %ymm7
+              vmovapd        er0, (%rsp)
+              vmovapd        er1, 32(%rsp)
+              vmovapd        er2, 64(%rsp)
+              vmovapd        er3, 96(%rsp)
+              vmovapd        ei0, 128(%rsp)
+              vmovapd        ei1, 160(%rsp)
+              vmovapd        ei2, 192(%rsp)
+              vmovapd        ei3, 224(%rsp)
+              inc            J
+              jmp            lo_loop0
+exit0:        mov            $3, J
+lo_loop1:     mov            J, %rax
+              imul           NHI, %rax
+              add            I, %rax
+              shl            $2, %rax
+              imul           N2, %rax
+              add            k2, %rax
+              lea            (X, %rax, 8), %rax
+              lea            (%rax, N2, 8), %rbx
+              lea            (%rbx, N2, 8), %rcx
+              lea            (%rcx, N2, 8), %rdx
+              vmovapd        er0, (%rax)
+              vmovupd        er2, (%rax, %rdi, 8)
+              vmovapd        er3, (%rbx)
+              vmovupd        er1, (%rbx, %rdi, 8)
+              vmovapd        ei1, (%rcx)
+              vmovupd        ei3, (%rcx, %rdi, 8)
+              vmovapd        ei2, (%rdx)
+              vmovupd        ei0, (%rdx, %rdi, 8)
+              test           J, J
+              jz             exit1
+              vmovapd        (%rsp), er0
+              vmovapd        32(%rsp), er1
+              vmovapd        64(%rsp), er2
+              vmovapd        96(%rsp), er3
+              vmovapd        128(%rsp), ei0
+              vmovapd        160(%rsp), ei1
+              vmovapd        192(%rsp), ei2
+              vmovapd        224(%rsp), ei3
               add            $256, %rsp
-              jmp            store_loop
-exit_store:   add            $4, k2
-              cmp            k2, N2
-              jne            k2_loop
-              inc            I
+              dec            J
+              jmp            lo_loop1
+exit1:        add            $4, k2
+              jmp            k2_loop
+exit2:        inc            I
               cmp            I, NHI
               jne            hi_loop
               mov            (%rsp), %rsp
