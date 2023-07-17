@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
 	feenableexcept( FE_DIVBYZERO);
 	feenableexcept( FE_INVALID);
 	feenableexcept( FE_OVERFLOW);
-	for (int N = 128; N <= 64 * 1024 * 1024; N *= 4) {
+	for (int N = 64; N <= 64 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		if (true) {
 			double avg_err = 0.0;
@@ -192,10 +192,10 @@ int main(int argc, char **argv) {
 				std::vector<complex<double>> X(N / 2 + 1);
 				std::vector<complex<double>> Y(N / 2 + 1);
 				for (int n = 0; n < N; n++) {
-					x[n] = y[n] = 0;
+					x[n] = y[n] = rand1();
 				}
-				x[0] = y[0] = 1.0;
-//				x[0] = y[0] = 1.0;
+				x[5] = y[5] = 1.0;
+	//			x[8] = y[8] = 1.0;
 				const auto& c = cos_twiddles(N);
 				const auto& s = sin_twiddles(N);
 				if (i == 0) {

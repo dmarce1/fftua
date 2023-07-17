@@ -82,7 +82,7 @@ twiddle_loop: push           %rcx
               xor            %rax, %rax
               mov            %rax, lev
               mov            N, N2
-              shr            N2
+              mov            $1, N2
               call           next_level
               add            dyn_size, %rsp
               pop            %rbx
@@ -95,25 +95,29 @@ twiddle_loop: push           %rcx
               ret
 
 
-next_level:   mov            lev, %rcx
-              mov            $1, %rax
-              shl            %rcx, %rax
-              mov            %rax, N2
-              mov            N, %rbx
-              cmp            N2, %rbx
-              je             retern
-              shr            $2, %rbx
-              cmp            N2, %rbx
-              je             call0
-              mov            lev, %rdx
-              test           %rdx, %rdx
-              jz             call1
-              call           radix4_pass1
+next_level:   bsf            N, %rax
+              mov            lev, %rcx
+              test           %rcx, %rcx
+              jz             call_first
+              sub            %rcx, %rax
+              cmp            $0, %rcx
+              jle            call0
+              cmp            $2, %rcx
+              jl             call1
+              je             call2
+              cmp            $3, %rcx
+              je             call3
+              call           radix4_selfsort
               jmp            continue
-call0:        call           radix4_pass2
-              jmp            retern
-call1:        call           first_level
+call_first:   call           radix4_first
               jmp            continue
+call0:        ret
+call1:        hlt
+call2:        mov            N, N2
+              shr            $2, N2
+              call           radix4
+              ret
+call3:        hlt
 continue:     mov            N, %rdx
               shr            $2, %rdx
               push           X
@@ -134,10 +138,10 @@ continue:     mov            N, %rdx
               mov            N, N2
               shl            $2, N
               sub            $2, lev
-              call           radix4_pass2
-retern:       ret
+              call           radix4
+              ret
 
-first_level:  mov            N, %rdi
+radix4_first: mov            N, %rdi
 			  shr            $2, %rdi
 			  xor            I, I
 first_loop:   lea            (X, I, 8), %rax
@@ -166,7 +170,8 @@ first_loop:   lea            (X, I, 8), %rax
               jne            first_loop
               ret
 
-radix4_pass1: mov            %rsp, %rbx
+radix4_selfsort:
+              mov            %rsp, %rbx
               sub            $39, %rsp
               and            $0xffffffffffffffc0, %rsp
               mov            %rbx, (%rsp)
@@ -245,7 +250,7 @@ exit_store:   add            $4, k2
               mov            (%rsp), %rsp
               ret
 
-radix4_pass2: bsf            N, %rax
+radix4:       bsf            N, %rax
               shl            %rax
               mov            Wptr, %rdx
               mov            (%rdx, %rax, 8), Wr
@@ -263,6 +268,8 @@ radix4_pass2: bsf            N, %rax
               vmovq          ter1, (%rbx)
               vmovq          ter2, (%rcx)
               vmovq          ter3, (%rdx)
+              cmp            $2, N2
+              jl             radix4_end
               lea            (X, N2, 4), %rax
               lea            (%rax, N2, 8), %rbx
               lea            (%rbx, N2, 8), %rcx
@@ -276,6 +283,8 @@ radix4_pass2: bsf            N, %rax
               vmovq          ter1, (%rbx)
               vmovq          ter2, (%rcx)
               vmovq          ter3, (%rdx)
+              cmp            $4, N2
+              jl             radix4_end
               vmovq          8(Wr), tcos1
               vmovq          8(Wi), tsin1
               vmulsd         tsin1, tsin1, tcos2
@@ -305,8 +314,8 @@ radix4_pass2: bsf            N, %rax
               vmovq          tei3, (%rcx, %rdi, 8)
               vmovq          tei2, (%rdx)
               vmovq          tei0, (%rdx, %rdi, 8)
-              cmp            $4, N2
-              jge            radix4_end
+              cmp            $8, N2
+              jl             radix4_end
               vmovapd        16(Wr), tcos1
               vmovapd        16(Wi), tsin1
               vmulpd         tsin1, tsin1, tcos2
@@ -332,17 +341,17 @@ radix4_pass2: bsf            N, %rax
               vpshufb        PERMUTE, tei2, tei2
               vpshufb        PERMUTE, tei3, tei3
               call           butter_2
-              vpshufb        PERMUTE, ter3, ter3
+              vpshufb        PERMUTE, ter2, ter2
               vpshufb        PERMUTE, ter1, ter1
-              vpshufb        PERMUTE, tei2, tei2
+              vpshufb        PERMUTE, tei3, tei3
               vpshufb        PERMUTE, tei0, tei0
               vmovapd        ter0, (%rax)
-              vmovapd        ter2, (%rbx)
-              vmovupd        ter3, (%rax, %rdi, 8)
+              vmovupd        ter2, (%rax, %rdi, 8)
+              vmovapd        ter3, (%rbx)
               vmovupd        ter1, (%rbx, %rdi, 8)
               vmovapd        tei1, (%rcx)
-              vmovapd        tei3, (%rdx)
-              vmovupd        tei2, (%rcx, %rdi, 8)
+              vmovupd        tei3, (%rcx, %rdi, 8)
+              vmovapd        tei2, (%rdx)
               vmovupd        tei0, (%rdx, %rdi, 8)
               xor            k2, k2
 radix4_begin: add            $4, k2
@@ -373,17 +382,17 @@ radix4_begin: add            $4, k2
               vpermpd        $27, (%rcx, %rdi, 8), ei2
               vpermpd        $27, (%rdx, %rdi, 8), ei3
               call           butter_4
-              vpermpd        $27, er3, er3
+              vpermpd        $27, er2, er2
               vpermpd        $27, er1, er1
-              vpermpd        $27, ei2, ei2
+              vpermpd        $27, ei3, ei3
               vpermpd        $27, ei0, ei0
               vmovapd        er0, (%rax)
-              vmovapd        er2, (%rbx)
-              vmovupd        er3, (%rax, %rdi, 8)
+              vmovupd        er2, (%rax, %rdi, 8)
+              vmovapd        er3, (%rbx)
               vmovupd        er1, (%rbx, %rdi, 8)
               vmovapd        ei1, (%rcx)
-              vmovapd        ei3, (%rdx)
-              vmovupd        ei2, (%rcx, %rdi, 8)
+              vmovupd        ei3, (%rcx, %rdi, 8)
+              vmovapd        ei2, (%rdx)
               vmovupd        ei0, (%rdx, %rdi, 8)
               jmp            radix4_begin
 radix4_end:   ret
@@ -420,6 +429,7 @@ butter_4:     vmovapd        er0, tr
               vfmadd132pd    sin1, ti, ei3
               vfmsub132pd    TWO, er3, er2
               vfnmadd132pd   TWO, ei3, ei2
+              ret
 
 butter_2:     vmovapd        ter0, ttr
               vmovapd        tei0, tti
@@ -453,6 +463,7 @@ butter_2:     vmovapd        ter0, ttr
               vfmadd132pd    tsin1, tti, tei3
               vfmsub132pd    TWO, ter3, ter2
               vfnmadd132pd   TWO, tei3, tei2
+              ret
 
 butter_1:     vmovq          ter0, ttr
               vmovq          tei0, tti
@@ -533,22 +544,14 @@ TW45:         .double        .7071067812
               .double        .7071067812
               .double        .7071067812
               .double        .7071067812
-PERMUTE:      .byte          16
-              .byte          17
-              .byte          18
-              .byte          19
-              .byte          20
-              .byte          21
-              .byte          22
-              .byte          23
-              .byte          24
-              .byte          25
-              .byte          26
-              .byte          27
-              .byte          28
-              .byte          29
-              .byte          30
-              .byte          31
+PERMUTE:      .byte          8
+              .byte          9
+              .byte          10
+              .byte          11
+              .byte          12
+              .byte          13
+              .byte          14
+              .byte          15
               .byte          0
               .byte          1
               .byte          2
@@ -557,12 +560,4 @@ PERMUTE:      .byte          16
               .byte          5
               .byte          6
               .byte          7
-              .byte          8
-              .byte          9
-              .byte          10
-              .byte          11
-              .byte          12
-              .byte          13
-              .byte          14
-              .byte          15
 
