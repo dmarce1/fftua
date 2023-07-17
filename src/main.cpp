@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
 	feenableexcept( FE_DIVBYZERO);
 	feenableexcept( FE_INVALID);
 	feenableexcept( FE_OVERFLOW);
-	for (int N = 256; N <= 64 * 1024 * 1024; N *= 4) {
+	for (int N = 256; N <= 64 * 1024 * 1024; N *= 2) {
 		auto pfac = prime_factorization(N);
 		if (true) {
 			double avg_err = 0.0;
@@ -194,19 +194,19 @@ int main(int argc, char **argv) {
 				for (int n = 0; n < N; n++) {
 					x[n] = y[n] = rand1();
 				}
-				x[5] = y[5] = 1.0;
+				x[0] = y[0] = 1.0;
 	//			x[8] = y[8] = 1.0;
 				const auto& c = cos_twiddles(N);
 				const auto& s = sin_twiddles(N);
 				if (i == 0) {
 					fftw_real(Y, y);
-					fft_selfsort_real(x.data(), N);
+					fft_real2(x.data(), N);
 				} else {
 
 					auto b = fftw_real(Y, y);
 					timer tm;
 					tm.start();
-					fft_selfsort_real(x.data(), N);
+					fft_real2(x.data(), N);
 					//test_time(x.data(), N);
 					tm.stop();
 					X[0].real() = x[0];
@@ -228,11 +228,11 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-								printf("%i: %16e %16e | %16e %16e | %16e %16e\n", n, X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
+					//			printf("%i: %16e %16e | %16e %16e | %16e %16e\n", n, X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
-				abort();
+				//abort();
 			std::string f;
 			for (auto i = pfac.begin(); i != pfac.end(); i++) {
 				f += "(" + std::to_string(i->first) + "^"

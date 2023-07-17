@@ -197,10 +197,263 @@ radix4_selfsort:
               mov            $1, %rax
               shl            %rcx, %rax
               mov            %rax, NHI
-// k2 + N2 * (J + 4 * (I + NHI * bhi)
-//N2 * 4 * NHI
+              mov            N, dN
+              shr            $2, dN
               xor            I, I
-hi_loop:      mov            $4, k2
+hi_loop:      xor            J, J
+//k2 + N2 * (J0 + 4 * (I + NHI * J1))
+lo_loop2:     mov            I, %rax
+              shl            $2, %rax
+              add            J, %rax
+              imul           N2, %rax
+              lea            (X, %rax, 8), %rax
+              lea            (%rax, dN, 8), %rbx
+              lea            (%rbx, dN, 8), %rcx
+              lea            (%rcx, dN, 8), %rdx
+              vmovq          (%rax), ter0
+              vmovq          (%rbx), ter1
+              vmovq          (%rcx), ter2
+              vmovq          (%rdx), ter3
+              call           butter0_1
+              cmp            $3, J
+              je             exit3
+              sub            $32, %rsp
+              vmovq          ter0, (%rsp)
+              vmovq          ter1, 8(%rsp)
+              vmovq          ter2, 16(%rsp)
+              vmovq          ter3, 24(%rsp)
+              inc            J
+              jmp            lo_loop2
+exit3:        mov            $3, J
+lo_loop3:     mov            J, %rax
+              imul           NHI, %rax
+              add            I, %rax
+              shl            $2, %rax
+              imul           N2, %rax
+              lea            (X, %rax, 8), %rax
+              lea            (%rax, N2, 8), %rbx
+              lea            (%rbx, N2, 8), %rcx
+              lea            (%rcx, N2, 8), %rdx
+              vmovq          ter0, (%rax)
+              vmovq          ter2, (%rbx)
+              vmovq          ter3, (%rcx)
+              vmovq          ter1, (%rdx)
+              test           J, J
+              jz             exit4
+              vmovq          (%rsp), ter0
+              vmovq          8(%rsp), ter1
+              vmovq          16(%rsp), ter2
+              vmovq          24(%rsp), ter3
+              add            $32, %rsp
+              dec            J
+              jmp            lo_loop3
+exit4:        xor            J, J
+lo_loop4:     mov            I, %rax
+              shl            $2, %rax
+              add            J, %rax
+              imul           N2, %rax
+              mov            N2, %rdx
+              shr            %rdx
+              add            %rdx, %rax
+              lea            (X, %rax, 8), %rax
+              lea            (%rax, dN, 8), %rbx
+              lea            (%rbx, dN, 8), %rcx
+              lea            (%rcx, dN, 8), %rdx
+              vmovq          (%rax), ter0
+              vmovq          (%rbx), ter1
+              vmovq          (%rcx), ter2
+              vmovq          (%rdx), ter3
+              call           butterNy_1
+              cmp            $3, J
+              je             exit5
+              sub            $32, %rsp
+              vmovq          ter0, (%rsp)
+              vmovq          ter1, 8(%rsp)
+              vmovq          ter2, 16(%rsp)
+              vmovq          ter3, 24(%rsp)
+              inc            J
+              jmp            lo_loop4
+exit5:        mov            $3, J
+lo_loop5:     mov            J, %rax
+              imul           NHI, %rax
+              add            I, %rax
+              shl            $2, %rax
+              imul           N2, %rax
+              mov            N2, %rdx
+              shr            %rdx
+              add            %rdx, %rax
+              lea            (X, %rax, 8), %rax
+              lea            (%rax, N2, 8), %rbx
+              lea            (%rbx, N2, 8), %rcx
+              lea            (%rcx, N2, 8), %rdx
+              vmovq          ter0, (%rax)
+              vmovq          ter1, (%rbx)
+              vmovq          ter2, (%rcx)
+              vmovq          ter3, (%rdx)
+              test           J, J
+              jz             exit6
+              vmovq          (%rsp), ter0
+              vmovq          8(%rsp), ter1
+              vmovq          16(%rsp), ter2
+              vmovq          24(%rsp), ter3
+              add            $32, %rsp
+              dec            J
+              jmp            lo_loop5
+exit6:        cmp            $4, N2
+              jl             exit2
+              vmovq          8(Wr), tcos1
+              vmovq          8(Wi), tsin1
+              vmulsd         tsin1, tsin1, tcos2
+              vmulsd         tcos1, tsin1, tsin2
+              vfmsub231sd    tcos1, tcos1, tcos2
+              vfmadd231sd    tsin1, tcos1, tsin2
+              mov            N2, %rdi
+              sub            $2, %rdi
+              xor            J, J
+lo_loop9:     mov            I, %rax
+              shl            $2, %rax
+              add            J, %rax
+              imul           N2, %rax
+              lea            8(X, %rax, 8), %rax
+              lea            (%rax, dN, 8), %rbx
+              lea            (%rbx, dN, 8), %rcx
+              lea            (%rcx, dN, 8), %rdx
+              vmovq          (%rax), ter0
+              vmovq          (%rbx), ter1
+              vmovq          (%rcx), ter2
+              vmovq          (%rdx), ter3
+              vmovq          (%rax, %rdi, 8), tei0
+              vmovq          (%rbx, %rdi, 8), tei1
+              vmovq          (%rcx, %rdi, 8), tei2
+              vmovq          (%rdx, %rdi, 8), tei3
+              call           butter_1
+              cmp            $3, J
+              je             exit9
+              sub            $64, %rsp
+              vmovq          ter0, (%rsp)
+              vmovq          ter1, 8(%rsp)
+              vmovq          ter2, 16(%rsp)
+              vmovq          ter3, 24(%rsp)
+              vmovq          tei0, 32(%rsp)
+              vmovq          tei1, 40(%rsp)
+              vmovq          tei2, 48(%rsp)
+              vmovq          tei3, 56(%rsp)
+              inc            J
+              jmp            lo_loop9
+exit9:        mov            $3, J
+lo_loop10:    mov            J, %rax
+              imul           NHI, %rax
+              add            I, %rax
+              shl            $2, %rax
+              imul           N2, %rax
+              lea            8(X, %rax, 8), %rax
+              lea            (%rax, N2, 8), %rbx
+              lea            (%rbx, N2, 8), %rcx
+              lea            (%rcx, N2, 8), %rdx
+              vmovq          ter0, (%rax)
+              vmovq          ter2, (%rax, %rdi, 8)
+              vmovq          ter3, (%rbx)
+              vmovq          ter1, (%rbx, %rdi, 8)
+              vmovq          tei1, (%rcx)
+              vmovq          tei3, (%rcx, %rdi, 8)
+              vmovq          tei2, (%rdx)
+              vmovq          tei0, (%rdx, %rdi, 8)
+              test           J, J
+              jz             exit10
+              vmovq          (%rsp), ter0
+              vmovq          8(%rsp), ter1
+              vmovq          16(%rsp), ter2
+              vmovq          24(%rsp), ter3
+              vmovq          32(%rsp), tei0
+              vmovq          40(%rsp), tei1
+              vmovq          48(%rsp), tei2
+              vmovq          56(%rsp), tei3
+              add            $64, %rsp
+              dec            J
+              jmp            lo_loop10
+exit10:       cmp            $8, N2
+              jl             exit2
+              vmovapd        16(Wr), tcos1
+              vmovapd        16(Wi), tsin1
+              vmulpd         tsin1, tsin1, tcos2
+              vmulpd         tcos1, tsin1, tsin2
+              vfmsub231pd    tcos1, tcos1, tcos2
+              vfmadd231pd    tsin1, tcos1, tsin2
+              mov            N2, %rdi
+              sub            $5, %rdi
+              xor            J, J
+lo_loop19:    mov            I, %rax
+              shl            $2, %rax
+              add            J, %rax
+              imul           N2, %rax
+              lea            16(X, %rax, 8), %rax
+              lea            (%rax, dN, 8), %rbx
+              lea            (%rbx, dN, 8), %rcx
+              lea            (%rcx, dN, 8), %rdx
+              vmovapd        (%rax), ter0
+              vmovapd        (%rbx), ter1
+              vmovapd        (%rcx), ter2
+              vmovapd        (%rdx), ter3
+              vmovupd        (%rax, %rdi, 8), tei0
+              vmovupd        (%rbx, %rdi, 8), tei1
+              vmovupd        (%rcx, %rdi, 8), tei2
+              vmovupd        (%rdx, %rdi, 8), tei3
+              vpshufb        PERMUTE, tei0, tei0
+              vpshufb        PERMUTE, tei1, tei1
+              vpshufb        PERMUTE, tei2, tei2
+              vpshufb        PERMUTE, tei3, tei3
+              call           butter_2
+              vpshufb        PERMUTE, tei0, tei0
+              vpshufb        PERMUTE, ter1, ter1
+              vpshufb        PERMUTE, ter2, ter2
+              vpshufb        PERMUTE, tei3, tei3
+              cmp            $3, J
+              je             exit19
+              sub            $128, %rsp
+              vmovapd        ter0, (%rsp)
+              vmovapd        ter1, 16(%rsp)
+              vmovapd        ter2, 32(%rsp)
+              vmovapd        ter3, 48(%rsp)
+              vmovapd        tei0, 64(%rsp)
+              vmovapd        tei1, 80(%rsp)
+              vmovapd        tei2, 96(%rsp)
+              vmovapd        tei3, 112(%rsp)
+              inc            J
+              jmp            lo_loop19
+exit19:       mov            N2, %rdi
+              sub            $5, %rdi
+              mov            $3, J
+lo_loop20:    mov            J, %rax
+              imul           NHI, %rax
+              add            I, %rax
+              shl            $2, %rax
+              imul           N2, %rax
+              lea            16(X, %rax, 8), %rax
+              lea            (%rax, N2, 8), %rbx
+              lea            (%rbx, N2, 8), %rcx
+              lea            (%rcx, N2, 8), %rdx
+              vmovapd        ter0, (%rax)
+              vmovupd        ter2, (%rax, %rdi, 8)
+              vmovapd        ter3, (%rbx)
+              vmovupd        ter1, (%rbx, %rdi, 8)
+              vmovapd        tei1, (%rcx)
+              vmovupd        tei3, (%rcx, %rdi, 8)
+              vmovapd        tei2, (%rdx)
+              vmovupd        tei0, (%rdx, %rdi, 8)
+              test           J, J
+              jz             exit20
+              vmovapd        (%rsp), ter0
+              vmovapd        16(%rsp), ter1
+              vmovapd        32(%rsp), ter2
+              vmovapd        48(%rsp), ter3
+              vmovapd        64(%rsp), tei0
+              vmovapd        80(%rsp), tei1
+              vmovapd        96(%rsp), tei2
+              vmovapd        112(%rsp), tei3
+              add            $128, %rsp
+              dec            J
+              jmp            lo_loop20
+exit20:       mov            $4, k2
 k2_loop:      mov            N2, %rax
               shr            %rax
               cmp            k2, %rax
@@ -215,8 +468,6 @@ k2_loop:      mov            N2, %rax
               sub            k2, %rdi
               sub            k2, %rdi
               sub            $3, %rdi
-              mov            N, dN
-              shr            $2, dN
               xor            J, J
 lo_loop0:     mov            I, %rax
               shl            $2, %rax
