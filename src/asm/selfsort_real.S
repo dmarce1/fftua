@@ -6,34 +6,38 @@
 #define       ei2            %ymm5
 #define       er3            %ymm6
 #define       ei3            %ymm7
-#define       tr0            %ymm8
-#define       tr1            %ymm9
-#define       tr2            %ymm10
-#define       tr3            %ymm11
-#define       ti0            %ymm12
-#define       ti1            %ymm13
-#define       ti2            %ymm14
-#define       ti3            %ymm15
 #define       cos1           %ymm8
 #define       sin1           %ymm9
 #define       cos2           %ymm10
 #define       sin2           %ymm11
 #define       tr             %ymm12
 #define       ti             %ymm13
-#define       two            %ymm14
+#define       ter0           %xmm0
+#define       tei0           %xmm1
+#define       ter1           %xmm2
+#define       tei1           %xmm3
+#define       ter2           %xmm4
+#define       tei2           %xmm5
+#define       ter3           %xmm6
+#define       tei3           %xmm7
+#define       tcos1          %xmm8
+#define       tsin1          %xmm9
+#define       tcos2          %xmm10
+#define       tsin2          %xmm11
+#define       ttr            %xmm12
+#define       tti            %xmm13
 #define       X              %r15
-#define       Y              %r14
-#define       Wr             %r13
-#define       Wi             %r12
-#define       k2             %r11
-#define       N2             %r10
-#define       lev            %r9
-#define       I              %r8
+#define       Wr             %r14
+#define       Wi             %r13
+#define       k2             %r12
+#define       N2             %r11
+#define       NHI            %r10
+#define       I              %r9
+#define       N              %r8
 #define       STACK_SIZE     $32
 #define       Wptr           -8(%rbp)
-#define       N              -16(%rbp)
-#define       NHI            -24(%rbp)
-#define       dyn_size       -32(%rbp)
+#define       lev            -16(%rbp)
+#define       dyn_size       -24(%rbp)
 
               .global        fft_selfsort_real
 
@@ -50,7 +54,6 @@ fft_selfsort_real:
               push           %r15
               push           %rbx
               mov            %rdi, X
-              shr            %rsi
               mov            %rsi, N
               bsf            N, %rax
               inc            %rax
@@ -64,7 +67,9 @@ twiddle_loop: push           %rcx
               push           %rsi
               mov            $1, %rdi
               shl            %rcx, %rdi
+              push           %r8
               call           get_forward_twiddles
+              pop            %r8
               pop            %rsi
               pop            %rcx
               mov            %rcx, %rbx
@@ -74,16 +79,11 @@ twiddle_loop: push           %rcx
               dec            %rcx
               test           %rcx, %rcx
               jnz            twiddle_loop
-              mov            N, %rax
-              lea            (X, %rax, 8), Y
-              xor            lev, lev
+              xor            %rax, %rax
+              mov            %rax, lev
               mov            N, N2
               shr            N2
               call           next_level
-              mov            X, %rdi
-              mov            N, %rsi
-              shl            %rsi
-              call           complex2real
               add            dyn_size, %rsp
               pop            %rbx
               pop            %r15
@@ -94,143 +94,76 @@ twiddle_loop: push           %rcx
               pop            %rbp
               ret
 
+
 next_level:   mov            lev, %rcx
               mov            $1, %rax
               shl            %rcx, %rax
               mov            %rax, N2
               mov            N, %rbx
+              cmp            N2, %rbx
+              je             retern
               shr            $2, %rbx
-              cmp            %rbx, %rax
-              je             call2
-              jg             return
-              test           lev, lev
-              jz             call0
+              cmp            N2, %rbx
+              je             call0
+              mov            lev, %rdx
+              test           %rdx, %rdx
+              jz             call1
               call           radix4_pass1
-              jmp            call1
-call0:        call           first_level
-              jmp            call1
-call2:        call           radix4_pass2
-              jmp            return
-call1:        mov            N, %rdx
+              jmp            continue
+call0:        call           radix4_pass2
+              jmp            retern
+call1:        call           first_level
+              jmp            continue
+continue:     mov            N, %rdx
               shr            $2, %rdx
-              push           Y
               push           X
               lea            (X, %rdx, 8), X
-              lea            (Y, %rdx, 8), Y
-              push           Y
               push           X
               lea            (X, %rdx, 8), X
-              lea            (Y, %rdx, 8), Y
-              push           Y
               push           X
               lea            (X, %rdx, 8), X
-              lea            (Y, %rdx, 8), Y
               add            $2, lev
-              mov            N, %rax
-              shr            $2, %rax
-              mov            %rax, N
+              shr            $2, N
               call           next_level
               pop            X
-              pop            Y
               call           next_level
               pop            X
-              pop            Y
               call           next_level
               pop            X
-              pop            Y
               call           next_level
-              mov            N, %rax
-              mov            %rax, N2
-              shl            $2, %rax
-              mov            %rax, N
+              mov            N, N2
+              shl            $2, N
               sub            $2, lev
               call           radix4_pass2
-return:       ret
+retern:       ret
 
-
-
-first_level:  mov            N, %rsi
-              mov            $4, %rdi
-              xor            I, I
+first_level:  mov            N, %rdi
+			  shr            $2, %rdi
+			  xor            I, I
 first_loop:   lea            (X, I, 8), %rax
               lea            (%rax, %rdi, 8), %rbx
               lea            (%rbx, %rdi, 8), %rcx
               lea            (%rcx, %rdi, 8), %rdx
-              vmovapd        (%rax), %ymm0
-              vmovapd        (%rbx), %ymm2
-              vmovapd        (%rcx), %ymm4
-              vmovapd        (%rdx), %ymm6
-              vmovapd        (%rax, %rsi, 8), %ymm1
-              vmovapd        (%rbx, %rsi, 8), %ymm3
-              vmovapd        (%rcx, %rsi, 8), %ymm5
-              vmovapd        (%rdx, %rsi, 8), %ymm7
-// C g0 xxx g1 g2 b3
-              vpermpd        $177, %ymm0, %ymm8
-              vpermpd        $177, %ymm1, %ymm9
-              vpermpd        $177, %ymm2, %ymm10
-              vpermpd        $177, %ymm3, %ymm11
-              vpermpd        $177, %ymm4, %ymm12
-              vpermpd        $177, %ymm5, %ymm13
-              vpermpd        $177, %ymm6, %ymm14
-              vpermpd        $177, %ymm7, %ymm15
-              vblendpd       $5, %ymm0, %ymm9, %ymm0
-              vblendpd       $5, %ymm2, %ymm11, %ymm2
-              vblendpd       $5, %ymm4, %ymm13, %ymm4
-              vblendpd       $5, %ymm6, %ymm15, %ymm6
-              vblendpd       $10, %ymm1, %ymm8, %ymm1
-              vblendpd       $10, %ymm3, %ymm10, %ymm3
-              vblendpd       $10, %ymm5, %ymm12, %ymm5
-              vblendpd       $10, %ymm7, %ymm14, %ymm7
-// g1 g0 xxx C g2 b3
-              vaddpd         %ymm4, %ymm0, %ymm8
-              vsubpd         %ymm4, %ymm0, %ymm12
-              vaddpd         %ymm5, %ymm1, %ymm9
-              vsubpd         %ymm5, %ymm1, %ymm13
-              vaddpd         %ymm6, %ymm2, %ymm10
-              vsubpd         %ymm6, %ymm2, %ymm14
-              vaddpd         %ymm7, %ymm3, %ymm11
-              vsubpd         %ymm7, %ymm3, %ymm15
-// g1 g0 xxx C b2 g3
-              vaddpd         %ymm10, %ymm8, %ymm0
-              vaddpd         %ymm11, %ymm9, %ymm4
-              vaddpd         %ymm14, %ymm12, %ymm2
-              vsubpd         %ymm15, %ymm13, %ymm6
-              vsubpd         %ymm10, %ymm8, %ymm1
-              vsubpd         %ymm11, %ymm9, %ymm5
-              vsubpd         %ymm14, %ymm12, %ymm3
-              vaddpd         %ymm15, %ymm13, %ymm7
-              vmulpd         NONE, %ymm7, %ymm7
- // g1 g0 xxx g3 b2 C
-              vunpcklpd      %ymm1, %ymm0, %ymm8
-              vunpckhpd      %ymm1, %ymm0, %ymm9
-              vunpcklpd      %ymm3, %ymm2, %ymm10
-              vunpckhpd      %ymm3, %ymm2, %ymm11
-              vperm2f128     $0x20, %ymm10, %ymm8, %ymm0
-              vperm2f128     $0x20, %ymm11, %ymm9, %ymm1
-              vperm2f128     $0x31, %ymm10, %ymm8, %ymm2
-              vperm2f128     $0x31, %ymm11, %ymm9, %ymm3
-              vunpcklpd      %ymm5, %ymm4, %ymm8
-              vunpckhpd      %ymm5, %ymm4, %ymm9
-              vunpcklpd      %ymm7, %ymm6, %ymm10
-              vunpckhpd      %ymm7, %ymm6, %ymm11
-              vperm2f128     $0x20, %ymm10, %ymm8, %ymm4
-              vperm2f128     $0x20, %ymm11, %ymm9, %ymm5
-              vperm2f128     $0x31, %ymm10, %ymm8, %ymm6
-              vperm2f128     $0x31, %ymm11, %ymm9, %ymm7
-              vmovapd        %ymm0, (%rax)
-              vmovapd        %ymm2, (%rbx)
-              vmovapd        %ymm4, (%rcx)
-              vmovapd        %ymm6, (%rdx)
-              vmovapd        %ymm1, (%rax, %rsi, 8)
-              vmovapd        %ymm3, (%rbx, %rsi, 8)
-              vmovapd        %ymm5, (%rcx, %rsi, 8)
-              vmovapd        %ymm7, (%rdx, %rsi, 8)
-// g3 g2 xxx g1 g0 C
-              add            $16, I
-              mov            N, %rax
-              cmp            I, %rax
+              vmovapd        (%rax), er0
+              vmovapd        (%rbx), er1
+              vmovapd        (%rcx), er2
+              vmovapd        (%rdx), er3
+              call           butter0_4
+              vunpcklpd      er1, er0, %ymm8
+              vunpckhpd      er1, er0, %ymm9
+              vunpcklpd      er3, er2, %ymm10
+              vunpckhpd      er3, er2, %ymm11
+              vperm2f128     $0x20, %ymm10, %ymm8, er0
+              vperm2f128     $0x20, %ymm11, %ymm9, er1
+              vperm2f128     $0x31, %ymm10, %ymm8, er2
+              vperm2f128     $0x31, %ymm11, %ymm9, er3
+              vmovapd        er0, (%rax)
+              vmovapd        er1, (%rbx)
+              vmovapd        er2, (%rcx)
+              vmovapd        er3, (%rdx)
+              add            $4, I
+              cmp            I, %rdi
               jne            first_loop
-              vmovapd        TWO, two
               ret
 
 radix4_pass1: mov            %rsp, %rbx
@@ -254,7 +187,6 @@ radix4_pass1: mov            %rsp, %rbx
 hi_loop:      xor            k2, k2
 k2_loop:      mov            $-1, %rsi
 butter_loop:  inc            %rsi
-// k2 + N2 * (b1 + N1 * (I + NHI * b2)
               mov            I, %rdx
               shl            $2, %rdx
               add            %rsi, %rdx
@@ -264,26 +196,8 @@ butter_loop:  inc            %rsi
               shl            $2, %rdi
               imul           NHI, %rdi
               lea            (X, %rdx, 8), %rax
-              lea            (%rax, %rdi, 8), %rbx
-              lea            (%rbx, %rdi, 8), %rcx
-              lea            (%rcx, %rdi, 8), %rdx
-              mov            Y, %rdi
-              sub            X, %rdi
-              vmovapd        (Wr, k2, 8), cos1
-              vmovapd        (Wi, k2, 8), sin1
-              vmulpd         sin1, sin1, cos2
-              vmulpd         cos1, sin1, sin2
-              vfmsub231pd    cos1, cos1, cos2
-              vfmadd231pd    sin1, cos1, sin2
-              vmovapd        (%rax), er0
-              vmovapd        (%rbx), er1
-              vmovapd        (%rcx), er2
-              vmovapd        (%rdx), er3
-              vmovapd        (%rax, %rdi), ei0
-              vmovapd        (%rbx, %rdi), ei1
-              vmovapd        (%rcx, %rdi), ei2
-              vmovapd        (%rdx, %rdi), ei3
-              call           butterfly
+
+
               cmp            $3, %rsi
               je             exit_butter
               sub            $256, %rsp
@@ -298,7 +212,6 @@ butter_loop:  inc            %rsi
               jmp            butter_loop
 exit_butter:  inc            %rsi
               mov            N2, %rdi
-// k2 + N2 * (b1 + N1 * (I + NHI * b2)
 store_loop:   dec            %rsi
               mov            %rsi, %rdx
               imul           NHI, %rdx
@@ -308,23 +221,9 @@ store_loop:   dec            %rsi
               add            k2, %rdx
               mov            N2, %rdi
               lea            (X, %rdx, 8), %rax
-              lea            (%rax, %rdi, 8), %rbx
-              lea            (%rbx, %rdi, 8), %rcx
-              lea            (%rcx, %rdi, 8), %rdx
-              mov            Y, %rdi
-              sub            X, %rdi
-              shr            $3, %rdi
-              vmovapd        er0, (%rax)
-              vmovapd        er1, (%rbx)
-              vmovapd        er3, (%rcx)
-              vmovapd        er2, (%rdx)
-              vmovapd        ei0, (%rax, %rdi, 8)
-              vmovapd        ei1, (%rbx, %rdi, 8)
-              vmovapd        ei3, (%rcx, %rdi, 8)
-              vmovapd        ei2, (%rdx, %rdi, 8)
-              lea            (%rcx, %rbx, 2), %rcx
-              sub            X, %rcx
-              shr            $3, %rcx
+
+
+
               test           %rsi, %rsi
               jz             exit_store
               vmovapd        (%rsp), %ymm0
@@ -351,16 +250,116 @@ radix4_pass2: bsf            N, %rax
               mov            Wptr, %rdx
               mov            (%rdx, %rax, 8), Wr
               mov            8(%rdx, %rax, 8), Wi
+              lea            (X), %rax
+              lea            (%rax, N2, 8), %rbx
+              lea            (%rbx, N2, 8), %rcx
+              lea            (%rcx, N2, 8), %rdx
+              vmovq          (%rax), ter0
+              vmovq          (%rbx), ter1
+              vmovq          (%rcx), ter2
+              vmovq          (%rdx), ter3
+              call           butter0_1
+              vmovq          ter0, (%rax)
+              vmovq          ter1, (%rbx)
+              vmovq          ter2, (%rcx)
+              vmovq          ter3, (%rdx)
+              lea            (X, N2, 4), %rax
+              lea            (%rax, N2, 8), %rbx
+              lea            (%rbx, N2, 8), %rcx
+              lea            (%rcx, N2, 8), %rdx
+              vmovq          (%rax), ter0
+              vmovq          (%rbx), ter1
+              vmovq          (%rcx), ter2
+              vmovq          (%rdx), ter3
+              call           butterNy_1
+              vmovq          ter0, (%rax)
+              vmovq          ter1, (%rbx)
+              vmovq          ter2, (%rcx)
+              vmovq          ter3, (%rdx)
+              vmovq          8(Wr), tcos1
+              vmovq          8(Wi), tsin1
+              vmulsd         tsin1, tsin1, tcos2
+              vmulsd         tcos1, tsin1, tsin2
+              vfmsub231sd    tcos1, tcos1, tcos2
+              vfmadd231sd    tsin1, tcos1, tsin2
+              mov            N2, %rdi
+              sub            $2, %rdi
+              lea            8(X), %rax
+              lea            (%rax, N2, 8), %rbx
+              lea            (%rbx, N2, 8), %rcx
+              lea            (%rcx, N2, 8), %rdx
+              vmovq          (%rax), ter0
+              vmovq          (%rbx), ter1
+              vmovq          (%rcx), ter2
+              vmovq          (%rdx), ter3
+              vmovq          (%rax, %rdi, 8), tei0
+              vmovq          (%rbx, %rdi, 8), tei1
+              vmovq          (%rcx, %rdi, 8), tei2
+              vmovq          (%rdx, %rdi, 8), tei3
+              call           butter_1
+              vmovq          ter0, (%rax)
+              vmovq          ter2, (%rax, %rdi, 8)
+              vmovq          ter3, (%rbx)
+              vmovq          ter1, (%rbx, %rdi, 8)
+              vmovq          tei1, (%rcx)
+              vmovq          tei3, (%rcx, %rdi, 8)
+              vmovq          tei2, (%rdx)
+              vmovq          tei0, (%rdx, %rdi, 8)
+              cmp            $4, N2
+              jge            radix4_end
+              vmovapd        16(Wr), tcos1
+              vmovapd        16(Wi), tsin1
+              vmulpd         tsin1, tsin1, tcos2
+              vmulpd         tcos1, tsin1, tsin2
+              vfmsub231pd    tcos1, tcos1, tcos2
+              vfmadd231pd    tsin1, tcos1, tsin2
+              mov            N2, %rdi
+              sub            $5, %rdi
+              lea            16(X), %rax
+              lea            (%rax, N2, 8), %rbx
+              lea            (%rbx, N2, 8), %rcx
+              lea            (%rcx, N2, 8), %rdx
+              vmovapd        (%rax), ter0
+              vmovapd        (%rbx), ter1
+              vmovapd        (%rcx), ter2
+              vmovapd        (%rdx), ter3
+              vmovupd        (%rax, %rdi, 8), tei0
+              vmovupd        (%rbx, %rdi, 8), tei1
+              vmovupd        (%rcx, %rdi, 8), tei2
+              vmovupd        (%rdx, %rdi, 8), tei3
+              vpshufb        PERMUTE, tei0, tei0
+              vpshufb        PERMUTE, tei1, tei1
+              vpshufb        PERMUTE, tei2, tei2
+              vpshufb        PERMUTE, tei3, tei3
+              call           butter_2
+              vpshufb        PERMUTE, ter3, ter3
+              vpshufb        PERMUTE, ter1, ter1
+              vpshufb        PERMUTE, tei2, tei2
+              vpshufb        PERMUTE, tei0, tei0
+              vmovapd        ter0, (%rax)
+              vmovapd        ter2, (%rbx)
+              vmovupd        ter3, (%rax, %rdi, 8)
+              vmovupd        ter1, (%rbx, %rdi, 8)
+              vmovapd        tei1, (%rcx)
+              vmovapd        tei3, (%rdx)
+              vmovupd        tei2, (%rcx, %rdi, 8)
+              vmovupd        tei0, (%rdx, %rdi, 8)
               xor            k2, k2
-              mov            Y, %rdi
-              sub            X, %rdi
-              shr            $3, %rdi
-radix4_loop2: vmovapd        (Wr, k2, 8), cos1
+radix4_begin: add            $4, k2
+              mov            N2, %rax
+              shr            %rax
+              cmp            k2, %rax
+              jle            radix4_end
+              vmovapd        (Wr, k2, 8), cos1
               vmovapd        (Wi, k2, 8), sin1
               vmulpd         sin1, sin1, cos2
               vmulpd         cos1, sin1, sin2
               vfmsub231pd    cos1, cos1, cos2
               vfmadd231pd    sin1, cos1, sin2
+              mov            N2, %rdi
+              sub            k2, %rdi
+              sub            k2, %rdi
+              sub            $3, %rdi
               lea            (X, k2, 8), %rax
               lea            (%rax, N2, 8), %rbx
               lea            (%rbx, N2, 8), %rcx
@@ -369,60 +368,201 @@ radix4_loop2: vmovapd        (Wr, k2, 8), cos1
               vmovapd        (%rbx), er1
               vmovapd        (%rcx), er2
               vmovapd        (%rdx), er3
-              vmovapd        (%rax, %rdi, 8), ei0
-              vmovapd        (%rbx, %rdi, 8), ei1
-              vmovapd        (%rcx, %rdi, 8), ei2
-              vmovapd        (%rdx, %rdi, 8), ei3
-              call           butterfly
+              vpermpd        $27, (%rax, %rdi, 8), ei0
+              vpermpd        $27, (%rbx, %rdi, 8), ei1
+              vpermpd        $27, (%rcx, %rdi, 8), ei2
+              vpermpd        $27, (%rdx, %rdi, 8), ei3
+              call           butter_4
+              vpermpd        $27, er3, er3
+              vpermpd        $27, er1, er1
+              vpermpd        $27, ei2, ei2
+              vpermpd        $27, ei0, ei0
               vmovapd        er0, (%rax)
-              vmovapd        er1, (%rbx)
-              vmovapd        er3, (%rcx)
-              vmovapd        er2, (%rdx)
-              vmovapd        ei0, (%rax, %rdi, 8)
-              vmovapd        ei1, (%rbx, %rdi, 8)
-              vmovapd        ei3, (%rcx, %rdi, 8)
-              vmovapd        ei2, (%rdx, %rdi, 8)
-              add            $4, k2
-              cmp            k2, N2
-              jne            radix4_loop2
-              ret
+              vmovapd        er2, (%rbx)
+              vmovupd        er3, (%rax, %rdi, 8)
+              vmovupd        er1, (%rbx, %rdi, 8)
+              vmovapd        ei1, (%rcx)
+              vmovapd        ei3, (%rdx)
+              vmovupd        ei2, (%rcx, %rdi, 8)
+              vmovupd        ei0, (%rdx, %rdi, 8)
+              jmp            radix4_begin
+radix4_end:   ret
 
-butterfly:    vmovapd        er0, tr
+butter_4:     vmovapd        er0, tr
               vmovapd        ei0, ti
               vfmadd231pd    sin2, ei2, tr
               vfnmadd231pd   sin2, er2, ti
               vfnmadd132pd   cos2, tr, er2
               vfnmadd132pd   cos2, ti, ei2
-              vfmsub132pd    two, er2, er0
-              vfmsub132pd    two, ei2, ei0
+              vfmsub132pd    TWO, er2, er0
+              vfmsub132pd    TWO, ei2, ei0
               vmovapd        er1, tr
               vmovapd        ei1, ti
               vfmadd231pd    sin2, ei3, tr
               vfnmadd231pd   sin2, er3, ti
               vfnmadd132pd   cos2, tr, er3
               vfnmadd132pd   cos2, ti, ei3
-              vfmsub132pd    two, er3, er1
-              vfmsub132pd    two, ei3, ei1
+              vfmsub132pd    TWO, er3, er1
+              vfmsub132pd    TWO, ei3, ei1
               vmovapd        er0, tr
               vmovapd        ei0, ti
               vfmadd231pd    sin1, ei1, tr
               vfnmadd231pd   sin1, er1, ti
               vfnmadd132pd   cos1, tr, er1
-              vfnmadd132pd   cos1, ti, ei1
-              vfmsub132pd    two, er1, er0
-              vfmsub132pd    two, ei1, ei0
+              vfmsub132pd    cos1, ti, ei1
+              vfmsub132pd    TWO, er1, er0
+              vfmadd132pd    TWO, ei1, ei0
               vmovapd        er2, tr
               vmovapd        ei2, ti
               vfmadd231pd    cos1, ei3, tr
               vfnmadd231pd   cos1, er3, ti
               vfmadd132pd    sin1, tr, er3
               vfmadd132pd    sin1, ti, ei3
-              vfmsub132pd    two, er3, er2
-              vfmsub132pd    two, ei3, ei2
+              vfmsub132pd    TWO, er3, er2
+              vfnmadd132pd   TWO, ei3, ei2
+
+butter_2:     vmovapd        ter0, ttr
+              vmovapd        tei0, tti
+              vfmadd231pd    tsin2, tei2, ttr
+              vfnmadd231pd   tsin2, ter2, tti
+              vfnmadd132pd   tcos2, ttr, ter2
+              vfnmadd132pd   tcos2, tti, tei2
+              vfmsub132pd    TWO, ter2, ter0
+              vfmsub132pd    TWO, tei2, tei0
+              vmovapd        ter1, ttr
+              vmovapd        tei1, tti
+              vfmadd231pd    tsin2, tei3, ttr
+              vfnmadd231pd   tsin2, ter3, tti
+              vfnmadd132pd   tcos2, ttr, ter3
+              vfnmadd132pd   tcos2, tti, tei3
+              vfmsub132pd    TWO, ter3, ter1
+              vfmsub132pd    TWO, tei3, tei1
+              vmovapd        ter0, ttr
+              vmovapd        tei0, tti
+              vfmadd231pd    tsin1, tei1, ttr
+              vfnmadd231pd   tsin1, ter1, tti
+              vfnmadd132pd   tcos1, ttr, ter1
+              vfmsub132pd    tcos1, tti, tei1
+              vfmsub132pd    TWO, ter1, ter0
+              vfmadd132pd    TWO, tei1, tei0
+              vmovapd        ter2, ttr
+              vmovapd        tei2, tti
+              vfmadd231pd    tcos1, tei3, ttr
+              vfnmadd231pd   tcos1, ter3, tti
+              vfmadd132pd    tsin1, ttr, ter3
+              vfmadd132pd    tsin1, tti, tei3
+              vfmsub132pd    TWO, ter3, ter2
+              vfnmadd132pd   TWO, tei3, tei2
+
+butter_1:     vmovq          ter0, ttr
+              vmovq          tei0, tti
+              vfmadd231sd    tsin2, tei2, ttr
+              vfnmadd231sd   tsin2, ter2, tti
+              vfnmadd132sd   tcos2, ttr, ter2
+              vfnmadd132sd   tcos2, tti, tei2
+              vfmsub132sd    TWO, ter2, ter0
+              vfmsub132sd    TWO, tei2, tei0
+              vmovq          ter1, ttr
+              vmovq          tei1, tti
+              vfmadd231sd    tsin2, tei3, ttr
+              vfnmadd231sd   tsin2, ter3, tti
+              vfnmadd132sd   tcos2, ttr, ter3
+              vfnmadd132sd   tcos2, tti, tei3
+              vfmsub132sd    TWO, ter3, ter1
+              vfmsub132sd    TWO, tei3, tei1
+              vmovq          ter0, ttr
+              vmovq          tei0, tti
+              vfmadd231sd    tsin1, tei1, ttr
+              vfnmadd231sd   tsin1, ter1, tti
+              vfnmadd132sd   tcos1, ttr, ter1
+              vfmsub132sd    tcos1, tti, tei1
+              vfmsub132sd    TWO, ter1, ter0
+              vfmadd132sd    TWO, tei1, tei0
+              vmovq          ter2, ttr
+              vmovq          tei2, tti
+              vfmadd231sd    tcos1, tei3, ttr
+              vfnmadd231sd   tcos1, ter3, tti
+              vfmadd132sd    tsin1, ttr, ter3
+              vfmadd132sd    tsin1, tti, tei3
+              vfmsub132sd    TWO, ter3, ter2
+              vfnmadd132sd   TWO, tei3, tei2
               ret
+
+butter0_4:    vaddpd         er2, er0, ei0
+              vsubpd         er2, er0, ei2
+              vaddpd         er3, er1, ei1
+              vsubpd         er1, er3, er3
+              vaddpd         ei1, ei0, er0
+              vsubpd         ei1, ei0, er2
+              vmovapd        ei2, er1
+              ret
+
+butter0_1:    vaddsd         ter2, ter0, tei0
+              vsubsd         ter2, ter0, tei2
+              vaddsd         ter3, ter1, tei1
+              vsubsd         ter1, ter3, ter3
+              vaddsd         tei1, tei0, ter0
+              vsubsd         tei1, tei0, ter2
+              vmovq          tei2, ter1
+              ret
+
+butterNy_1:   vaddsd         ter3, ter1, tei0
+              vsubsd         ter3, ter1, tei2
+              vmulsd         TW45, tei2, tei1
+              vmulsd         TW45, tei0, tei3
+              vmovq          ter0, tei0
+              vmovq          ter2, tei2
+              vaddsd         tei1, tei0, ter0
+              vaddsd         tei3, tei2, ter3
+              vsubsd         tei1, tei0, ter1
+              vsubsd         tei3, tei2, ter2
+              vmulpd         NONE, ter3, ter3
+              ret
+
 
               .align         32
 TWO:          .double        2.0
               .double        2.0
               .double        2.0
               .double        2.0
+NONE:         .double        -1.0
+              .double        -1.0
+              .double        -1.0
+              .double        -1.0
+TW45:         .double        .7071067812
+              .double        .7071067812
+              .double        .7071067812
+              .double        .7071067812
+PERMUTE:      .byte          16
+              .byte          17
+              .byte          18
+              .byte          19
+              .byte          20
+              .byte          21
+              .byte          22
+              .byte          23
+              .byte          24
+              .byte          25
+              .byte          26
+              .byte          27
+              .byte          28
+              .byte          29
+              .byte          30
+              .byte          31
+              .byte          0
+              .byte          1
+              .byte          2
+              .byte          3
+              .byte          4
+              .byte          5
+              .byte          6
+              .byte          7
+              .byte          8
+              .byte          9
+              .byte          10
+              .byte          11
+              .byte          12
+              .byte          13
+              .byte          14
+              .byte          15
+
