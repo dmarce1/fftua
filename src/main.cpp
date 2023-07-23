@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
 	feenableexcept( FE_DIVBYZERO);
 	feenableexcept( FE_INVALID);
 	feenableexcept( FE_OVERFLOW);
-	for (int N = 128; N <= 64 * 1024 * 1024; N *= 4) {
+	for (int N = 32; N <= 64 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
 		if (false) {
 			double avg_err = 0.0;
@@ -254,7 +254,7 @@ int main(int argc, char **argv) {
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 2; i++) {
+			for (int i = 0; i < 101; i++) {
 				std::vector<complex<double>> X(N);
 				std::vector<complex<double>> Y(N);
 				for (int n = 0; n < N; n++) {
@@ -270,10 +270,10 @@ int main(int argc, char **argv) {
 					auto b = fftw(Y);
 					timer tm;
 					tm.start();
-					complex_test(X.data(), N);
+					auto c = complex_test(X.data(), N);
 					tm.stop();
-					t2 += tm.read();
-					t4 += tm.read();
+					t2 += c;
+					t4 += c;
 					t1 += b;
 					t3 += b;
 					for (int n = 0; n < N; n++) {
@@ -281,10 +281,7 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-							printf("%16e %16e | %16e %16e | %16e %16e\n",
-							X[n].real(), X[n].imag(), Y[n].real(),
-							Y[n].imag(), X[n].real() - Y[n].real(),
-							X[n].imag() - Y[n].imag());
+//							printf("%16e %16e | %16e %16e | %16e %16e\n", X[n].real(), X[n].imag(), Y[n].real(), Y[n].imag(), X[n].real() - Y[n].real(), X[n].imag() - Y[n].imag());
 					}
 				}
 			}
@@ -303,7 +300,7 @@ int main(int argc, char **argv) {
 			printf("C %c| %e %e %e %e %e | %e\n",
 					(pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ',
 					avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
-				abort();
+//				abort();
 		}
 	}
 	return 0;

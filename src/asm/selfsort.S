@@ -84,9 +84,9 @@ pass0:        cmp            $0, level
               je             call0
               bsr            N, %rax
               sub            level, %rax
-              dec            %rax
-              test           %rax, %rax
-              jz             call1
+              sub            $3, %rax
+              cmp            $0, %rax
+              jle            call1
               call           butterflies4_and_transpose
               jmp            continue
 call0:        call           first_butterflies4
@@ -243,6 +243,12 @@ butterflies4_and_transpose:
               mov            Wptrs, %rdx
               mov            (%rdx, %rax, 8), Wr
               mov            8(%rdx, %rax, 8), Wi
+              mov            %rsp, %rax
+              and            $0xffffffffffffffc0, %rsp
+              push           %rax
+              push           %rax
+              push           %rax
+              push           %rax
               mov            level, %rcx
               inc            %rcx
               mov            $1, %rax
@@ -263,14 +269,14 @@ inner_loop:   vmovapd        (Wr, k2, 8), cos1
               vfmsub231pd    cos1, cos1, cos2
               vfmadd231pd    sin1, cos1, sin2
               xor            %rax, %rax
-              mov            %rax, J
               mov            N, %rdi
               shl            %rdi
 butter_loop:  mov            I, %rsi
               shl            $2, %rsi
-              add            J, %rsi
+              add            %rax, %rsi
               imul           N2, %rsi
               add            k2, %rsi
+              push           %rax
               lea            (X, %rsi, 8), %rax
               lea            (%rax, %rdi, 2), %rbx
               lea            (Y, %rsi, 8), %rcx
@@ -283,32 +289,31 @@ butter_loop:  mov            I, %rsi
               vmovapd        (%rcx, %rdi), ei1
               vmovapd        (%rdx), ei2
               vmovapd        (%rdx, %rdi), ei3
+              pop            %rax
               call           butterfly4
-              mov            J, %rax
               inc            %rax
-              mov            %rax, J
               cmp            $4, %rax
               je             exit_butter
               sub            $256, %rsp
-              vmovupd        er0, (%rsp)
-              vmovupd        er1, 32(%rsp)
-              vmovupd        er2, 64(%rsp)
-              vmovupd        er3, 96(%rsp)
-              vmovupd        ei0, 128(%rsp)
-              vmovupd        ei1, 160(%rsp)
-              vmovupd        ei2, 192(%rsp)
-              vmovupd        ei3, 224(%rsp)
+              vmovapd        er0, (%rsp)
+              vmovapd        er1, 32(%rsp)
+              vmovapd        er2, 64(%rsp)
+              vmovapd        er3, 96(%rsp)
+              vmovapd        ei0, 128(%rsp)
+              vmovapd        ei1, 160(%rsp)
+              vmovapd        ei2, 192(%rsp)
+              vmovapd        ei3, 224(%rsp)
               jmp            butter_loop
 exit_butter:  mov            $3, %rax
-              mov            %rax, J
               mov            N2, %rdi
               shl            $3, %rdi
-store_loop:   mov            J, %rsi
+store_loop:   mov            %rax, %rsi
               imul           M, %rsi
               add            I, %rsi
               shl            $2, %rsi
               imul           N2, %rsi
               add            k2, %rsi
+              push           %rax
               lea            (X, %rsi, 8), %rax
               lea            (%rax, %rdi, 2), %rbx
               lea            (Y, %rsi, 8), %rcx
@@ -321,19 +326,18 @@ store_loop:   mov            J, %rsi
               vmovapd        ei3, (%rcx, %rdi)
               vmovapd        ei1, (%rdx)
               vmovapd        ei2, (%rdx, %rdi)
-              mov            J, %rax
+              pop            %rax
               dec            %rax
-              mov            %rax, J
               cmp            $-1, %rax
               je             exit_store
-              vmovupd        (%rsp), er0
-              vmovupd        32(%rsp), er1
-              vmovupd        64(%rsp), er2
-              vmovupd        96(%rsp), er3
-              vmovupd        128(%rsp), ei0
-              vmovupd        160(%rsp), ei1
-              vmovupd        192(%rsp), ei2
-              vmovupd        224(%rsp), ei3
+              vmovapd        (%rsp), er0
+              vmovapd        32(%rsp), er1
+              vmovapd        64(%rsp), er2
+              vmovapd        96(%rsp), er3
+              vmovapd        128(%rsp), ei0
+              vmovapd        160(%rsp), ei1
+              vmovapd        192(%rsp), ei2
+              vmovapd        224(%rsp), ei3
               add            $256, %rsp
               jmp            store_loop
 exit_store:   add            $4, k2
@@ -342,6 +346,11 @@ exit_store:   add            $4, k2
               inc            I
               cmp            I, M
               jne            outer_loop
+              pop            %rax
+              pop            %rax
+              pop            %rax
+              pop            %rax
+              mov            %rax, %rsp
               ret
 
 butterflies4: bsr            N, %rax
