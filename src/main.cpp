@@ -108,15 +108,16 @@ void fft_selfsort(double*, int);
 double complex_test(complex<double>* z, int N) {
 	timer tm;
 	tm.start();
-	fft_selfsort((double*) z, N);
+	fft_complex2((double*) z, N);
+//	fft_selfsort((double*) z, N);
 	tm.stop();
-	std::vector<complex<double>> tmp(N);
+/*	std::vector<complex<double>> tmp(N);
 	double* a = (double*) z;
 	for (int n = 0; n < N; n++) {
 		tmp[n].real() = a[n];
 		tmp[n].imag() = a[N + n];
 	}
-	std::memcpy(z, tmp.data(), sizeof(double) * 2 * N);
+	std::memcpy(z, tmp.data(), sizeof(double) * 2 * N);*/
 	return tm.read();
 }
 

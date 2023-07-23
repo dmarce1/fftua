@@ -69,7 +69,6 @@ twiddle_loop: push           %rcx
               xor            %rax, %rax
               mov            %rax, level
               call           pass0
-              call           pass1
               add            Wptrs_sz, %rsp
               pop            %r12
               pop            %r13
@@ -86,9 +85,12 @@ pass0:        cmp            $0, level
               sub            level, %rax
               sub            $3, %rax
               cmp            $0, %rax
-              jle            call1
+              jl             call1
+              je             call3
               call           butterflies4_and_transpose
               jmp            continue
+call3:        call           butterflies4
+              ret
 call0:        call           first_butterflies4
               push           X
               push           Y
@@ -106,6 +108,7 @@ call0:        call           first_butterflies4
               mov            level, %rax
               dec            %rax
               mov            %rax, level
+              call           butterflies2
 call1:        ret
 continue:     push           X
               push           Y
@@ -137,6 +140,7 @@ continue:     push           X
               mov            level, %rax
               sub            $2, %rax
               mov            %rax, level
+              call           butterflies4
 skip2:        ret
 
 pass1:        bsr            N, %rax
