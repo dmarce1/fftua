@@ -86,6 +86,7 @@ void dit_nr_recur(double* X,int N);
 void dit_nr_recur(double* X,int N);
 void fft_complex2(double* X,int N);
 void fft_selfsort_real(double* X, int N);
+void fft_selfsort(double* X, int N);
 }
 
 void test_twiddles() {
@@ -101,13 +102,13 @@ extern "C" {
 int fft_bit_reverse(int, int);
 void dit_rn_recursive_complex(double*, double*, int);
 void fft_real2(double*, int);
-void fft_complex2(double*, int);
+void fft_selfsort(double*, int);
 }
 
-double dit_rn_recursive_complex_test(complex<double>* z, int N) {
+double complex_test(complex<double>* z, int N) {
 	timer tm;
 	tm.start();
-	//fft_complex2((double*) z, N);
+	fft_selfsort((double*) z, N);
 	tm.stop();
 	std::vector<complex<double>> tmp(N);
 	double* a = (double*) z;
@@ -180,9 +181,9 @@ int main(int argc, char **argv) {
 	feenableexcept( FE_DIVBYZERO);
 	feenableexcept( FE_INVALID);
 	feenableexcept( FE_OVERFLOW);
-	for (int N = 256; N <= 64 * 1024 * 1024; N *= 2) {
+	for (int N = 128; N <= 64 * 1024 * 1024; N *= 4) {
 		auto pfac = prime_factorization(N);
-		if (true) {
+		if (false) {
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
@@ -194,19 +195,19 @@ int main(int argc, char **argv) {
 				for (int n = 0; n < N; n++) {
 					x[n] = y[n] = rand1();
 				}
-				x[0] = y[0] = 1.0;
+				x[8] = y[8] = 1.0;
 	//			x[8] = y[8] = 1.0;
 				const auto& c = cos_twiddles(N);
 				const auto& s = sin_twiddles(N);
 				if (i == 0) {
 					fftw_real(Y, y);
-					fft_real2(x.data(), N);
+					fft_selfsort(x.data(), N);
 				} else {
 
 					auto b = fftw_real(Y, y);
 					timer tm;
 					tm.start();
-					fft_real2(x.data(), N);
+					fft_selfsort(x.data(), N);
 					//test_time(x.data(), N);
 					tm.stop();
 					X[0].real() = x[0];
@@ -250,11 +251,10 @@ int main(int argc, char **argv) {
 					avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
 		}
 		COMPLEX: {
-			continue;
 			double avg_err = 0.0;
 			double t1 = 0.0;
 			double t2 = 0.0;
-			for (int i = 0; i < 101; i++) {
+			for (int i = 0; i < 2; i++) {
 				std::vector<complex<double>> X(N);
 				std::vector<complex<double>> Y(N);
 				for (int n = 0; n < N; n++) {
@@ -262,15 +262,15 @@ int main(int argc, char **argv) {
 					X[n].imag() = (Y[n].imag() = rand1());
 				}
 				//	X[32].real() = (Y[32].real() = 1);
-				//	X[0].imag() = (Y[0].imag() = 0);
+					X[4].real() = (Y[4].real() = 1);
 				if (i == 0) {
 					fftw(Y);
-					fft_complex2((double*) X.data(), N);
+					complex_test(X.data(), N);
 				} else {
 					auto b = fftw(Y);
 					timer tm;
 					tm.start();
-					fft_complex2((double*) X.data(), N);
+					complex_test(X.data(), N);
 					tm.stop();
 					t2 += tm.read();
 					t4 += tm.read();
@@ -281,10 +281,10 @@ int main(int argc, char **argv) {
 						double y = X[n].imag() - Y[n].imag();
 						double err = sqrt(x * x + y * y);
 						avg_err += err;
-						//	printf("%16e %16e | %16e %16e | %16e %16e\n",
-						//	X[n].real(), X[n].imag(), Y[n].real(),
-						//	Y[n].imag(), X[n].real() - Y[n].real(),
-						//	X[n].imag() - Y[n].imag();
+							printf("%16e %16e | %16e %16e | %16e %16e\n",
+							X[n].real(), X[n].imag(), Y[n].real(),
+							Y[n].imag(), X[n].real() - Y[n].real(),
+							X[n].imag() - Y[n].imag());
 					}
 				}
 			}
@@ -303,7 +303,7 @@ int main(int argc, char **argv) {
 			printf("C %c| %e %e %e %e %e | %e\n",
 					(pfac.size() == 1 && pfac.begin()->second == 1) ? '*' : ' ',
 					avg_err, t1, t2, t1 / (t2 + 1e-20), t4, score);
-			//	abort();
+				abort();
 		}
 	}
 	return 0;

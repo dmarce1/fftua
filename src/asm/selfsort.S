@@ -87,12 +87,25 @@ pass0:        cmp            $0, level
               dec            %rax
               test           %rax, %rax
               jz             call1
-              cmp            $2, %rax
-              je             continue
               call           butterflies4_and_transpose
               jmp            continue
 call0:        call           first_butterflies4
-              jmp            continue
+              push           X
+              push           Y
+              lea            (X, N, 4), X
+              lea            (Y, N, 4), Y
+              shr            N
+              mov            level, %rax
+              inc            %rax
+              mov            %rax, level
+              call           pass0
+              pop            Y
+              pop            X
+              call           pass0
+              shl            N
+              mov            level, %rax
+              dec            %rax
+              mov            %rax, level
 call1:        ret
 continue:     push           X
               push           Y
@@ -224,18 +237,20 @@ first_loop:   lea            (X, I, 8), %rax
               ret
 
 butterflies4_and_transpose:
-              mov            level, %rcx
-              mov            $1, %rax
-              add            $2, %rcx
-              shl            %rcx, %rax
+              mov            level, %rax
+              add            $3, %rax
               shl            %rax
               mov            Wptrs, %rdx
               mov            (%rdx, %rax, 8), Wr
               mov            8(%rdx, %rax, 8), Wi
-              shr            $3, %rax
+              mov            level, %rcx
+              inc            %rcx
+              mov            $1, %rax
+              shl            %rcx, %rax
               mov            %rax, N2
-              bsr            N, %rcx
+              bsr            N, %rax
               sub            %rax, %rcx
+              neg            %rcx
               sub            $4, %rcx
               mov            $1, M
               shl            %rcx, M
@@ -249,17 +264,16 @@ inner_loop:   vmovapd        (Wr, k2, 8), cos1
               vfmadd231pd    sin1, cos1, sin2
               xor            %rax, %rax
               mov            %rax, J
-              mov            M, %rdi
-              imul           N2, %rdi
-              shl            $5, %rdi
+              mov            N, %rdi
+              shl            %rdi
 butter_loop:  mov            I, %rsi
               shl            $2, %rsi
               add            J, %rsi
               imul           N2, %rsi
               add            k2, %rsi
-              lea            (X, k2, 8), %rax
+              lea            (X, %rsi, 8), %rax
               lea            (%rax, %rdi, 2), %rbx
-              lea            (Y, k2, 8), %rcx
+              lea            (Y, %rsi, 8), %rcx
               lea            (%rcx, %rdi, 2), %rdx
               vmovapd        (%rax), er0
               vmovapd        (%rax, %rdi), er1
@@ -295,23 +309,23 @@ store_loop:   mov            J, %rsi
               shl            $2, %rsi
               imul           N2, %rsi
               add            k2, %rsi
-              lea            (X, k2, 8), %rax
+              lea            (X, %rsi, 8), %rax
               lea            (%rax, %rdi, 2), %rbx
-              lea            (Y, k2, 8), %rcx
+              lea            (Y, %rsi, 8), %rcx
               lea            (%rcx, %rdi, 2), %rdx
+              vmovapd        er0, (%rax)
+              vmovapd        er3, (%rax, %rdi)
+              vmovapd        er1, (%rbx)
+              vmovapd        er2, (%rbx, %rdi)
+              vmovapd        ei0, (%rcx)
+              vmovapd        ei3, (%rcx, %rdi)
+              vmovapd        ei1, (%rdx)
+              vmovapd        ei2, (%rdx, %rdi)
               mov            J, %rax
               dec            %rax
               mov            %rax, J
               cmp            $-1, %rax
               je             exit_store
-              vmovapd        er0, (%rax)
-              vmovapd        er3, (%rax, N, 2)
-              vmovapd        er1, (%rbx)
-              vmovapd        er2, (%rbx, N, 2)
-              vmovapd        ei0, (%rcx)
-              vmovapd        ei3, (%rcx, N, 2)
-              vmovapd        ei1, (%rdx)
-              vmovapd        ei2, (%rdx, N, 2)
               vmovupd        (%rsp), er0
               vmovupd        32(%rsp), er1
               vmovupd        64(%rsp), er2
