@@ -24,3 +24,18 @@ fft_real2:    push           %r15
               pop            %r14
               pop            %r15
               ret
+
+
+              .align         32
+TW45:         .double        0.70710678118654752440
+              .double        0.70710678118654752440
+              .double        0.70710678118654752440
+              .double        0.70710678118654752440
+NONE:         .double        -1.0
+              .double        -1.0
+              .double        -1.0
+              .double        -1.0
+TWO:          .double        2.0
+              .double        2.0
+              .double        2.0
+              .double        2.0
